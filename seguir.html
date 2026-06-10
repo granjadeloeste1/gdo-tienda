@@ -18,6 +18,10 @@
   .estado .ic{font-size:34px;line-height:1}
   .estado .tx h1{font-size:18px;color:#fff;margin-bottom:2px}
   .estado .tx p{font-size:13px;color:#9a9a9a}
+  /* Pedido entregado: estado en verde */
+  .card.ok{border-color:#2f6f49;background:#0f1a12}
+  .estado.ok .tx h1{color:#34d36b}
+  .estado.ok .tx p{color:#7fcf9a}
   .eta{margin-top:14px;background:rgba(245,130,32,.1);border:1px solid rgba(245,130,32,.5);border-radius:10px;padding:12px 14px;text-align:center}
   .eta .big{font-size:26px;font-weight:800;color:#F58220;font-family:monospace}
   .eta .lbl{font-size:11px;color:#c89466;text-transform:uppercase;letter-spacing:.08em}
@@ -170,7 +174,7 @@
       }).join('') + '</ul>';
 
       app.innerHTML =
-        '<div class="card"><div class="estado"><div class="ic">' + ic + '</div>' +
+        '<div class="card' + (entregado ? ' ok' : '') + '"><div class="estado' + (entregado ? ' ok' : '') + '"><div class="ic">' + ic + '</div>' +
           '<div class="tx"><h1>' + tit + '</h1><p>' + sub + '</p></div></div>' + etaHTML + '</div>' +
         mapHTML +
         '<div class="card">' +

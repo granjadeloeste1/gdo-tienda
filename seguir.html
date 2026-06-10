@@ -82,16 +82,34 @@
     }
     function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
-    // Estima la hora de llegada a este pedido recorriendo la ruta desde el origen.
+    // Estima la hora de llegada a ESTE pedido, EN VIVO: parte de la hora actual
+    // y desde donde va el chofer ahora (su última parada resuelta), no desde una
+    // salida fija. Así el cliente ve siempre un ETA real = ahora + lo que falta.
     function calcularEta(ruta, pedidoId) {
       if (!ruta || !ruta.origen || ruta.origen.lat == null) return null;
       var ids = (ruta.orden && ruta.orden.length ? ruta.orden : ruta.pedidoIds) || [];
       var idx = ids.indexOf(pedidoId);
       if (idx < 0) return null;
-      var t = ruta.salidaMin == null ? SALIDA_DEF : ruta.salidaMin;
+      var prog = ruta.progreso || {};
+      var paradas = ruta._paradas || {};
+      // Ancla temporal: la hora de AHORA (en vivo).
+      var now = new Date();
+      var t = now.getHours() * 60 + now.getMinutes();
+      // Punto de partida del chofer = última parada ya entregada/no entregada
+      // antes de la mía; si todavía no resolvió ninguna, parte del origen.
       var prev = ruta.origen;
+      for (var j = 0; j < idx; j++) {
+        var stj = prog[ids[j]];
+        if (stj === 'entregado' || stj === 'no_entregado') {
+          var pj = paradas[ids[j]];
+          if (pj && pj.lat != null) prev = pj;
+        }
+      }
+      // Sumo viaje + demoras SOLO de las paradas pendientes hasta llegar a la mía.
       for (var i = 0; i <= idx; i++) {
-        var p = (ruta._paradas || {})[ids[i]];
+        var sti = prog[ids[i]];
+        if (sti === 'entregado' || sti === 'no_entregado') continue; // ya pasó
+        var p = paradas[ids[i]];
         if (p && p.lat != null && prev.lat != null) t += (haversine(prev, p) / VEL_KMH) * 60;
         if (i < idx) { var dem = (ruta.demoraPorId && ruta.demoraPorId[ids[i]] != null) ? ruta.demoraPorId[ids[i]] : (ruta.demoraDefaultMin || 0); t += dem; }
         if (p) prev = p;
@@ -176,6 +194,12 @@
         var info = rutaActual ? calcularEta(rutaActual, pedidoActual.id) : null;
         render(pedidoActual, info);
       }
+
+      // El ETA depende de la hora actual: lo refrescamos solos cada 30 s para que
+      // el cliente vea el tiempo avanzar aunque no cambie nada en la ruta.
+      setInterval(function () {
+        if (pedidoActual && (pedidoActual.estado === 'en_ruta' || pedidoActual.estado === 'salteado')) refrescar();
+      }, 30000);
 
       function escuchar() {
         if (pedidoUnsub) pedidoUnsub();

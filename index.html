@@ -405,13 +405,15 @@ function closeCart(){ document.getElementById("ovl").classList.remove("show"); d
 document.getElementById("ovl").addEventListener("click", function(e){ if(e.target===this) closeCart(); });
 
 function val(id){ var el=document.getElementById(id); return el?el.value:""; }
-function saveForm(){ try{ localStorage.setItem("gdo_form", JSON.stringify({ n:val("cName"), t:val("cTel"), a:val("cAddr"), p:val("cPay"), o:val("cNotes"), g:geoCoords })); }catch(e){} }
+function saveForm(){ try{ localStorage.setItem("gdo_form", JSON.stringify({ n:val("cName"), t:val("cTel"), a:val("cAddr"), l:val("cLoc"), e:val("cEntre"), p:val("cPay"), o:val("cNotes"), g:geoCoords })); }catch(e){} }
 function restoreForm(){
   try{ var f=JSON.parse(localStorage.getItem("gdo_form")||"null"); if(!f) return;
     if(!val("cName")) document.getElementById("cName").value=f.n||"";
     if(!val("cTel")) document.getElementById("cTel").value=f.t||"";
     if(!val("cAddr")) document.getElementById("cAddr").value=f.a||"";
-    if(f.p) document.getElementById("cPay").value=f.p;
+    if(!val("cLoc")) document.getElementById("cLoc").value=f.l||"";
+    if(!val("cEntre")) document.getElementById("cEntre").value=f.e||"";
+    if(f.p){ var pe=document.getElementById("cPay"); if([].some.call(pe.options,function(o){return o.value===f.p;})) pe.value=f.p; }
     if(!val("cNotes")) document.getElementById("cNotes").value=f.o||"";
     if(f.g && f.g.lat) geoCoords=f.g;
   }catch(e){}
@@ -441,9 +443,10 @@ function acSearch(q){
       var street=a.road||a.pedestrian||a.footway||a.path||a.neighbourhood||"";
       var num=a.house_number||"";
       var main = street ? (street + (num ? " " + num : "")) : ((it.display_name||"").split(",")[0]);
-      var rest = [a.suburb||a.neighbourhood||a.town||a.city||a.village||a.city_district||"", a.state||""].filter(Boolean).join(", ");
+      var loc = a.suburb||a.neighbourhood||a.town||a.city||a.village||a.city_district||"";
+      var rest = [loc, a.state||""].filter(Boolean).join(", ");
       var full = main + (rest ? ", " + rest : "");
-      AC_RESULTS[idx]={lat:it.lat, lon:it.lon, text:full};
+      AC_RESULTS[idx]={lat:it.lat, lon:it.lon, text:main, loc:loc};
       h+='<div class="acitem" onmousedown="acPick('+idx+')"><div>'+escAttr(main)+'</div>'+(rest?'<div class="acm">'+escAttr(rest)+'</div>':'')+'</div>';
     });
     drop.innerHTML=h; drop.classList.add("show");
@@ -452,6 +455,7 @@ function acSearch(q){
 function acPick(idx){
   var r=AC_RESULTS[idx]; if(!r) return;
   document.getElementById("cAddr").value=r.text;
+  var lc=document.getElementById("cLoc"); if(lc && r.loc && !lc.value.trim()) lc.value=r.loc;
   geoCoords={lat:parseFloat(r.lat), lon:parseFloat(r.lon)};
   saveForm();
   var drop=document.getElementById("acDrop"); drop.classList.remove("show"); drop.innerHTML="";
@@ -465,7 +469,7 @@ function sendWhatsApp(){
   if(!tel){ fgT.classList.add("err"); ok=false; } else fgT.classList.remove("err");
   if(!cart.length){ alert("Tu pedido está vacío."); return; }
   if(!ok) return;
-  var addr=val("cAddr").trim(), pay=val("cPay"), notes=val("cNotes").trim();
+  var addr=val("cAddr").trim(), loc=val("cLoc").trim(), entre=val("cEntre").trim(), pay=val("cPay"), notes=val("cNotes").trim();
   var L=[];
   L.push("🛒 *NUEVO PEDIDO*");
   L.push("*Granja del Oeste*");
@@ -475,7 +479,9 @@ function sendWhatsApp(){
   L.push("");
   L.push("• *Nombre:* "+name);
   L.push("• *Teléfono:* "+tel);
-  if(addr) L.push("• *Dirección/Localidad:* "+addr);
+  if(addr) L.push("• *Dirección:* "+addr);
+  if(loc) L.push("• *Localidad:* "+loc);
+  if(entre) L.push("• *Entre calles:* "+entre);
   if(geoCoords && geoCoords.lat) L.push("• *Ubicación (mapa):* https://maps.google.com/?q="+geoCoords.lat+","+geoCoords.lon);
   L.push("• *Forma de pago:* "+pay);
   if(notes) L.push("• *Notas generales:* "+notes);
@@ -494,7 +500,7 @@ function sendWhatsApp(){
   L.push("💰 *TOTAL ESTIMADO: "+$n(cartTotal())+"*");
   L.push("━━━━━━━━━━━━━━");
   L.push("");
-  L.push("_El pedido será confirmado por un miembro del equipo en horario comercial para coordinar la forma de pago, y la entrega o retiro según corresponda._");
+  L.push("_El pedido será confirmado por un miembro del equipo en horario comercial para acordar la entrega o retiro según corresponda._");
   var url="https://wa.me/5491135800164?text="+encodeURIComponent(L.join("\n"));
   window.open(url, "_blank");
 }
@@ -537,25 +543,32 @@ render();
           <div class="ferr">Ingresá un teléfono</div>
         </div>
         <div class="fg acwrap">
-          <label>Dirección / Localidad</label>
-          <input id="cAddr" type="text" autocomplete="off" placeholder="Escribí tu dirección (ej: Bombero Celiz 1200)" oninput="addrInput()" onblur="addrBlur()">
+          <label>Dirección</label>
+          <input id="cAddr" type="text" autocomplete="off" placeholder="Calle y número (ej: Bombero Celiz 1200)" oninput="addrInput()" onblur="addrBlur()">
           <div class="acdrop" id="acDrop"></div>
           <div class="geomsg" id="geoMsg"></div>
         </div>
         <div class="fg">
+          <label>Localidad</label>
+          <input id="cLoc" type="text" placeholder="Ej: Hurlingham, Villa Tesei…" oninput="saveForm()">
+        </div>
+        <div class="fg">
+          <label>Entre calles</label>
+          <input id="cEntre" type="text" placeholder="Ej: entre Av. Vergara y Pedernera" oninput="saveForm()">
+        </div>
+        <div class="fg">
           <label>Forma de pago</label>
           <select id="cPay" onchange="saveForm()">
-            <option value="A coordinar">A coordinar</option>
-            <option value="Efectivo">Efectivo</option>
-            <option value="Transferencia">Transferencia</option>
-            <option value="Débito / Crédito">Débito / Crédito</option>
+            <option value="Efectivo al momento de la entrega">Efectivo al momento de la entrega</option>
+            <option value="Transferencia previo a la entrega">Transferencia previo a la entrega</option>
+            <option value="QR al momento de la entrega">QR al momento de la entrega</option>
           </select>
         </div>
         <div class="fg">
           <label>Notas / aclaraciones</label>
           <textarea id="cNotes" placeholder="Horario de entrega, retiro, comentarios..." oninput="saveForm()"></textarea>
         </div>
-        <div class="note">El pedido <b>no es una compra cerrada</b>: será confirmado por un miembro del equipo en horario comercial (Lun&#8209;Sáb 6:00 a 13:30) para coordinar la forma de pago, y la entrega o retiro según corresponda. Los precios pueden estar sujetos a modificaciones.</div>
+        <div class="note">El pedido <b>no es una compra cerrada</b>: será confirmado por un miembro del equipo en horario comercial (Lun&#8209;Sáb 6:00 a 13:30) para acordar la entrega o retiro según corresponda. Los precios pueden estar sujetos a modificaciones.</div>
         <button class="send" id="sendBtn" onclick="sendWhatsApp()">
           <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
           Enviar pedido por WhatsApp
@@ -931,7 +944,10 @@ window.GDO = window.GDO || {};
     if(!inp) return;
     if(window.GDO && GDO.Geo && GDO.Geo.attachAutocomplete){
       GDO.Geo.attachAutocomplete(inp, function(it){
-        if(it && it.lat!=null) picked={ direccion: it.direccion||it.label, lat: it.lat, lng: it.lng, localidad: it.localidad||'' };
+        if(it && it.lat!=null){
+          picked={ direccion: it.direccion||it.label, lat: it.lat, lng: it.lng, localidad: it.localidad||'' };
+          if(it.localidad){ var lc=document.getElementById('cLoc'); if(lc && !lc.value.trim()){ lc.value=it.localidad; if(typeof saveForm==='function') saveForm(); } }
+        }
       }, { provincia:'Buenos Aires', departamento:'Hurlingham' });
       inp.addEventListener('input', function(){ picked=null; });
     }
@@ -968,8 +984,9 @@ window.GDO = window.GDO || {};
     var name=val2('cName').trim(), tel=val2('cTel').trim();
     if(!name || !tel) return;
     var addr=val2('cAddr').trim(), pay=val2('cPay'), notes=val2('cNotes').trim();
-    var lat=null, lng=null, localidad='';
-    if(picked && picked.direccion && addr && picked.direccion.toLowerCase()===addr.toLowerCase()){ lat=picked.lat; lng=picked.lng; localidad=picked.localidad||''; }
+    var localidad=val2('cLoc').trim(), entrecalles=val2('cEntre').trim();
+    var lat=null, lng=null;
+    if(picked && picked.direccion && addr && picked.direccion.toLowerCase()===addr.toLowerCase()){ lat=picked.lat; lng=picked.lng; if(!localidad) localidad=picked.localidad||''; }
     if(gpsCoord){ lat=gpsCoord.lat; lng=gpsCoord.lng; }
     var items=cart.map(function(l){
       return { producto: l.name+(l.brand?' ('+l.brand+')':''), cantidad: l.qty,
@@ -982,7 +999,7 @@ window.GDO = window.GDO || {};
     cart.forEach(function(l){ if(l.note&&l.note.trim()) esp.push(l.name+': '+l.note.trim()); });
     var pedido={
       id: nid(), origen:'tienda', cliente:name, telefono:tel,
-      direccion:addr, localidad:localidad, entrecalles:'', lat:lat, lng:lng,
+      direccion:addr, localidad:localidad, entrecalles:entrecalles, lat:lat, lng:lng,
       items:items, fechaEntrega:'', especificaciones:esp.join(' · '),
       prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
       ventana:'', historia:[], ts:Date.now()

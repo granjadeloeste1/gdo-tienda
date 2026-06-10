@@ -1164,7 +1164,6 @@ window.GDO = window.GDO || {};
                nota: (l.note||'').trim() };
     });
     var esp=[];
-    if(pay) esp.push('Pago: '+pay);
     if(notes) esp.push(notes);
     cart.forEach(function(l){ if(l.note&&l.note.trim()) esp.push(l.name+': '+l.note.trim()); });
     function pushInbox(p){
@@ -1206,6 +1205,7 @@ window.GDO = window.GDO || {};
         id: nid(), origen:'tienda', cliente:name, telefono:tel,
         direccion:addr, localidad:localidad, entrecalles:entrecalles, lat:lat, lng:lng,
         items:items, fechaEntrega:'', especificaciones:esp.join(' · '),
+        formaPago: pay || '',
         prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
         ventana:'', historia:[], ts:Date.now()
       });

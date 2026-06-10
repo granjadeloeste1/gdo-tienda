@@ -1023,8 +1023,23 @@ window.GDO = window.GDO || {};
 
   var _send=window.sendWhatsApp;
   if(typeof _send==='function'){
+    // Anti doble-envío: si el cliente toca "Enviar" dos veces seguidas (o con
+    // doble tap), no queremos registrar el pedido dos veces. Solo bloqueamos
+    // cuando el pedido es VÁLIDO (hay carrito + nombre + teléfono); si falta
+    // algo, dejamos pasar para que _send muestre el error y no quede trabado.
+    var _enviando=false;
     window.sendWhatsApp=function(){
-      try{ registrarPedidoReparto(); }catch(e){}
+      var nombre=val2('cName').trim(), tel=val2('cTel').trim();
+      var valido=window.cart && cart.length && nombre && tel;
+      if(valido){
+        if(_enviando) return;            // ya se está enviando: ignorar el 2º click
+        _enviando=true;
+        var btn=document.getElementById('sendBtn');
+        if(btn) btn.disabled=true;
+        try{ registrarPedidoReparto(); }catch(e){}
+        // se rehabilita a los 4 s para permitir un reenvío deliberado más tarde
+        setTimeout(function(){ _enviando=false; if(btn) btn.disabled=false; }, 4000);
+      }
       return _send.apply(this, arguments);
     };
   }

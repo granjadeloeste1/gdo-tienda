@@ -101,12 +101,18 @@
       var t = now.getHours() * 60 + now.getMinutes();
       // Punto de partida del chofer = última parada ya entregada/no entregada
       // antes de la mía; si todavía no resolvió ninguna, parte del origen.
-      var prev = ruta.origen;
-      for (var j = 0; j < idx; j++) {
-        var stj = prog[ids[j]];
-        if (stj === 'entregado' || stj === 'no_entregado') {
-          var pj = paradas[ids[j]];
-          if (pj && pj.lat != null) prev = pj;
+      // Punto de partida del chofer. Si está mandando su GPS EN VIVO (y es
+      // reciente, < 5 min), partimos de su posición real → ETA exacto. Si no,
+      // caemos a la última parada resuelta antes de la mía (o el origen).
+      var chofer = (ruta.choferPos && ruta.choferPos.lat != null && (Date.now() - (ruta.choferPos.ts || 0) < 300000)) ? ruta.choferPos : null;
+      var prev = chofer || ruta.origen;
+      if (!chofer) {
+        for (var j = 0; j < idx; j++) {
+          var stj = prog[ids[j]];
+          if (stj === 'entregado' || stj === 'no_entregado') {
+            var pj = paradas[ids[j]];
+            if (pj && pj.lat != null) prev = pj;
+          }
         }
       }
       // Sumo viaje + demoras SOLO de las paradas pendientes hasta llegar a la mía.
@@ -118,7 +124,7 @@
         if (i < idx) { var dem = (ruta.demoraPorId && ruta.demoraPorId[ids[i]] != null) ? ruta.demoraPorId[ids[i]] : (ruta.demoraDefaultMin || 0); t += dem; }
         if (p) prev = p;
       }
-      return { eta: t, pos: idx + 1, total: ids.length };
+      return { eta: t, pos: idx + 1, total: ids.length, chofer: chofer };
     }
 
     var STEPS = [
@@ -128,11 +134,15 @@
       { k: 'entregado', lbl: 'Entregado' },
     ];
 
-    var map = null, marker = null;
-    function pintarMapa(p) {
+    var map = null, marker = null, choferMarker = null;
+    function pintarMapa(p, chofer) {
       if (p.lat == null || !window.L) return;
       var el = document.getElementById('map');
       if (!el) return;
+      // render() reconstruye el HTML (nuevo div #map) en cada actualización; si el
+      // mapa apunta a un contenedor viejo (ya desconectado), lo reiniciamos sobre
+      // el nuevo. Así el mapa NO queda en blanco al actualizarse la posición.
+      if (map && (!map.getContainer || map.getContainer() !== el)) { try { map.remove(); } catch (e) {} map = null; marker = null; choferMarker = null; }
       if (!map) {
         map = L.map(el, { zoomControl: true, attributionControl: false }).setView([p.lat, p.lng], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
@@ -140,7 +150,16 @@
       if (marker) map.removeLayer(marker);
       var icon = L.divIcon({ className: '', iconSize: [30, 30], iconAnchor: [15, 28], html: '<div style="font-size:30px;line-height:1">📍</div>' });
       marker = L.marker([p.lat, p.lng], { icon: icon }).addTo(map);
-      map.setView([p.lat, p.lng], 15);
+      // Chofer EN VIVO: marcador del camión + encuadre para ver ambos puntos.
+      if (choferMarker) { map.removeLayer(choferMarker); choferMarker = null; }
+      if (chofer && chofer.lat != null) {
+        var cic = L.divIcon({ className: '', iconSize: [36, 36], iconAnchor: [18, 18], html: '<div style="font-size:30px;line-height:1">🚚</div>' });
+        choferMarker = L.marker([chofer.lat, chofer.lng], { icon: cic }).addTo(map);
+        try { map.fitBounds(L.latLngBounds([[p.lat, p.lng], [chofer.lat, chofer.lng]]), { padding: [45, 45], maxZoom: 16 }); }
+        catch (e) { map.setView([p.lat, p.lng], 15); }
+      } else {
+        map.setView([p.lat, p.lng], 15);
+      }
       setTimeout(function () { try { map.invalidateSize(); } catch (e) {} }, 150);
     }
 
@@ -159,7 +178,8 @@
 
       var etaHTML = '';
       if (enCamino && info && info.eta != null) {
-        etaHTML = '<div class="eta"><div class="lbl">Llegada estimada</div><div class="big">' + fmtHora(info.eta) + ' hs</div>' +
+        var vivo = info.chofer ? ' · en vivo 🚚' : '';
+        etaHTML = '<div class="eta"><div class="lbl">Llegada estimada' + vivo + '</div><div class="big">' + fmtHora(info.eta) + ' hs</div>' +
           '<div class="lbl" style="margin-top:4px">Sos la parada ' + info.pos + ' de ' + info.total + '</div></div>';
       }
 
@@ -186,7 +206,7 @@
         '<div class="card">' + stepsHTML + '</div>' +
         '<div class="muted">Se actualiza solo. Dejá esta pantalla abierta para ver el avance.</div>';
 
-      if (p.lat != null) pintarMapa(p);
+      if (p.lat != null) pintarMapa(p, (enCamino && info) ? info.chofer : null);
     }
 
     function arrancar() {

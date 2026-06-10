@@ -633,7 +633,7 @@ GDO.CONFIG = GDO.CONFIG || { googleKey: 'AIzaSyCPwMUNJjtukzrFC2C2saOV49HPESfr3Jk
     window.__gdoGmapsReady = function () { GDO.Google.disponible = true; resolve(true); };
     var s = document.createElement('script');
     s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(key) +
-      '&libraries=geometry&loading=async&callback=__gdoGmapsReady';
+      '&libraries=geometry,places&loading=async&callback=__gdoGmapsReady';
     s.async = true; s.defer = true;
     s.onerror = function () { resolve(false); };
     document.head.appendChild(s);
@@ -782,11 +782,79 @@ window.GDO = window.GDO || {};
   // luego el resto de la provincia filtrado a esos partidos, así nunca se ofrece
   // una calle homónima de un pueblo lejano. opts: { max } (provincia/departamento
   // se mantienen por compatibilidad pero ya no cambian el resultado).
+  // ===== Google Places (autocompletado "pro", SDK nuevo) =====
+  // Sugerencias mientras se escribe usando Places (AutocompleteSuggestion). Es
+  // el motor más confiable en Argentina. Devuelve items SIN coordenadas (solo
+  // el texto + el placePrediction): las coords se resuelven al ELEGIR (1 sola
+  // consulta de detalle), para no gastar de más. Si Google no está disponible o
+  // falla, devuelve null y se usa Georef. _gDisabled corta reintentos si la API
+  // está denegada (clave sin permiso / API no habilitada).
+  let _gToken = null, _gDisabled = false;
+  async function suggestGoogle(text) {
+    try {
+      if (_gDisabled) return null;
+      if (!(GDO.Google && GDO.Google.disponible)) return null;
+      if (!(window.google && google.maps && google.maps.places)) return null;
+      const P = google.maps.places;
+      if (!P.AutocompleteSuggestion || !P.AutocompleteSuggestion.fetchAutocompleteSuggestions) return null;
+      if (!_gToken && P.AutocompleteSessionToken) _gToken = new P.AutocompleteSessionToken();
+      const b = ZONA.box;
+      const req = {
+        input: text,
+        includedRegionCodes: ['ar'],
+        language: 'es',
+        locationBias: { west: b.minLng, south: b.minLat, east: b.maxLng, north: b.maxLat },
+      };
+      if (_gToken) req.sessionToken = _gToken;
+      const res = await P.AutocompleteSuggestion.fetchAutocompleteSuggestions(req);
+      const sugg = (res && res.suggestions) || [];
+      const out = [];
+      for (const s of sugg) {
+        const pp = s.placePrediction;
+        if (!pp) continue;
+        const label = (pp.text && (pp.text.text || pp.text)) || '';
+        if (!label) continue;
+        out.push({ label: String(label), _pp: pp, _placeId: pp.placeId || null, lat: null, lng: null, localidad: '' });
+      }
+      return out;
+    } catch (e) { _gDisabled = true; return null; }
+  }
+
+  // Resuelve coords + localidad de una sugerencia de Google al elegirla.
+  async function placeCoords(item) {
+    try {
+      if (!(window.google && google.maps && google.maps.places)) return null;
+      let place = null;
+      if (item._pp && item._pp.toPlace) place = item._pp.toPlace();
+      else if (item._placeId && google.maps.places.Place) place = new google.maps.places.Place({ id: item._placeId });
+      if (!place) return null;
+      await place.fetchFields({ fields: ['location', 'addressComponents', 'formattedAddress'] });
+      _gToken = null; // cerrada la sesión: la próxima búsqueda abre una nueva
+      const loc = place.location;
+      const lat = loc && (typeof loc.lat === 'function' ? loc.lat() : loc.lat);
+      const lng = loc && (typeof loc.lng === 'function' ? loc.lng() : loc.lng);
+      if (lat == null || lng == null) return null;
+      let localidad = '', calle = '', num = '';
+      (place.addressComponents || []).forEach((c) => {
+        const t = c.types || [];
+        const txt = c.longText || c.long_name || '';
+        if (!localidad && (t.indexOf('locality') >= 0 || t.indexOf('sublocality') >= 0 || t.indexOf('administrative_area_level_2') >= 0)) localidad = txt;
+        if (t.indexOf('route') >= 0) calle = txt;
+        if (t.indexOf('street_number') >= 0) num = txt;
+      });
+      const direccion = calle ? (calle + (num ? ' ' + num : '')) : (place.formattedAddress || item.label);
+      return { lat: +lat, lng: +lng, localidad: localidad, direccion: direccion };
+    } catch (e) { return null; }
+  }
+
   async function suggest(text, opts) {
     const q = String(text || '').trim();
     if (q.length < 4) return [];
     opts = opts || {};
     const max = opts.max || 6;
+    // 1) Google primero (lo más confiable en Argentina). Si no está disponible o
+    //    falla, caemos a Georef (gratis) sin romper la experiencia.
+    try { const g = await suggestGoogle(q); if (g && g.length) return g.slice(0, max); } catch (e) {}
     try {
       const out = [], seen = {};
       const push = (list) => {
@@ -995,10 +1063,16 @@ window.GDO = window.GDO || {};
       place();
       box.style.display = 'block';
     };
-    const pick = (it) => {
-      input.value = it.direccion || it.label || input.value;
+    const pick = async (it) => {
       hide();
-      if (onPick) try { onPick(it); } catch (e) {}
+      let enriched = it;
+      // Sugerencia de Google: trae solo el texto; resolvemos coords al elegir.
+      if (it && it.lat == null && (it._pp || it._placeId) && typeof placeCoords === 'function') {
+        const d = await placeCoords(it).catch(() => null);
+        if (d) enriched = Object.assign({}, it, d);
+      }
+      input.value = (enriched && (enriched.direccion || enriched.label)) || input.value;
+      if (onPick) try { onPick(enriched); } catch (e) {}
     };
 
     box.addEventListener('mousedown', (e) => {
@@ -1053,9 +1127,11 @@ window.GDO = window.GDO || {};
     return 'p_'+Date.now().toString(36)+Math.random().toString(36).slice(2,12)+Math.random().toString(36).slice(2,12);
   }
   function val2(id){ var e=document.getElementById(id); return e?e.value:''; }
-  var picked=null, gpsCoord=null;
+  var picked=null;
 
-  // Autocompletado de direccion (Georef AR) + boton "Usar mi ubicacion actual".
+  // Autocompletado de dirección (Google Places, con Georef de respaldo).
+  // El cliente escribe y elige de la lista: no hace falta estar parado en la
+  // dirección de entrega (por eso ya no usamos "mi ubicación actual").
   (function initAuto(){
     var inp=document.getElementById('cAddr');
     if(!inp) return;
@@ -1066,39 +1142,12 @@ window.GDO = window.GDO || {};
           geoCoords={ lat: it.lat, lon: it.lng }; // para el link al mapa del WhatsApp
           var lc=document.getElementById('cLoc'); if(it.localidad && lc && !lc.value.trim()){ lc.value=it.localidad; }
           if(typeof saveForm==='function') saveForm();
-          var gm=document.getElementById('geoMsg'); if(gm){ gm.className='geomsg ok'; gm.textContent='✓ Dirección ubicada. Agregá el número de puerta o aclaraciones si falta.'; }
+          var gm=document.getElementById('geoMsg'); if(gm){ gm.className='geomsg ok'; gm.textContent='✓ Dirección ubicada.'; }
         }
       }, { provincia:'Buenos Aires', departamento:'Hurlingham' });
       // Al editar a mano se invalida el pin hasta elegir/confirmar de nuevo.
       inp.addEventListener('input', function(){ picked=null; geoCoords=null; var gm=document.getElementById('geoMsg'); if(gm){ gm.className='geomsg'; gm.textContent=''; } });
     }
-    // Inyecta el boton de GPS justo debajo del campo de direccion.
-    var gb=document.getElementById('cGeo');
-    if(!gb){
-      gb=document.createElement('button');
-      gb.type='button'; gb.id='cGeo';
-      gb.style.cssText='margin-top:8px;width:100%;background:#F58220;color:#fff;border:none;border-radius:10px;padding:12px;font:600 14px/1.2 inherit;cursor:pointer';
-      gb.innerHTML='📍 Usar mi ubicación actual';
-      var gm=document.createElement('div');
-      gm.id='cGeoMsg'; gm.style.cssText='margin-top:6px;font-size:12.5px;line-height:1.4';
-      inp.parentNode.insertBefore(gb, inp.nextSibling);
-      gb.parentNode.insertBefore(gm, gb.nextSibling);
-    }
-    var gm2=document.getElementById('cGeoMsg');
-    gb.addEventListener('click', function(){
-      if(!navigator.geolocation){ if(gm2){ gm2.style.color='#f87171'; gm2.textContent='Tu dispositivo no permite ubicacion.'; } return; }
-      var prev=gb.innerHTML; gb.disabled=true; gb.innerHTML='Ubicando…';
-      if(gm2){ gm2.style.color='#999'; gm2.textContent='Obteniendo tu ubicacion…'; }
-      navigator.geolocation.getCurrentPosition(function(pos){
-        gb.disabled=false; gb.innerHTML=prev;
-        gpsCoord={ lat: pos.coords.latitude, lng: pos.coords.longitude };
-        geoCoords={ lat: pos.coords.latitude, lon: pos.coords.longitude }; // link al mapa del WhatsApp
-        if(gm2){ gm2.style.color='#25D366'; gm2.textContent='✓ Ubicacion fijada. El reparto llegara al punto exacto.'; }
-      }, function(err){
-        gb.disabled=false; gb.innerHTML=prev;
-        if(gm2){ gm2.style.color='#f87171'; gm2.textContent=(err&&err.code===1)?'Permiso de ubicacion denegado. Activalo para usar tu ubicacion.':'No se pudo obtener tu ubicacion. Proba de nuevo.'; }
-      }, { enableHighAccuracy:true, timeout:10000, maximumAge:0 });
-    });
   })();
 
   function registrarPedidoReparto(){
@@ -1109,7 +1158,6 @@ window.GDO = window.GDO || {};
     var localidad=val2('cLoc').trim(), entrecalles=val2('cEntre').trim();
     var lat=null, lng=null;
     if(picked && picked.direccion && addr && picked.direccion.toLowerCase()===addr.toLowerCase()){ lat=picked.lat; lng=picked.lng; if(!localidad) localidad=picked.localidad||''; }
-    if(gpsCoord){ lat=gpsCoord.lat; lng=gpsCoord.lng; }
     var items=cart.map(function(l){
       return { producto: l.name+(l.brand?' ('+l.brand+')':''), cantidad: l.qty,
                unidad: (typeof unitLabel==='function'? unitLabel(l.unit,l.qty): l.unit),

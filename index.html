@@ -419,49 +419,11 @@ function restoreForm(){
   }catch(e){}
 }
 
-/* ===== Autocompletado de dirección mientras se escribe ===== */
-var geoCoords=null, acTimer=null, AC_RESULTS={};
-function addrInput(){
-  geoCoords=null;            // al editar a mano se invalida el pin hasta que elija una sugerencia
-  saveForm();
-  var msg=document.getElementById("geoMsg"); if(msg){ msg.className="geomsg"; msg.textContent=""; }
-  var q=(val("cAddr")||"").trim();
-  var drop=document.getElementById("acDrop");
-  if(acTimer) clearTimeout(acTimer);
-  if(q.length<3){ drop.classList.remove("show"); drop.innerHTML=""; return; }
-  acTimer=setTimeout(function(){ acSearch(q); }, 350);
-}
-function acSearch(q){
-  var drop=document.getElementById("acDrop");
-  var url="https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&countrycodes=ar&accept-language=es&q="+encodeURIComponent(q);
-  fetch(url).then(function(r){ return r.ok ? r.json() : []; }).then(function(list){
-    AC_RESULTS={};
-    if(!list || !list.length){ drop.innerHTML='<div class="acitem acnone">Sin resultados. Podés escribirla a mano.</div>'; drop.classList.add("show"); return; }
-    var h="";
-    list.forEach(function(it, idx){
-      var a=it.address||{};
-      var street=a.road||a.pedestrian||a.footway||a.path||a.neighbourhood||"";
-      var num=a.house_number||"";
-      var main = street ? (street + (num ? " " + num : "")) : ((it.display_name||"").split(",")[0]);
-      var loc = a.suburb||a.neighbourhood||a.town||a.city||a.village||a.city_district||"";
-      var rest = [loc, a.state||""].filter(Boolean).join(", ");
-      var full = main + (rest ? ", " + rest : "");
-      AC_RESULTS[idx]={lat:it.lat, lon:it.lon, text:main, loc:loc};
-      h+='<div class="acitem" onmousedown="acPick('+idx+')"><div>'+escAttr(main)+'</div>'+(rest?'<div class="acm">'+escAttr(rest)+'</div>':'')+'</div>';
-    });
-    drop.innerHTML=h; drop.classList.add("show");
-  }).catch(function(){ drop.classList.remove("show"); drop.innerHTML=""; });
-}
-function acPick(idx){
-  var r=AC_RESULTS[idx]; if(!r) return;
-  document.getElementById("cAddr").value=r.text;
-  var lc=document.getElementById("cLoc"); if(lc && r.loc && !lc.value.trim()) lc.value=r.loc;
-  geoCoords={lat:parseFloat(r.lat), lon:parseFloat(r.lon)};
-  saveForm();
-  var drop=document.getElementById("acDrop"); drop.classList.remove("show"); drop.innerHTML="";
-  var msg=document.getElementById("geoMsg"); if(msg){ msg.className="geomsg ok"; msg.textContent="✓ Dirección seleccionada. Agregá el número de puerta o aclaraciones si falta."; }
-}
-function addrBlur(){ setTimeout(function(){ var d=document.getElementById("acDrop"); if(d) d.classList.remove("show"); }, 200); }
+/* ===== Coordenadas elegidas =====
+   Las setea el autocompletado (Georef/Google) al elegir una dirección, y el
+   botón "Usar mi ubicación actual". Se usan para el link al mapa en el WhatsApp
+   y para fijar el punto exacto del pedido en la app de reparto. */
+var geoCoords=null;
 function sendWhatsApp(){
   var name=val("cName").trim(), tel=val("cTel").trim(), ok=true;
   var fgN=document.getElementById("fgName"), fgT=document.getElementById("fgTel");
@@ -544,8 +506,7 @@ render();
         </div>
         <div class="fg acwrap">
           <label>Dirección</label>
-          <input id="cAddr" type="text" autocomplete="off" placeholder="Calle y número (ej: Bombero Celiz 1200)" oninput="addrInput()" onblur="addrBlur()">
-          <div class="acdrop" id="acDrop"></div>
+          <input id="cAddr" type="text" autocomplete="off" placeholder="Calle y número (ej: Bombero Celiz 1200)" oninput="saveForm()">
           <div class="geomsg" id="geoMsg"></div>
         </div>
         <div class="fg">
@@ -656,6 +617,30 @@ window.GDO = window.GDO || {};
 })();
 </script>
 <script>
+/* ===== Google Maps Platform (geocodificación precisa) =====
+   Mismo motor que la app de reparto. La clave está restringida por dominio
+   (HTTP referrer) en la consola de Google: solo funciona desde
+   rutas.granjadeloeste.com y lista.granjadeloeste.com. Si la clave falla o no
+   carga, la tienda sigue funcionando con Georef + OSM (gratis). Google se
+   consulta UNA sola vez por pedido (al confirmar), no en cada tecla. */
+window.GDO = window.GDO || {};
+GDO.CONFIG = GDO.CONFIG || { googleKey: 'AIzaSyCPwMUNJjtukzrFC2C2saOV49HPESfr3Jk' };
+(function () {
+  GDO.Google = { ready: Promise.resolve(false), disponible: false };
+  var key = (GDO.CONFIG.googleKey || '').trim();
+  if (!key) return; // sin clave: seguimos con Georef/OSM
+  GDO.Google.ready = new Promise(function (resolve) {
+    window.__gdoGmapsReady = function () { GDO.Google.disponible = true; resolve(true); };
+    var s = document.createElement('script');
+    s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(key) +
+      '&libraries=geometry&loading=async&callback=__gdoGmapsReady';
+    s.async = true; s.defer = true;
+    s.onerror = function () { resolve(false); };
+    document.head.appendChild(s);
+  });
+})();
+</script>
+<script>
 /* ====== GDO Reparto — geocodificación (dirección → coordenadas) ======
    Usa Nominatim (OpenStreetMap): gratis, sin API key ni tarjeta. Cachea los
    resultados en localStorage para no repetir consultas. Política de uso de
@@ -693,13 +678,82 @@ window.GDO = window.GDO || {};
   // Posición del partido en la zona (0 = más cercano). -1 = fuera de zona.
   const zonaRank = (partido) => _zonaSet.indexOf(_sinAcento(partido));
   const inZona = (partido) => zonaRank(partido) >= 0;
+
+  // ---- Localidades de la zona (para separar calle de localidad) -----------
+  // Georef necesita SOLO la calle (y la altura) en el campo "direccion". Si el
+  // texto trae la localidad pegada (p. ej. "Valentín Alsina William Morris"),
+  // la interpreta como nombre de calle y NO encuentra nada. Por eso detectamos
+  // la localidad al final de la dirección, la separamos y la mandamos aparte.
+  const LOCALIDADES = [
+    'hurlingham', 'william morris', 'villa tesei', 'villa club',
+    'moron', 'castelar', 'el palomar', 'haedo', 'villa sarmiento',
+    'ituzaingo', 'villa udaondo', 'parque leloir', 'villa gobernador udaondo',
+    'caseros', 'santos lugares', 'saenz pena', 'jose ingenieros', 'ciudadela',
+    'el libertador', 'churruca', 'martin coronado', 'pablo podesta',
+    'loma hermosa', 'ciudad jardin', 'tres de febrero',
+    'san andres', 'villa ballester', 'jose leon suarez', 'billinghurst',
+    'general san martin', 'san martin',
+    'san miguel', 'bella vista', 'munro', 'los polvorines', 'pablo nogues',
+    'grand bourg', 'tortuguitas', 'del viso', 'jose c paz',
+    'merlo', 'san antonio de padua', 'padua', 'libertad', 'parque san martin',
+    'moreno', 'paso del rey', 'francisco alvarez',
+  ].sort((a, b) => b.length - a.length); // más larga primero (matchea antes)
+
+  // "Calle [altura] [, ] Localidad" -> { calle, localidad }. Trabaja sobre el
+  // texto sin acentos y normalizado (Georef es insensible a acentos).
+  function partirDireccion(base) {
+    const limpio = _sinAcento(base).replace(/[.,]/g, ' ').replace(/\s+/g, ' ').trim();
+    for (const loc of LOCALIDADES) {
+      if (limpio === loc) return { calle: '', localidad: loc };
+      if (limpio.endsWith(' ' + loc)) return { calle: limpio.slice(0, limpio.length - loc.length).trim(), localidad: loc };
+    }
+    return { calle: limpio, localidad: '' };
+  }
+
+  // Saca la altura (número) del final de una calle: "valentin alsina 1200" -> "valentin alsina".
+  const _soloCalle = (s) => String(s || '').replace(/\s*\d+\s*$/, '').trim();
+
+  // De un campo "entre calles" saca hasta 2 nombres de calle de cruce. Acepta
+  // "Calle A y Calle B", "entre A y B", "A esquina B", "A / B", "A esq. B".
+  function crucesDe(entrecalles) {
+    let s = _sinAcento(entrecalles).replace(/[.,]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!s) return [];
+    s = s.replace(/^entre\s+/, '').replace(/\besquina\b|\besq\b/g, ' y ');
+    return s.split(/\s+y\s+|\s*\/\s*/).map((x) => x.trim()).filter(Boolean).slice(0, 2);
+  }
+
+  // Geolocaliza por intersección (esquina): "calle y cruce". Si hay dos cruces,
+  // promedia las dos esquinas para caer a mitad de cuadra (lo más cercano a la
+  // casa). Devuelve {lat,lng,...} o null. Es lo más PRECISO y además distingue
+  // calles homónimas (p. ej. Valentín Alsina de Hurlingham vs. la de W. Morris):
+  // un cruce dado existe en una sola de las dos.
+  async function geocodeInterseccion(calle, cruces, localidad) {
+    const pts = [];
+    for (const cr of cruces) {
+      const q = calle + ' y ' + cr;
+      let inter = (await _georefQuery(q, ZONA.provincia, null, 3, localidad))
+        .filter((it) => it.lat != null && inZona(it.partido))
+        .sort((a, b) => zonaRank(a.partido) - zonaRank(b.partido));
+      if (!inter.length && localidad) {
+        inter = (await _georefQuery(q, ZONA.provincia, null, 5))
+          .filter((it) => it.lat != null && inZona(it.partido))
+          .sort((a, b) => zonaRank(a.partido) - zonaRank(b.partido));
+      }
+      if (inter.length) pts.push(inter[0]);
+    }
+    if (!pts.length) return null;
+    const lat = pts.reduce((s, p) => s + p.lat, 0) / pts.length;
+    const lng = pts.reduce((s, p) => s + p.lng, 0) / pts.length;
+    return { lat, lng, display: pts[0].label, localidad: pts[0].localidad || '', partido: pts[0].partido || '', aprox: pts.length < 2 };
+  }
   function loadCache() { try { return JSON.parse(localStorage.getItem(CACHE) || '{}'); } catch (e) { return {}; } }
   function saveCache(c) { try { localStorage.setItem(CACHE, JSON.stringify(c)); } catch (e) {} }
 
   // Una consulta a Georef /direcciones. Devuelve [{label,direccion,lat,lng,...}].
-  async function _georefQuery(q, provincia, departamento, max) {
+  async function _georefQuery(q, provincia, departamento, max, localidad) {
     const params = { direccion: q, provincia: provincia || 'Buenos Aires', max: String(max || 6), campos: 'estandar' };
     if (departamento) params.departamento = departamento;
+    if (localidad) params.localidad = localidad;
     const r = await fetch(GEOREF + '/direcciones?' + new URLSearchParams(params), { headers: { Accept: 'application/json' } });
     if (!r.ok) return [];
     const data = await r.json();
@@ -743,13 +797,18 @@ window.GDO = window.GDO || {};
           if (out.length >= max) break;
         }
       };
+      // Separamos la localidad si el usuario la escribió pegada a la calle.
+      const { calle, localidad } = partirDireccion(q);
+      const qCalle = calle || q;
+      // 0) Si hay localidad detectada, buscamos la calle filtrando por ella.
+      if (localidad) push((await _georefQuery(qCalle, ZONA.provincia, null, max, localidad)).filter((it) => inZona(it.partido)));
       // 1) Base: Hurlingham (zona principal de GDO) — match exacto y rápido.
-      push(await _georefQuery(q, ZONA.provincia, 'Hurlingham', max));
+      if (out.length < max) push(await _georefQuery(qCalle, ZONA.provincia, 'Hurlingham', max));
       // 2) Completar con el resto de la PROVINCIA pero filtrando SOLO a los
       //    partidos de la zona de reparto (Morón, Ituzaingó, etc.). Así nunca
       //    aparece una calle homónima de un pueblo lejano.
       if (out.length < max) {
-        const prov = await _georefQuery(q, ZONA.provincia, null, 30);
+        const prov = await _georefQuery(qCalle, ZONA.provincia, null, 30);
         push(prov.filter((it) => inZona(it.partido)));
       }
       // Ordenar por cercanía de zona (Hurlingham primero).
@@ -790,35 +849,93 @@ window.GDO = window.GDO || {};
     return partes.map((s) => s.trim()).filter(Boolean).join(', ');
   }
 
+  // Geocodificación con Google (Maps JavaScript API). Solo se usa si hay clave
+  // cargada (GDO.CONFIG.googleKey). Es el motor MÁS preciso en Argentina: ubica
+  // a nivel de puerta. Igual validamos que el punto caiga dentro de la zona de
+  // reparto; si no, devolvemos null para que sigan Georef/OSM. No requiere
+  // separar localidad ni calle: Google entiende la dirección completa.
+  async function _googleGeocode(direccion) {
+    try {
+      if (!GDO.Google) return null;
+      if (!GDO.Google.disponible) { const ok = await GDO.Google.ready; if (!ok) return null; }
+      if (typeof google === 'undefined' || !google.maps || !google.maps.Geocoder) return null;
+      const b = ZONA.box;
+      const bounds = new google.maps.LatLngBounds(
+        new google.maps.LatLng(b.minLat, b.minLng),
+        new google.maps.LatLng(b.maxLat, b.maxLng));
+      const q = /argentina/i.test(direccion) ? direccion : direccion + ', Buenos Aires, Argentina';
+      const geocoder = new google.maps.Geocoder();
+      const dentro = (lat, lng) => lat >= b.minLat && lat <= b.maxLat && lng >= b.minLng && lng <= b.maxLng;
+      return await new Promise((resolve) => {
+        geocoder.geocode({ address: q, bounds, region: 'ar', componentRestrictions: { country: 'AR' } }, (results, status) => {
+          if (status !== 'OK' || !results || !results.length) { resolve(null); return; }
+          // Preferimos un resultado dentro de la caja de la zona de reparto.
+          let r = results.find((x) => { const l = x.geometry.location; return dentro(l.lat(), l.lng()); }) || results[0];
+          const lat = r.geometry.location.lat(), lng = r.geometry.location.lng();
+          if (!dentro(lat, lng)) { resolve(null); return; } // fuera de zona → que sigan Georef/OSM
+          const lt = r.geometry.location_type; // ROOFTOP > RANGE_INTERPOLATED > GEOMETRIC_CENTER > APPROXIMATE
+          const aprox = !(lt === 'ROOFTOP' || lt === 'RANGE_INTERPOLATED');
+          let loc = '';
+          (r.address_components || []).forEach((c) => {
+            if (!loc && (c.types.indexOf('locality') >= 0 || c.types.indexOf('sublocality') >= 0)) loc = c.long_name;
+          });
+          resolve({ lat, lng, display: r.formatted_address, localidad: loc, partido: '', aprox });
+        });
+      });
+    } catch (e) { return null; }
+  }
+
   // Devuelve una Promesa con {lat,lng,display,aprox} o null si no se encontró.
-  // OSM en esta zona muchas veces no tiene la altura exacta; si la dirección
-  // completa falla, reintenta sin el número para caer al menos a nivel de calle
-  // (marca aprox:true) en vez de no ubicar nada.
-  async function geocode(direccion) {
+  // Orden de motores: Google (si hay clave, lo más preciso) → Georef (oficial AR)
+  // → OSM/Nominatim. OSM en esta zona muchas veces no tiene la altura exacta; si
+  // la dirección completa falla, reintenta sin el número para caer al menos a
+  // nivel de calle (marca aprox:true) en vez de no ubicar nada.
+  async function geocode(direccion, entrecalles) {
     const base = String(direccion || '').trim();
     if (!base) return null;
-    // Clave de caché versionada ('z2'): invalida coordenadas viejas mal ubicadas
-    // (de antes de acotar a la zona) que pudieran estar guardadas en el navegador.
-    const key = 'z2|' + norm(base);
+    const ec = String(entrecalles || '').trim();
+    // Clave de caché versionada ('z5'): incluye las entrecalles (cambian el
+    // resultado) e invalida coordenadas/no-encontrados de versiones anteriores
+    // (z5 fuerza re-geocodificar con Google donde haya clave).
+    const key = 'z5|' + norm(base) + '|' + norm(ec);
     const cache = loadCache();
     if (Object.prototype.hasOwnProperty.call(cache, key)) return cache[key];
     let res = null;
-    try {
-      // 1) Georef en Hurlingham (base) — altura exacta.
-      let list = await _georefQuery(base, ZONA.provincia, 'Hurlingham', 1);
-      list = list.filter((it) => it.lat != null);
-      // 2) Si no está en Hurlingham, buscar en el resto de la zona de reparto.
-      if (!list.length) {
-        const prov = await _georefQuery(base, ZONA.provincia, null, 30);
-        list = prov.filter((it) => inZona(it.partido) && it.lat != null)
-          .sort((a, b) => zonaRank(a.partido) - zonaRank(b.partido));
-      }
-      if (list.length) {
-        const s = list[0];
-        res = { lat: s.lat, lng: s.lng, display: s.label, localidad: s.localidad || '', partido: s.partido || '', aprox: false };
+    // 0) Google primero (si hay clave): es el más preciso en Argentina.
+    res = await _googleGeocode(base);
+    // Separamos la localidad (si viene pegada) para no romper el parser de Georef.
+    const { calle, localidad } = partirDireccion(base);
+    const qCalle = calle || base;
+    if (!res) try {
+      // 0) Si hay entre-calles, intentamos la ESQUINA primero: es lo más preciso
+      //    y distingue calles homónimas (la Valentín Alsina de Hurlingham de la
+      //    de William Morris) sin depender de la localidad escrita.
+      const cruces = crucesDe(ec);
+      if (cruces.length) res = await geocodeInterseccion(_soloCalle(qCalle), cruces, localidad);
+      // Si la esquina no resolvió, ubicamos por calle (a nivel de cuadra/altura).
+      if (!res) {
+        let list = [];
+        // 1) Si detectamos localidad, la usamos como filtro (lo más preciso).
+        if (localidad) {
+          list = (await _georefQuery(qCalle, ZONA.provincia, null, 5, localidad))
+            .filter((it) => it.lat != null && inZona(it.partido))
+            .sort((a, b) => zonaRank(a.partido) - zonaRank(b.partido));
+        }
+        // 2) Georef en Hurlingham (base de GDO) con la calle sola.
+        if (!list.length) list = (await _georefQuery(qCalle, ZONA.provincia, 'Hurlingham', 3)).filter((it) => it.lat != null);
+        // 3) Si no está en Hurlingham, buscar en el resto de la zona de reparto.
+        if (!list.length) {
+          const prov = await _georefQuery(qCalle, ZONA.provincia, null, 30);
+          list = prov.filter((it) => inZona(it.partido) && it.lat != null)
+            .sort((a, b) => zonaRank(a.partido) - zonaRank(b.partido));
+        }
+        if (list.length) {
+          const s = list[0];
+          res = { lat: s.lat, lng: s.lng, display: s.label, localidad: s.localidad || '', partido: s.partido || '', aprox: false };
+        }
       }
     } catch (e) {}
-    // 3) Fallback a OSM/Nominatim, SIEMPRE acotado a la zona; reintento sin altura.
+    // 4) Fallback a OSM/Nominatim, SIEMPRE acotado a la zona; reintento sin altura.
     if (!res) res = await _queryBounded(base, false);
     if (!res) {
       const b2 = sinAltura(base);
@@ -946,10 +1063,14 @@ window.GDO = window.GDO || {};
       GDO.Geo.attachAutocomplete(inp, function(it){
         if(it && it.lat!=null){
           picked={ direccion: it.direccion||it.label, lat: it.lat, lng: it.lng, localidad: it.localidad||'' };
-          if(it.localidad){ var lc=document.getElementById('cLoc'); if(lc && !lc.value.trim()){ lc.value=it.localidad; if(typeof saveForm==='function') saveForm(); } }
+          geoCoords={ lat: it.lat, lon: it.lng }; // para el link al mapa del WhatsApp
+          var lc=document.getElementById('cLoc'); if(it.localidad && lc && !lc.value.trim()){ lc.value=it.localidad; }
+          if(typeof saveForm==='function') saveForm();
+          var gm=document.getElementById('geoMsg'); if(gm){ gm.className='geomsg ok'; gm.textContent='✓ Dirección ubicada. Agregá el número de puerta o aclaraciones si falta.'; }
         }
       }, { provincia:'Buenos Aires', departamento:'Hurlingham' });
-      inp.addEventListener('input', function(){ picked=null; });
+      // Al editar a mano se invalida el pin hasta elegir/confirmar de nuevo.
+      inp.addEventListener('input', function(){ picked=null; geoCoords=null; var gm=document.getElementById('geoMsg'); if(gm){ gm.className='geomsg'; gm.textContent=''; } });
     }
     // Inyecta el boton de GPS justo debajo del campo de direccion.
     var gb=document.getElementById('cGeo');
@@ -971,6 +1092,7 @@ window.GDO = window.GDO || {};
       navigator.geolocation.getCurrentPosition(function(pos){
         gb.disabled=false; gb.innerHTML=prev;
         gpsCoord={ lat: pos.coords.latitude, lng: pos.coords.longitude };
+        geoCoords={ lat: pos.coords.latitude, lon: pos.coords.longitude }; // link al mapa del WhatsApp
         if(gm2){ gm2.style.color='#25D366'; gm2.textContent='✓ Ubicacion fijada. El reparto llegara al punto exacto.'; }
       }, function(err){
         gb.disabled=false; gb.innerHTML=prev;
@@ -997,13 +1119,6 @@ window.GDO = window.GDO || {};
     if(pay) esp.push('Pago: '+pay);
     if(notes) esp.push(notes);
     cart.forEach(function(l){ if(l.note&&l.note.trim()) esp.push(l.name+': '+l.note.trim()); });
-    var pedido={
-      id: nid(), origen:'tienda', cliente:name, telefono:tel,
-      direccion:addr, localidad:localidad, entrecalles:entrecalles, lat:lat, lng:lng,
-      items:items, fechaEntrega:'', especificaciones:esp.join(' · '),
-      prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
-      ventana:'', historia:[], ts:Date.now()
-    };
     function pushInbox(p){
       var inbox=[];
       try{ inbox=JSON.parse(localStorage.getItem(INBOX)||'[]'); if(!Array.isArray(inbox)) inbox=[]; }catch(e){ inbox=[]; }
@@ -1027,15 +1142,42 @@ window.GDO = window.GDO || {};
         if(Array.isArray(inbox)){ localStorage.setItem(INBOX, JSON.stringify(inbox.filter(function(x){ return x && x.id!==id; }))); }
       }catch(e){}
     }
-    if(window.GDO && GDO.FB && GDO.FB.enabled && GDO.FB.db){
-      pushInbox(pedido);
-      fsWrite(pedido).then(function(){ dropInbox(pedido.id); }).catch(function(){ /* queda en inbox */ });
-    } else if(window.GDO && GDO.FB && GDO.FB.ready){
-      pushInbox(pedido);
-      GDO.FB.ready.then(function(en){
-        if(en && GDO.FB.db) return fsWrite(pedido).then(function(){ dropInbox(pedido.id); });
-      }).catch(function(){ /* queda en inbox */ });
-    } else { pushInbox(pedido); }
+    function guardar(pedido){
+      if(window.GDO && GDO.FB && GDO.FB.enabled && GDO.FB.db){
+        pushInbox(pedido);
+        fsWrite(pedido).then(function(){ dropInbox(pedido.id); }).catch(function(){ /* queda en inbox */ });
+      } else if(window.GDO && GDO.FB && GDO.FB.ready){
+        pushInbox(pedido);
+        GDO.FB.ready.then(function(en){
+          if(en && GDO.FB.db) return fsWrite(pedido).then(function(){ dropInbox(pedido.id); });
+        }).catch(function(){ /* queda en inbox */ });
+      } else { pushInbox(pedido); }
+    }
+    function finalizar(){
+      guardar({
+        id: nid(), origen:'tienda', cliente:name, telefono:tel,
+        direccion:addr, localidad:localidad, entrecalles:entrecalles, lat:lat, lng:lng,
+        items:items, fechaEntrega:'', especificaciones:esp.join(' · '),
+        prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
+        ventana:'', historia:[], ts:Date.now()
+      });
+    }
+    // Si todavía no hay coordenadas (el cliente escribió la dirección sin elegir
+    // una sugerencia ni usar el GPS), las buscamos con el MISMO motor que la app
+    // de reparto: Google (preciso) → Georef → OSM. Es UNA sola consulta por
+    // pedido. Tope de 6 s para no demorar el registro si la red está lenta: si
+    // no responde a tiempo, el pedido igual se guarda (después se ubica solo).
+    if(lat==null && addr && window.GDO && GDO.Geo && GDO.Geo.geocode){
+      var hecho=false;
+      var fin=function(){ if(hecho) return; hecho=true; finalizar(); };
+      var tope=setTimeout(fin, 6000);
+      GDO.Geo.geocode(addr, entrecalles).then(function(g){
+        if(g){ lat=g.lat; lng=g.lng; if(!localidad && g.localidad) localidad=g.localidad; }
+        clearTimeout(tope); fin();
+      }).catch(function(){ clearTimeout(tope); fin(); });
+    } else {
+      finalizar();
+    }
   }
 
   var _send=window.sendWhatsApp;

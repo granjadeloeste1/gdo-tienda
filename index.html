@@ -908,7 +908,20 @@ window.GDO = window.GDO || {};
 <script>
 (function(){
   var INBOX='gdo_reparto_inbox';
-  function nid(){ return 'p_'+Math.random().toString(36).slice(2,9); }
+  // ID de pedido largo e imposible de adivinar. El link de seguimiento que se
+  // manda por WhatsApp lleva este ID; si fuera corto/predecible, un tercero
+  // podria adivinarlo y leer los datos del cliente. crypto da 128 bits de azar;
+  // si no esta (navegadores muy viejos), caemos a Math.random combinado.
+  function nid(){
+    try{
+      if(window.crypto && crypto.getRandomValues){
+        var a=new Uint8Array(16); crypto.getRandomValues(a);
+        var s=''; for(var i=0;i<a.length;i++){ s+=('0'+a[i].toString(36)).slice(-2); }
+        return 'p_'+s;
+      }
+    }catch(e){}
+    return 'p_'+Date.now().toString(36)+Math.random().toString(36).slice(2,12)+Math.random().toString(36).slice(2,12);
+  }
   function val2(id){ var e=document.getElementById(id); return e?e.value:''; }
   var picked=null, gpsCoord=null;
 
@@ -980,12 +993,31 @@ window.GDO = window.GDO || {};
       inbox.push(p);
       try{ localStorage.setItem(INBOX, JSON.stringify(inbox)); }catch(e){}
     }
-    function fsWrite(p){ try{ GDO.FB.db.collection('pedidos').doc(p.id).set(p); return true; }catch(e){ return false; } }
+    // Guarda en Firestore ESPERANDO el resultado. .set() es asincrono: si
+    // devolvemos true al toque, un guardado fallido (sin internet, permisos)
+    // pasa desapercibido y el pedido se pierde. Por eso devolvemos la Promesa y
+    // SOLO consideramos guardado cuando resuelve; si falla, va al inbox local.
+    function fsWrite(p){
+      try{ return GDO.FB.db.collection('pedidos').doc(p.id).set(p); }
+      catch(e){ return Promise.reject(e); }
+    }
+    // Respaldo defensivo: dejamos el pedido en la cola local YA. Si el guardado
+    // en la nube confirma, lo sacamos de la cola; si falla o no hay Firebase,
+    // queda ahi para no perderlo nunca.
+    function dropInbox(id){
+      try{
+        var inbox=JSON.parse(localStorage.getItem(INBOX)||'[]');
+        if(Array.isArray(inbox)){ localStorage.setItem(INBOX, JSON.stringify(inbox.filter(function(x){ return x && x.id!==id; }))); }
+      }catch(e){}
+    }
     if(window.GDO && GDO.FB && GDO.FB.enabled && GDO.FB.db){
-      if(!fsWrite(pedido)) pushInbox(pedido);
+      pushInbox(pedido);
+      fsWrite(pedido).then(function(){ dropInbox(pedido.id); }).catch(function(){ /* queda en inbox */ });
     } else if(window.GDO && GDO.FB && GDO.FB.ready){
       pushInbox(pedido);
-      GDO.FB.ready.then(function(en){ if(en && GDO.FB.db) fsWrite(pedido); });
+      GDO.FB.ready.then(function(en){
+        if(en && GDO.FB.db) return fsWrite(pedido).then(function(){ dropInbox(pedido.id); });
+      }).catch(function(){ /* queda en inbox */ });
     } else { pushInbox(pedido); }
   }
 

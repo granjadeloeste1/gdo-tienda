@@ -216,13 +216,23 @@
             rutaUnsub = db.collection('rutas').doc(p.rutaId).onSnapshot(function (rd) {
               if (!rd.exists) return;
               var ruta = rd.data(); ruta.id = rd.id; ruta._paradas = {};
-              // trae coords de las paradas para estimar tiempos
               var ids = (ruta.orden && ruta.orden.length ? ruta.orden : ruta.pedidoIds) || [];
-              Promise.all(ids.map(function (id) {
-                return db.collection('pedidos').doc(id).get().then(function (pd) {
-                  if (pd.exists) { var d = pd.data(); ruta._paradas[id] = { lat: d.lat, lng: d.lng }; }
-                }).catch(function () {});
-              })).then(function () { rutaActual = ruta; refrescar(); });
+              // PRIVACIDAD: las coordenadas de las paradas vienen embebidas en la
+              // ruta (ruta.coords). Así NO bajamos el pedido completo de los demás
+              // clientes (que traía su nombre, teléfono y dirección). Solo usamos
+              // {lat,lng} para estimar tiempos.
+              if (ruta.coords && Object.keys(ruta.coords).length) {
+                ids.forEach(function (id) { if (ruta.coords[id]) ruta._paradas[id] = ruta.coords[id]; });
+                rutaActual = ruta; refrescar();
+              } else {
+                // Rutas viejas (guardadas antes de embeber coords): fallback. Se
+                // corrige solo en cuanto la ruta se vuelve a guardar en la app.
+                Promise.all(ids.map(function (id) {
+                  return db.collection('pedidos').doc(id).get().then(function (pd) {
+                    if (pd.exists) { var d = pd.data(); ruta._paradas[id] = { lat: d.lat, lng: d.lng }; }
+                  }).catch(function () {});
+                })).then(function () { rutaActual = ruta; refrescar(); });
+              }
             }, function () {});
           }
           if (!p.rutaId) { rutaActual = null; rutaIdActual = null; if (rutaUnsub) { rutaUnsub(); rutaUnsub = null; } }

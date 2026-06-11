@@ -1272,32 +1272,23 @@ window.GDO = window.GDO || {};
         }).catch(function(){ /* queda en inbox */ });
       } else { pushInbox(pedido); }
     }
-    function finalizar(){
-      guardar({
-        id: nid(), origen:'tienda', cliente:name, telefono:tel,
-        direccion:addr, localidad:localidad, entrecalles:entrecalles, lat:lat, lng:lng,
-        items:items, fechaEntrega:'', especificaciones:esp.join(' · '),
-        formaPago: pay || '',
-        prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
-        ventana:'', historia:[], ts:Date.now()
-      });
-    }
-    // Si todavía no hay coordenadas (el cliente escribió la dirección sin elegir
-    // una sugerencia ni usar el GPS), las buscamos con el MISMO motor que la app
-    // de reparto: Google (preciso) → Georef → OSM. Es UNA sola consulta por
-    // pedido. Tope de 6 s para no demorar el registro si la red está lenta: si
-    // no responde a tiempo, el pedido igual se guarda (después se ubica solo).
-    if(lat==null && addr && window.GDO && GDO.Geo && GDO.Geo.geocode){
-      var hecho=false;
-      var fin=function(){ if(hecho) return; hecho=true; finalizar(); };
-      var tope=setTimeout(fin, 6000);
-      GDO.Geo.geocode(addr, entrecalles).then(function(g){
-        if(g){ lat=g.lat; lng=g.lng; if(!localidad && g.localidad) localidad=g.localidad; }
-        clearTimeout(tope); fin();
-      }).catch(function(){ clearTimeout(tope); fin(); });
-    } else {
-      finalizar();
-    }
+    // GUARDAMOS YA, con las coordenadas que haya (de la sugerencia elegida o del
+    // GPS; si el cliente escribió la dirección a mano, puede ir sin ubicar). Es
+    // CRÍTICO escribir de inmediato y NO esperar a geocodificar: en el celular,
+    // al abrirse WhatsApp la página se descarga, y si demoramos la escritura no
+    // se encola y el pedido se PIERDE. La persistencia offline de Firestore
+    // sincroniza el guardado aunque la página se cierre. Las direcciones sin
+    // coordenadas las ubica sola la app de reparto (locatePending) al abrir
+    // Pedidos (la tienda es anónima: las reglas la dejan CREAR pero no editar,
+    // así que el geocodificado lo hace reparto, que entra como personal).
+    guardar({
+      id: nid(), origen:'tienda', cliente:name, telefono:tel,
+      direccion:addr, localidad:localidad, entrecalles:entrecalles, lat:lat, lng:lng,
+      items:items, fechaEntrega:'', especificaciones:esp.join(' · '),
+      formaPago: pay || '',
+      prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
+      ventana:'', historia:[], ts:Date.now()
+    });
   }
 
   var _send=window.sendWhatsApp;

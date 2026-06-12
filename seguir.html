@@ -175,7 +175,7 @@
       var paso = 0;
       if (asignado && !enCamino && !entregado && !noEntregado) { ic = '🗂️'; tit = 'Asignado a reparto'; sub = 'Tu pedido ya tiene chofer asignado.'; paso = 1; }
       if (enCamino) { ic = '🚚'; tit = 'En camino'; sub = 'El repartidor está en ruta hacia vos.'; paso = 2; }
-      if (entregado) { ic = '✅'; tit = '¡Entregado!'; sub = 'Tu pedido fue entregado. ¡Gracias!'; paso = 3; }
+      if (entregado) { ic = '✅'; tit = '¡Entregado!'; var rec = ((p.pod && p.pod.receptor) || '').trim(); sub = 'Tu pedido fue entregado' + (rec ? ', recibido por ' + esc(rec) : '') + '. ¡Gracias!'; paso = 3; }
       if (noEntregado) { ic = '⚠️'; tit = 'No pudimos entregar'; sub = 'Nos vamos a comunicar para reprogramar.'; paso = 2; }
 
       var etaHTML = '';
@@ -207,7 +207,7 @@
         '</div>' +
         '<div class="card">' + stepsHTML + '</div>' +
         '<div class="muted">Se actualiza solo. Dejá esta pantalla abierta para ver el avance.</div>' +
-        '<div class="muted" style="font-size:10px;margin-top:8px;opacity:.8">Propiedad de Granja del Oeste&reg; · v15</div>';
+        '<div class="muted" style="font-size:10px;margin-top:8px;opacity:.8">Propiedad de Granja del Oeste&reg; · v16</div>';
 
       if (p.lat != null) pintarMapa(p, (enCamino && info) ? info.chofer : null);
     }

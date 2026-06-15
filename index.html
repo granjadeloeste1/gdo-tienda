@@ -249,15 +249,14 @@ td.l{color:#3a4048}
 <div class="wrap">
   <input class="search" id="s" type="text" placeholder="Buscar producto..." oninput="filt()">
   <div id="root"></div>
-  <div style="text-align:center;font-size:10.5px;color:#9aa1aa;padding:10px 10px 16px;opacity:.85;line-height:1.4">Propiedad de Granja del Oeste<sup style="font-size:8px">&reg;</sup> · v17</div>
+  <div style="text-align:center;font-size:10.5px;color:#9aa1aa;padding:10px 10px 16px;opacity:.85;line-height:1.4">Propiedad de Granja del Oeste<sup style="font-size:8px">&reg;</sup> · v18</div>
 </div>
 <a class="wa" href="https://wa.me/5491135800164?text=Hola%2C%20quiero%20consultar%20la%20lista%20de%20precios" target="_blank">
   <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
 </a>
 <script>
 var API = "https://script.google.com/macros/s/AKfycbwH6JW35BRYcBk958OEr4sEvfVIfzgqzQeGwvz63xZYgukwxik8EsIego4d9O456bHURg/exec";
-var FALLBACK = [{"title":"CAJONES DE POLLO","tables":[{"brand":null,"headers":["Precio x Cajon","30 CAJONES","15 CAJONES","1 CAJON",""],"rows":[{"p":"POLLO FRESCO SAN FRANCISCO","v":[64000,65000,66000,null]},{"p":"POLLO FRESCO DON EDGARDO","v":[56000,57000,58000,null]},{"p":"POLLO FRESCO CYL","v":[59000,64000,61000,null]},{"p":"POLLO FRESCO LOS ATILIOS","v":[60000,61000,62000,null]}]}]},{"title":"TROZADO DE POLLO FRESCO","tables":[{"brand":null,"headers":["Precios x KG","100 KG","60 kg","5 KG - MINIMO",""],"rows":[{"p":"CUARTO TRASERO","v":[3400,3500,3600,null]},{"p":"SUPREMAS","v":[8000,8300,8500,null]},{"p":"ALAS","v":[2500,2500,2500,null]},{"p":"CARCASA","v":[500,600,700,null]},{"p":"MENUDO","v":[700,700,700,null]}]}]},{"title":"BONDIOLA CONGELADA","tables":[{"brand":null,"headers":[],"rows":[{"p":"BONDIOLA SADIA X KG (X CAJA 20 KG APROx)","v":[6200,6500,6900,null]}]}]},{"title":"ELABORADOS","tables":[{"brand":null,"headers":["PRECIOS X KILO","50 KG","5 KG","2 KG",""],"rows":[{"p":"MILANESAS DE POLLO","v":[5000,6000,7000,null]},{"p":"MILANESAS DE POLLO CRUCH X KG","v":[7000,8000,9500,null]},{"p":"MILANESAS DE NALGA REBOZADA X KG","v":[11500,12500,15000,null]},{"p":"MILANESAS DE NALGA REBOZADA CRUNCH X KG","v":[13000,14000,16500,null]},{"p":"ALBONDIGAS DE POLLO","v":[5000,6000,7000,null]},{"p":"ALBONDIGAS DE POLLO CRUNCH","v":[6000,6500,7500,null]},{"p":"HAMBURGUESAS DE POLLO FIT (100% SUPREMA)","v":[8500,9500,11000,null]},{"p":"HAMBURGUESAS DE POLLO CLASICA","v":[5000,5000,7000,null]}]}]},{"title":"HUEVO","tables":[{"brand":null,"headers":["Precios por Unidad","10 CAJONES","5 CAJONES","1 CAJON",""],"rows":[{"p":"CAJON DE HUEVOS B1 (12 MAPLES)","v":[56000,57000,58000,null]},{"p":"MAPLE X UNIDAD","v":[null,null,5500,null]}]}]},{"title":"REBOZADORES","tables":[{"brand":null,"headers":["Precio x Bolsa","10 BOLSAS","5 BOLSAS","1 BOLSA",""],"rows":[{"p":"PAN RAYADO PREMIUM MC X 20KG","v":[22000,23500,24500,null]},{"p":"REBOZADOR CRUNCH *BAS* X 5 KG","v":[19500,21000,22000,null]},{"p":"PAN RALLADO SOL DE CAMPO X 20 KG","v":[20000,21000,22000,null]},{"p":"REBOZADOR SOL DE CAMPO X 20 KG","v":[20000,21000,22000,null]}]},{"brand":"BAS FROST","headers":["Precio por Caja","10 CAJAS","5 CAJAS","1 CAJA",""],"rows":[{"p":"FORMITAS DE POLLO X 6 KG","v":[35000,37000,39000,null]},{"p":"MEDALLON DE POLLO X 6 KG","v":[35000,37000,39000,null]},{"p":"MEDALLON DE POLLO CON JAMON Y QUESO  X 6 KG","v":[65000,69000,73000,null]},{"p":"MEDALLON DE POLLO CON ESPINACA X 6 KG","v":[40500,43000,45500,null]}]},{"brand":"TRES ARROYOS","headers":["Precio x Caja o KG","10 CAJAS ","5 CAJAS","1 CAJA","X KG"],"rows":[{"p":"NUGGETS A LA TEMPURA X 5 KG (5X1KG)","v":[48000,51000,54000,12500]},{"p":"SUPREMITAS CRISPY X 5 KG (5X1KG)","v":[50500,53500,57000,13000]},{"p":"POCHOCLOS DE POLLO REBOZADO X 5 KG (5X1KG)","v":[43500,46000,49000,11500]},{"p":"BOCADITOS DE POLLO CON CHEDDAR X 5 KG","v":[49500,52500,56000,13000]},{"p":"MEDALLON DE POLLO X 5 KG (5X1KG)","v":[38000,40000,42500,10000]},{"p":"RICOSAURIOS DE POLLO X 5 KG (5X1KG)","v":[42000,44000,47000,11000]},{"p":"NUGGETS DE POLLO X 6 KG (GRANGYS)","v":[45500,48500,51500,12000]}]},{"brand":"ARTICO","headers":["Precio x Caja","","5 CAJAS","1 CAJA",""],"rows":[{"p":"FILET DE MERLUZA A LA ROMANA X 5KG (5X1KG)","v":[55000,58500,62000,14500]},{"p":"BASTONES DE MUZZARELLA ARTICO X 6 KG (3X2KG)","v":[60500,64000,68000,26000]}]},{"brand":"PAPAS Y TEQUEÑOS","headers":["Precio x Caja","X 10 CAJAS","X 5 CAJAS","X CAJA","X PAQUETE"],"rows":[{"p":"PAPA BASTON TRADICIONAL (MCCAIN) X 15 KG (6 X 2,5 KG)","v":[null,69000,73500,14000]},{"p":"PAPA SMILES (MCCAIN) X 9 KG (6 X 1,5 KG)","v":[null,68000,72000,14000]},{"p":"PAPA NOISETTES (MCCAIN) 10 KG (4 X 2,5 KG)","v":[null,75500,80000,23000]},{"p":"PAPAS NOISSETTE BEM-BRASIL X 10.5 KG (10X1,05KG)","v":[null,47500,50500,6500]},{"p":"TEQUEÑOS (TEQUEPOPS)  80 UNIDADES (10X8 UNI)","v":[null,85000,90000,null]}]}]},{"title":"MILANESA DE SOJA","tables":[{"brand":null,"headers":["Precio x Caja de 15 Paquetes","X 10 CAJAS","X 5 CAJAS","X CAJA","X PAQUETE"],"rows":[{"p":"RELLENA BROCOLI X 4 UNIDADES","v":[50000,60000,56000,5000]},{"p":"RELLENA CAPRESSE X 4 UNIDADES","v":[55500,66500,62000,6000]},{"p":"RELLENA CALABAZA Y CURCUMA X 4 UNIDADES","v":[50000,60000,56000,5000]},{"p":"RELLENA ESPINACA Y MORRONES ASADOS X 4 UNIDADES","v":[50000,60000,56000,5000]},{"p":"RELLENA QUESO AZUL Y MUZARELLA X 4 UNIDADES","v":[61500,73500,69000,6500]},{"p":"RELLENA ACEITUNA Y MUZARELLA X 4 UNIDADES","v":[55500,66500,62000,6000]},{"p":"ORIGINAL SIMPLE CON SAL X 4 UNIDADES (27 PAQUETES)","v":[46000,55500,52000,3000]}]}]},{"title":"HAMBURGUESAS VEGANAS","tables":[{"brand":null,"headers":["Precio x Paquete","X 10 PAQUETES","X 5 PAQUETES","X 1 PAQUETE",""],"rows":[{"p":"ZAPALLO AL CURRY X 5 UNIDADES","v":[5000,5500,6000,null]},{"p":"VEGANA LENTEJAS              X 5 UNIDADES","v":[5000,5500,6000,null]},{"p":"QUINOA Y YAMANI X 5 UNIDADES","v":[5000,5500,6000,null]},{"p":"REMOLACHA         X 5 UNIDADES","v":[5000,5500,6000,null]},{"p":"GARBANZO Y ZANAHORIA X 5 UNIDADES","v":[5000,5500,6000,null]},{"p":"ESPINACA              X 5 UNIDADES","v":[5000,5500,6000,null]}]}]},{"title":"CANELONES CASEROS","tables":[{"brand":null,"headers":["Precio por Bandeja","X 20 BANDEJAS","X 10 BANDEJAS","X BANDEJA",""],"rows":[{"p":"RICOTA Y VERDURA (BANDEJA X 6 UNIDADES)","v":[4500,5000,5500,null]},{"p":"RICOTA Y JAMON (BANDEJA X 6 UNIDADES)","v":[4500,5000,5500,null]},{"p":"POLLO CON SALSA BLANCA (BANDEJA X 6 UNIDADES)","v":[4500,5000,5500,null]},{"p":"JAMON Y QUESO (BANDEJA X 6 UNIDADES)","v":[4500,5000,5500,null]}]}]},{"title":"CONDIMENTOS","tables":[{"brand":null,"headers":["Precio por Kilo","X 10 KG","X 5 KG","X 1 KG",""],"rows":[{"p":"ADOBO PARA PIZZA X 1 KG","v":[7500,8000,8500,null]},{"p":"AJO EN POLVO PREMIUM X 1 KG","v":[10500,11000,12000,null]},{"p":"AJI MOLIDO PREMIUM X 1 KG","v":[10500,11500,12000,null]},{"p":"AJI MOLIDO PREMIUM AHUMADO X 1 KG","v":[11000,12000,12500,null]},{"p":"CHIMICHURRI AHUMADO X 1 KG","v":[8000,8500,9000,null]},{"p":"CHIMICHURRI PREMIUM X 1 KG","v":[9500,10000,10500,null]},{"p":"OREGANO PREMIUM X 1 KG","v":[8500,9500,10000,null]},{"p":"PROVENZAL PREMIUM X 1 KG","v":[10500,11000,12000,null]},{"p":"PIMENTON PREMIUM X1 KG","v":[9000,9500,10500,null]},{"p":"PIMENTON AHUMADO SELECCIÓN X 1KG","v":[7000,7500,8000,null]},{"p":"PAPRIKA MOLIDA (PIMENTON PICANTE) X 1 KG","v":[7500,8000,8500,null]},{"p":"PIMIENTA BLANCA MOLIDA PREMIUM X 1 KG","v":[24500,26000,28000,null]},{"p":"PIMIENTA NEGRA MOLIDA PREMIUM X 1 KG","v":[15500,16500,18000,null]}]}]},{"title":"INTEGRALES","tables":[{"brand":null,"headers":["Producto","X 10 KG","X 5 KG","X KG",""],"rows":[{"p":"INTEGRAL HUEVO EN POLVO PARA MILANESA X 5 KG","v":[10000,11000,11500,null]},{"p":"INTEGRAL BATTER PARA MILANESA X 1 KG","v":[8500,9000,9500,null]},{"p":"INTEGRAL PARA HAMBURGUESAS X 1 KG","v":[6000,6500,7000,null]},{"p":"INTEGRAL PARA CHORIZOS X 1 KG","v":[8500,9000,9500,null]}]}]}];
-var sections = FALLBACK, term = "";
+var sections = [], term = "";
 var $n = function(n) { if (n === null || n === undefined) return ""; return "$ " + Math.round(n).toLocaleString("es-AR"); };
 var OPTIONS = [];
 var cart = [];
@@ -358,20 +357,35 @@ function render() {
     if (!vis) return;
     html += "<details open><summary>" + sec.title + "</summary><div class=\"sb\">" + tbH + "</div></details>";
   });
-  root.innerHTML = html || "<p style=\"color:#555;padding:20px;text-align:center\">Sin resultados</p>";
+  root.innerHTML = html || vistaVacia();
 }
 
 function filt() { term = document.getElementById("s").value; render(); }
-function saveCache(d) { try { localStorage.setItem("gdo_v4", JSON.stringify({ts: Date.now(), data: d})); } catch(e) {} }
-function loadCache() { try { var c = JSON.parse(localStorage.getItem("gdo_v4") || "null"); if (c && Date.now() - c.ts < 1800000) return c; } catch(e) {} return null; }
-var cache = loadCache();
-if (cache) { sections = cache.data; }
-render();
-fetch(API + (API.indexOf("?") >= 0 ? "&" : "?") + "t=" + Date.now(), {cache:"no-store"}).then(function(r) { return r.ok ? r.json() : null; }).then(function(data) {
-  if (!data) return;
-  sections = data; saveCache(data); render();
-  document.getElementById("fecha").textContent = "Actualizada " + new Date().toLocaleDateString("es-AR", {day:"2-digit",month:"2-digit",year:"numeric"}) + " - Precios sujetos a modificaciones";
-}).catch(function() {});
+// Sin respaldo de precios escrito a mano: si la lista no se puede traer EN VIVO,
+// NO se muestran precios (para no mostrar valores viejos). Se ve "Cargando…" y,
+// si no hay conexion, un cartel para reintentar.
+var estado = "cargando"; // cargando | ok | error
+function vistaVacia() {
+  if (term) return "<p style=\"color:#555;padding:20px;text-align:center\">Sin resultados</p>";
+  if (estado === "error") return "<div style=\"padding:46px 22px;text-align:center;color:#555\">" +
+    "<div style=\"font-size:42px;line-height:1\">📡</div>" +
+    "<p style=\"font-weight:700;margin:14px 0 4px;color:#1a1a1a;font-size:16px\">No pudimos cargar la lista de precios</p>" +
+    "<p style=\"font-size:13px;margin:0 0 18px\">Revis&aacute; tu conexi&oacute;n a internet e intent&aacute; de nuevo.</p>" +
+    "<button onclick=\"recargar()\" style=\"background:#F58220;color:#fff;border:0;border-radius:9px;padding:11px 26px;font-size:14px;font-weight:700;cursor:pointer\">Reintentar</button></div>";
+  return "<div style=\"padding:46px 22px;text-align:center;color:#9aa1aa;font-size:14px\">Cargando lista de precios&hellip;</div>";
+}
+function recargar() {
+  estado = "cargando"; sections = []; render();
+  fetch(API + (API.indexOf("?") >= 0 ? "&" : "?") + "t=" + Date.now(), {cache:"no-store"})
+    .then(function(r) { if (!r.ok) throw 0; return r.json(); })
+    .then(function(data) {
+      if (!data || !data.length) throw 0;
+      sections = data; estado = "ok"; render();
+      document.getElementById("fecha").textContent = "Actualizada " + new Date().toLocaleDateString("es-AR", {day:"2-digit",month:"2-digit",year:"numeric"}) + " - Precios sujetos a modificaciones";
+    })
+    .catch(function() { sections = []; estado = "error"; render(); });
+}
+recargar();
 
 /* Aviso si se abre dentro de un navegador interno (TikTok, Instagram, Facebook, etc.) */
 (function detectInApp(){

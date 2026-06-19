@@ -27,9 +27,26 @@
   .hero{ background:#111; color:#fff; border:0; border-top:4px solid var(--naranja); }
   .hero h1{ font-size:26px; } .hero p{ color:#d6d9dd; margin-top:6px; }
   .hero .marca{ color:var(--naranja); }
-  /* Tarjeta "carnet" de socio: negra con número naranja */
-  .carnet{ background:#111; color:#fff; border:0; }
-  .carnet .muted{ color:#c8ccd2; }
+  /* Tarjeta de socio virtual (membership card) — negra, moderna, exclusiva */
+  .carnet{ position:relative; overflow:hidden; aspect-ratio:1.6/1; max-width:400px; margin:0 auto;
+           background:linear-gradient(135deg,#232327 0%,#0a0a0b 55%); color:#fff; border:1px solid #2c2c31;
+           border-radius:18px; padding:20px 22px; box-shadow:0 14px 34px rgba(0,0,0,.45);
+           display:flex; flex-direction:column; }
+  .carnet::after{ content:''; position:absolute; right:-50px; top:-50px; width:190px; height:190px;
+                  background:radial-gradient(circle,rgba(245,130,32,.40),transparent 70%); pointer-events:none; }
+  .carnet::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--naranja); }
+  .ct-top{ display:flex; align-items:center; gap:10px; z-index:1; }
+  .ct-top img{ height:30px; width:auto; }
+  .ct-top .nom{ font-weight:800; letter-spacing:2px; font-size:15px; }
+  .ct-top .tag{ margin-left:auto; font-size:9px; letter-spacing:2px; color:var(--naranja);
+                border:1px solid var(--naranja); padding:3px 9px; border-radius:20px; font-weight:700; }
+  .ct-nro{ margin-top:auto; font-size:11px; color:#9aa1aa; letter-spacing:3px; z-index:1; }
+  .ct-nro b{ display:block; font-size:30px; color:var(--naranja); letter-spacing:4px; font-weight:900; margin-top:2px; }
+  .ct-bot{ display:flex; justify-content:space-between; align-items:flex-end; margin-top:14px; z-index:1; }
+  .ct-name{ font-size:15px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; max-width:62%; line-height:1.2; }
+  .ct-pts{ text-align:right; } .ct-pts b{ display:block; font-size:22px; color:var(--naranja); font-weight:900; line-height:1; }
+  .ct-pts span{ font-size:9px; color:#9aa1aa; letter-spacing:1.5px; }
+  .saludo{ text-align:center; color:var(--gris); margin:4px 0 12px; }
   .btn{ display:inline-block; width:100%; background:var(--naranja); color:#fff; border:0; border-radius:10px;
         padding:13px; font-size:15px; font-weight:700; cursor:pointer; text-align:center; }
   .btn:disabled{ opacity:.5; cursor:default; }
@@ -179,6 +196,22 @@
     return 'No se pudo completar. Revisá tu conexión e intentá de nuevo.';
   }
 
+  // Crea el perfil de socio tomando el SIGUIENTE número de socio en una
+  // transacción atómica (sin duplicados). El número es cosmético; los puntos
+  // arrancan en 0 (las reglas lo exigen).
+  function crearSocio(uid, nombre, email){
+    var cref = db.collection('club_config').doc('contador');
+    var uref = db.collection('clientes').doc(uid);
+    return db.runTransaction(function(tx){
+      return tx.get(cref).then(function(c){
+        var n = (c.exists ? (c.data().n||0) : 0) + 1;
+        if (c.exists) tx.update(cref, {n:n}); else tx.set(cref, {n:n});
+        tx.set(uref, { nombre:nombre, email:email, puntos:0, nroSocio:n, creado: firebase.firestore.FieldValue.serverTimestamp() });
+        return n;
+      });
+    });
+  }
+
   function doRegistro(){
     var nombre=(document.getElementById('nombre').value||'').trim();
     var email=(document.getElementById('email').value||'').trim();
@@ -186,10 +219,7 @@
     if(!nombre){ setMsg('Poné tu nombre.'); return; }
     var b=document.getElementById('goReg'); b.disabled=true; b.textContent='Creando…';
     auth.createUserWithEmailAndPassword(email, pass).then(function(cred){
-      // Crear perfil de socio con 0 puntos (las reglas exigen puntos==0 en el alta).
-      return db.collection('clientes').doc(cred.user.uid).set({
-        nombre: nombre, email: email, puntos: 0, creado: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      return crearSocio(cred.user.uid, nombre, email);
     }).catch(function(e){ setMsg(errTxt(e)); b.disabled=false; b.textContent='Crear mi cuenta de socio'; });
   }
 
@@ -212,8 +242,9 @@
     var ref = db.collection('clientes').doc(user.uid);
     ref.get().then(function(doc){
       if(!doc.exists){
-        // Por si la cuenta existe en Auth pero no tiene perfil aún.
-        return ref.set({ nombre: user.displayName || (user.email||'').split('@')[0], email: user.email||'', puntos:0, creado: firebase.firestore.FieldValue.serverTimestamp() });
+        // Por si la cuenta existe en Auth pero no tiene perfil aún: lo creamos
+        // asignando número de socio.
+        return crearSocio(user.uid, user.displayName || (user.email||'').split('@')[0], user.email||'');
       }
     }).then(function(){
       unsub = ref.onSnapshot(function(d){ renderSocio(user, d.data()||{}); }, function(){ /* permiso/red */ });
@@ -227,11 +258,17 @@
   function renderSocio(user, socio){
     var pts = socio.puntos||0;
     var nom = (socio.nombre||'').split(' ')[0] || 'socio';
+    var nroFmt = socio.nroSocio ? ('0000'+socio.nroSocio).slice(-4) : '—';
     document.getElementById('hdrPts').style.display='inline-block';
     document.getElementById('hdrPts').textContent = fmt(pts)+' pts';
     app.innerHTML =
-      '<div class="card carnet" style="text-align:center"><p class="muted">¡Hola '+esc(nom)+'! 👋 Tenés</p>'+
-        '<div class="pts-big">'+fmt(pts)+'</div><p class="muted small">Puntos GDO</p></div>'+
+      '<p class="saludo">¡Hola '+esc(nom)+'! 👋 Esta es tu credencial de socio:</p>'+
+      '<div class="carnet">'+
+        '<div class="ct-top"><img src="assets/isotipo-blanco.svg" alt="GDO"/><span class="nom">GDO CLUB</span><span class="tag">MIEMBRO</span></div>'+
+        '<div class="ct-nro">SOCIO N°<b>'+nroFmt+'</b></div>'+
+        '<div class="ct-bot"><div class="ct-name">'+esc(socio.nombre||nom)+'</div>'+
+          '<div class="ct-pts"><b>'+fmt(pts)+'</b><span>PUNTOS GDO</span></div></div>'+
+      '</div><div style="height:14px"></div>'+
       '<div class="card"><h2>🎁 Premios para canjear</h2><div id="premios"><p class="muted small">Cargando premios…</p></div></div>'+
       '<div class="card"><h2>📋 Mis canjes</h2><div id="canjes"><p class="muted small">—</p></div></div>'+
       '<div class="card" style="text-align:center"><a class="volver" href="index.html">← Ir a la lista de precios</a>'+

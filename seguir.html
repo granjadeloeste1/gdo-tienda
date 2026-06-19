@@ -53,6 +53,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js"></script>
   <script>
   (function () {
     var app = document.getElementById('app');
@@ -71,7 +72,7 @@
       app.innerHTML = '<div class="err">No hay conexión. Probá de nuevo con internet.</div>'; return;
     }
     var db, auth;
-    try { firebase.initializeApp(cfg); db = firebase.firestore(); auth = firebase.auth(); }
+    try { firebase.initializeApp(cfg); try { if (firebase.appCheck) firebase.appCheck().activate('6LcFdCctAAAAAELE8bLAVjrYLFgVFHH_JO0oKOxw', true); } catch (e) {} db = firebase.firestore(); auth = firebase.auth(); }
     catch (e) { app.innerHTML = '<div class="err">No se pudo conectar. Probá más tarde.</div>'; return; }
 
     var VEL_KMH = 24, SALIDA_DEF = 8 * 60;

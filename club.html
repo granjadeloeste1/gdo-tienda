@@ -27,7 +27,7 @@
   .hero{ background:#111; color:#fff; border:0; border-top:4px solid var(--naranja); }
   .hero h1{ font-size:26px; } .hero p{ color:#d6d9dd; margin-top:6px; }
   .hero .marca{ color:var(--naranja); }
-  /* Tarjeta de socio virtual — estilo tarjeta de crédito (negra, marca GDO) */
+  /* Tarjeta de socio virtual — GDO CLUB + logo arriba (izq); socio/nombre abajo */
   .carnet{ position:relative; overflow:hidden; aspect-ratio:1.58/1; max-width:400px; margin:0 auto;
            background:linear-gradient(135deg,#26262b 0%,#0a0a0b 60%); color:#fff; border:1px solid #2c2c31;
            border-radius:18px; padding:18px 22px; display:flex; flex-direction:column;
@@ -35,21 +35,17 @@
   .carnet::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--naranja); z-index:3; }
   .carnet .glow{ position:absolute; right:-40px; top:-40px; width:150px; height:150px; z-index:0; pointer-events:none;
                  background:radial-gradient(circle,rgba(245,130,32,.30),transparent 70%); }
-  /* Top: lockup (logo + GDO CLUB como una sola marca) + MIEMBRO */
   .ct-top{ display:flex; align-items:center; position:relative; z-index:1; }
-  .ct-brand{ display:flex; align-items:center; gap:9px; }
-  .ct-brand img{ height:30px; width:auto; }
-  .ct-brand b{ font-weight:900; letter-spacing:2px; font-size:18px; }
-  .ct-brand .o{ color:var(--naranja); }
+  .ct-club{ font-weight:900; letter-spacing:3px; font-size:19px; text-shadow:0 0 10px rgba(245,130,32,.45); }
+  .ct-club .o{ color:var(--naranja); }
   .ct-tag{ margin-left:auto; font-size:9px; letter-spacing:2px; color:var(--naranja); border:1px solid var(--naranja); padding:3px 9px; border-radius:20px; font-weight:700; }
-  /* Centro: número de socio a lo largo (como nº de tarjeta) + nombre debajo */
-  .ct-mid{ flex:1; display:flex; flex-direction:column; justify-content:center; position:relative; z-index:1; }
-  .ct-numlbl{ font-size:9px; color:#9aa1aa; letter-spacing:3px; margin-bottom:3px; }
-  .ct-num{ font-size:30px; font-weight:900; color:var(--naranja); letter-spacing:8px; line-height:1; }
-  .ct-name{ font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-top:12px; color:#ececed; }
-  /* Pie: socio desde (izq) + puntos (der) */
-  .ct-foot{ display:flex; justify-content:space-between; align-items:flex-end; position:relative; z-index:1; }
-  .ct-since{ font-size:8px; color:#9aa1aa; letter-spacing:1.5px; } .ct-since b{ display:block; color:#fff; font-size:12px; font-weight:700; letter-spacing:1px; margin-top:2px; }
+  .ct-logo{ margin-top:10px; position:relative; z-index:1; }
+  .ct-logo img{ height:62px; width:auto; display:block; }
+  .ct-bot{ flex:1; display:flex; justify-content:space-between; align-items:flex-end; position:relative; z-index:1; }
+  .ct-nro{ font-size:10px; color:#9aa1aa; letter-spacing:2px; }
+  .ct-nro b{ display:block; font-size:26px; color:var(--naranja); letter-spacing:2px; font-weight:900; line-height:1; }
+  .ct-name{ font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-top:5px; }
+  .ct-since{ font-size:8px; color:#9aa1aa; letter-spacing:1px; margin-top:5px; }
   .ct-pts{ text-align:right; } .ct-pts b{ display:block; font-size:20px; color:var(--naranja); font-weight:900; line-height:1; }
   .ct-pts span{ font-size:8px; color:#9aa1aa; letter-spacing:1.5px; }
   .saludo{ text-align:center; color:var(--gris); margin:4px 0 12px; }
@@ -264,9 +260,8 @@
   function renderSocio(user, socio){
     var pts = socio.puntos||0;
     var nom = (socio.nombre||'').split(' ')[0] || 'socio';
-    var _n = socio.nroSocio || 0;
-    var _p = ('00000000' + _n).slice(-8);
-    var nroCard = _p.slice(0,4) + ' ' + _p.slice(4);
+    var _p = ('00000000' + (socio.nroSocio||0)).slice(-8);
+    var nroFmt = _p.slice(0,4) + ' ' + _p.slice(4);
     var fechaIngreso = '—';
     try { if (socio.creado && socio.creado.toDate) { var _d = socio.creado.toDate(); fechaIngreso = ('0'+(_d.getMonth()+1)).slice(-2) + '/' + _d.getFullYear(); } } catch (e) {}
     document.getElementById('hdrPts').style.display='inline-block';
@@ -275,14 +270,14 @@
       '<p class="saludo">¡Hola '+esc(nom)+'! 👋 Esta es tu credencial de socio:</p>'+
       '<div class="carnet">'+
         '<span class="glow"></span>'+
-        '<div class="ct-top"><span class="ct-brand"><img src="assets/isotipo-blanco.svg" alt="GDO"/><b>GDO <span class="o">CLUB</span></b></span><span class="ct-tag">MIEMBRO</span></div>'+
-        '<div class="ct-mid">'+
-          '<div class="ct-numlbl">SOCIO N°</div>'+
-          '<div class="ct-num">'+nroCard+'</div>'+
-          '<div class="ct-name">'+esc(socio.nombre||nom)+'</div>'+
-        '</div>'+
-        '<div class="ct-foot">'+
-          '<div class="ct-since">SOCIO DESDE<b>'+fechaIngreso+'</b></div>'+
+        '<div class="ct-top"><span class="ct-club">GDO <span class="o">CLUB</span></span><span class="ct-tag">MIEMBRO</span></div>'+
+        '<div class="ct-logo"><img src="assets/isotipo-blanco.svg" alt="GDO"/></div>'+
+        '<div class="ct-bot">'+
+          '<div>'+
+            '<div class="ct-nro">SOCIO N°<b>'+nroFmt+'</b></div>'+
+            '<div class="ct-name">'+esc(socio.nombre||nom)+'</div>'+
+            '<div class="ct-since">SOCIO DESDE '+fechaIngreso+'</div>'+
+          '</div>'+
           '<div class="ct-pts"><b>'+fmt(pts)+'</b><span>PUNTOS GDO</span></div>'+
         '</div>'+
       '</div><div style="height:14px"></div>'+

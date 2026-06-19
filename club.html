@@ -27,31 +27,27 @@
   .hero{ background:#111; color:#fff; border:0; border-top:4px solid var(--naranja); }
   .hero h1{ font-size:26px; } .hero p{ color:#d6d9dd; margin-top:6px; }
   .hero .marca{ color:var(--naranja); }
-  /* Tarjeta de socio virtual — negra, moderna, con neón/LED animado */
+  /* Tarjeta de socio virtual — negra, moderna. Único movimiento: el círculo
+     naranja de arriba-derecha late suave (acercarse/alejarse + brillo). */
   .carnet{ position:relative; overflow:hidden; aspect-ratio:1.55/1; max-width:400px; margin:0 auto;
            background:linear-gradient(135deg,#232327 0%,#0a0a0b 55%); color:#fff; border:1px solid #2c2c31;
            border-radius:18px; padding:18px 22px; display:flex; flex-direction:column;
-           animation:neon 3.2s ease-in-out infinite; }
-  @keyframes neon{ 0%,100%{ box-shadow:0 0 0 1px #2c2c31, 0 12px 30px rgba(0,0,0,.45), 0 0 14px rgba(245,130,32,.16); }
-                   50%{ box-shadow:0 0 0 1px rgba(245,130,32,.85), 0 12px 30px rgba(0,0,0,.45), 0 0 30px rgba(245,130,32,.5); } }
-  .carnet .glow{ position:absolute; right:-50px; top:-50px; width:170px; height:170px; z-index:0;
-                 background:radial-gradient(circle,rgba(245,130,32,.35),transparent 70%); pointer-events:none; }
-  .carnet::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--naranja); box-shadow:0 0 12px var(--naranja); z-index:3; }
-  /* barrido NARANJA en diagonal: sale de la zona de MIEMBRO (arriba-der) y cruza a la esquina opuesta */
-  .carnet .sheen{ position:absolute; inset:-50%; pointer-events:none; z-index:0;
-                  background:linear-gradient(135deg,transparent 42%,rgba(245,130,32,.5) 50%,transparent 58%);
-                  animation:sheen 4.5s ease-in-out infinite; }
-  @keyframes sheen{ 0%{ transform:translate(55%,-55%);} 100%{ transform:translate(-55%,55%);} }
+           box-shadow:0 12px 30px rgba(0,0,0,.45); }
+  .carnet .glow{ position:absolute; right:-45px; top:-45px; width:165px; height:165px; z-index:0; transform-origin:center;
+                 background:radial-gradient(circle,rgba(245,130,32,.5),transparent 70%); pointer-events:none;
+                 animation:latir 3s ease-in-out infinite; }
+  @keyframes latir{ 0%,100%{ transform:scale(1); opacity:.7; } 50%{ transform:scale(1.18); opacity:1; } }
+  .carnet::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--naranja); z-index:3; }
   .ct-top{ display:flex; align-items:center; position:relative; z-index:1; }
-  .ct-club{ font-weight:900; letter-spacing:3px; font-size:20px; text-shadow:0 0 12px rgba(245,130,32,.65); }
+  .ct-club{ font-weight:900; letter-spacing:3px; font-size:20px; text-shadow:0 0 10px rgba(245,130,32,.5); }
   .ct-club .o{ color:var(--naranja); }
   .ct-tag{ margin-left:auto; font-size:9px; letter-spacing:2px; color:var(--naranja); border:1px solid var(--naranja); padding:3px 9px; border-radius:20px; font-weight:700; }
-  .ct-logo{ flex:1; display:flex; align-items:center; justify-content:center; position:relative; z-index:1; }
-  .ct-logo img{ height:88px; width:auto; filter:drop-shadow(0 0 10px rgba(245,130,32,.45)); }
-  .ct-bot{ display:flex; justify-content:space-between; align-items:flex-end; position:relative; z-index:1; }
-  .ct-nro{ font-size:10px; color:#9aa1aa; letter-spacing:2px; }
-  .ct-nro b{ color:var(--naranja); font-weight:900; font-size:16px; letter-spacing:1px; }
-  .ct-name{ font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-top:3px; max-width:60%; line-height:1.2; }
+  .ct-body{ flex:1; display:flex; justify-content:space-between; align-items:flex-end; position:relative; z-index:1; }
+  .ct-left{ display:flex; flex-direction:column; align-items:flex-start; }
+  .ct-left img{ height:84px; width:auto; margin-bottom:8px; }
+  .ct-nro{ font-size:11px; color:#9aa1aa; letter-spacing:3px; }
+  .ct-nro b{ display:block; font-size:26px; color:var(--naranja); letter-spacing:3px; font-weight:900; }
+  .ct-name{ font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-top:6px; }
   .ct-pts{ text-align:right; } .ct-pts b{ display:block; font-size:20px; color:var(--naranja); font-weight:900; line-height:1; }
   .ct-pts span{ font-size:9px; color:#9aa1aa; letter-spacing:1.5px; }
   .saludo{ text-align:center; color:var(--gris); margin:4px 0 12px; }
@@ -272,11 +268,14 @@
     app.innerHTML =
       '<p class="saludo">¡Hola '+esc(nom)+'! 👋 Esta es tu credencial de socio:</p>'+
       '<div class="carnet">'+
-        '<span class="glow"></span><span class="sheen"></span>'+
+        '<span class="glow"></span>'+
         '<div class="ct-top"><span class="ct-club">GDO <span class="o">CLUB</span></span><span class="ct-tag">MIEMBRO</span></div>'+
-        '<div class="ct-logo"><img src="assets/isotipo-blanco.svg" alt="GDO"/></div>'+
-        '<div class="ct-bot">'+
-          '<div><div class="ct-nro">SOCIO N° <b>'+nroFmt+'</b></div><div class="ct-name">'+esc(socio.nombre||nom)+'</div></div>'+
+        '<div class="ct-body">'+
+          '<div class="ct-left">'+
+            '<img src="assets/isotipo-blanco.svg" alt="GDO"/>'+
+            '<div class="ct-nro">SOCIO N° <b>'+nroFmt+'</b></div>'+
+            '<div class="ct-name">'+esc(socio.nombre||nom)+'</div>'+
+          '</div>'+
           '<div class="ct-pts"><b>'+fmt(pts)+'</b><span>PUNTOS GDO</span></div>'+
         '</div>'+
       '</div><div style="height:14px"></div>'+

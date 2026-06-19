@@ -33,13 +33,10 @@
            background:linear-gradient(135deg,#232327 0%,#0a0a0b 55%); color:#fff; border:1px solid #2c2c31;
            border-radius:18px; padding:18px 22px; display:flex; flex-direction:column;
            box-shadow:0 12px 30px rgba(0,0,0,.45); }
-  .carnet .glow{ position:absolute; right:-45px; top:-45px; width:165px; height:165px; z-index:0; transform-origin:center;
-                 background:radial-gradient(circle,rgba(245,130,32,.5),transparent 70%); pointer-events:none;
-                 animation:latir 3s ease-in-out infinite; }
-  @keyframes latir{ 0%,100%{ transform:scale(1); opacity:.7; } 50%{ transform:scale(1.18); opacity:1; } }
+  @keyframes latir{ 0%,100%{ box-shadow:0 0 6px rgba(245,130,32,.25); } 50%{ box-shadow:0 0 18px rgba(245,130,32,.6); } }
   .carnet::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--naranja); z-index:3; }
   .ct-top{ display:flex; align-items:center; position:relative; z-index:1; }
-  .ct-club{ font-weight:900; letter-spacing:3px; font-size:20px; text-shadow:0 0 10px rgba(245,130,32,.5); }
+  .ct-club{ font-weight:900; letter-spacing:3px; font-size:18px; border:2px solid var(--naranja); border-radius:9px; padding:6px 12px; animation:latir 3s ease-in-out infinite; }
   .ct-club .o{ color:var(--naranja); }
   .ct-tag{ margin-left:auto; font-size:9px; letter-spacing:2px; color:var(--naranja); border:1px solid var(--naranja); padding:3px 9px; border-radius:20px; font-weight:700; }
   .ct-body{ flex:1; display:flex; justify-content:space-between; align-items:flex-end; position:relative; z-index:1; }
@@ -268,7 +265,6 @@
     app.innerHTML =
       '<p class="saludo">¡Hola '+esc(nom)+'! 👋 Esta es tu credencial de socio:</p>'+
       '<div class="carnet">'+
-        '<span class="glow"></span>'+
         '<div class="ct-top"><span class="ct-club">GDO <span class="o">CLUB</span></span><span class="ct-tag">MIEMBRO</span></div>'+
         '<div class="ct-body">'+
           '<div class="ct-left">'+

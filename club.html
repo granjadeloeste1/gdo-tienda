@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#F58220"/>
+<title>Club GDO — Granja del Oeste</title>
+<!-- Preconexión para acelerar Firebase/Google -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin/>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{ --naranja:#F58220; --tinta:#1a1a1a; --gris:#5b6470; --linea:#e6e8eb; --ok:#1e8449; }
+  body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+        background:#f4f5f7; color:var(--tinta); -webkit-font-smoothing:antialiased; }
+  .hdr{ background:var(--naranja); color:#fff; padding:14px 16px; position:sticky; top:0; z-index:10; }
+  .hn{ max-width:680px; margin:0 auto; display:flex; align-items:center; gap:12px; }
+  .hn .logo{ background:#fff; border-radius:8px; padding:4px 9px; font-weight:900; color:var(--naranja); letter-spacing:.5px; }
+  .hn b{ font-size:18px; letter-spacing:.5px; }
+  .hn .pts{ margin-left:auto; font-size:13px; background:rgba(255,255,255,.2); padding:5px 11px; border-radius:20px; font-weight:700; }
+  .wrap{ max-width:680px; margin:0 auto; padding:16px; }
+  .card{ background:#fff; border:1px solid var(--linea); border-radius:14px; padding:18px; margin:14px 0; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+  h1{ font-size:23px; line-height:1.25; margin-bottom:6px; }
+  h2{ font-size:16px; margin:0 0 10px; }
+  p{ line-height:1.5; }
+  .muted{ color:var(--gris); } .small{ font-size:13px; }
+  .hero{ background:linear-gradient(135deg,#F58220,#e2902e); color:#fff; border:0; }
+  .hero h1{ font-size:26px; } .hero p{ opacity:.95; margin-top:6px; }
+  .btn{ display:inline-block; width:100%; background:var(--naranja); color:#fff; border:0; border-radius:10px;
+        padding:13px; font-size:15px; font-weight:700; cursor:pointer; text-align:center; }
+  .btn:disabled{ opacity:.5; cursor:default; }
+  .btn-2{ background:#fff; color:var(--naranja); border:2px solid var(--naranja); }
+  .btn-g{ background:none; color:var(--gris); border:0; font-weight:600; cursor:pointer; padding:8px; width:auto; }
+  label{ display:block; font-size:13px; color:var(--gris); margin:10px 0 4px; font-weight:600; }
+  input{ width:100%; padding:12px; border:1px solid #cfd4da; border-radius:10px; font-size:15px; }
+  input:focus{ outline:0; border-color:var(--naranja); }
+  .pts-big{ font-size:42px; font-weight:900; color:var(--naranja); line-height:1; }
+  .premio{ display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--linea); }
+  .premio:last-child{ border-bottom:0; }
+  .premio .ico{ font-size:26px; }
+  .premio .info{ flex:1; } .premio .info b{ display:block; }
+  .premio .costo{ font-size:12px; color:var(--gris); }
+  .premio button{ background:var(--naranja); color:#fff; border:0; border-radius:8px; padding:8px 14px; font-weight:700; cursor:pointer; font-size:13px; white-space:nowrap; }
+  .premio button:disabled{ background:#cfd4da; cursor:default; }
+  .vid{ position:relative; padding-top:56.25%; border-radius:12px; overflow:hidden; margin:10px 0; background:#000; }
+  .vid iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
+  .err{ background:#fdecea; color:#b93a2b; border-radius:8px; padding:10px; font-size:13px; margin:8px 0; }
+  .ok{ background:#eafaf1; color:var(--ok); border-radius:8px; padding:10px; font-size:13px; margin:8px 0; }
+  .chip{ display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px; background:#eef0f2; color:var(--gris); }
+  .foot{ text-align:center; font-size:11px; color:#9aa1aa; padding:18px 10px 28px; }
+  .tabs{ display:flex; gap:8px; margin-bottom:10px; }
+  .tabs button{ flex:1; background:#eef0f2; border:0; border-radius:8px; padding:9px; font-weight:700; color:var(--gris); cursor:pointer; }
+  .tabs button.on{ background:var(--naranja); color:#fff; }
+  a.volver{ color:var(--naranja); font-weight:700; text-decoration:none; }
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="hn">
+    <span class="logo">GDO</span>
+    <b>CLUB GDO</b>
+    <span class="pts" id="hdrPts" style="display:none"></span>
+  </div>
+</header>
+
+<div class="wrap" id="app"><div class="card">Cargando…</div></div>
+<div class="foot">Propiedad de Granja del Oeste<sup style="font-size:8px">®</sup> · Club GDO · v0 (en pruebas)</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js"></script>
+<script>
+(function () {
+  // ── Config Firebase (mismo proyecto que la tienda) ──
+  var cfg = {
+    apiKey: 'AIzaSyDljWSSEDrZylMxgYCPaqaqU2x-3QYvZaM',
+    authDomain: 'ruteogdo.firebaseapp.com',
+    projectId: 'ruteogdo',
+    storageBucket: 'ruteogdo.firebasestorage.app',
+    messagingSenderId: '507253098011',
+    appId: '1:507253098011:web:785699004cd41dfe1f9abe',
+  };
+  var app = document.getElementById('app');
+  if (typeof firebase === 'undefined' || !firebase.initializeApp) {
+    app.innerHTML = '<div class="card err">No hay conexión. Probá de nuevo con internet.</div>'; return;
+  }
+  firebase.initializeApp(cfg);
+  // App Check (reCAPTCHA v3 invisible) — obligatorio: Firestore/Auth exigen token.
+  try { if (firebase.appCheck) firebase.appCheck().activate('6LcFdCctAAAAAELE8bLAVjrYLFgVFHH_JO0oKOxw', true); } catch (e) {}
+  var auth = firebase.auth(), db = firebase.firestore();
+
+  // ── Videos promocionales (TODO: editables desde el admin) ──
+  // Reemplazar por los embeds reales de YouTube. Por ahora, placeholder.
+  var VIDEOS = [
+    // 'https://www.youtube.com/embed/XXXXXXXXXXX'
+  ];
+
+  // Premios de EJEMPLO para la vista pública (incentivo). El catálogo real sale
+  // de Firestore cuando el socio entra.
+  var EJEMPLOS = [
+    { ico:'🍔', nombre:'1 kg de hamburguesas de pollo', costo:500000 },
+    { ico:'🥩', nombre:'2 kg de milanesa', costo:750000 },
+  ];
+
+  var esc = function (s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+  var fmt = function (n){ return Number(n||0).toLocaleString('es-AR'); };
+
+  var unsub = null;
+
+  auth.onAuthStateChanged(function (user) {
+    if (unsub) { unsub(); unsub = null; }
+    if (user && !user.isAnonymous) entrarSocio(user);
+    else vistaPublica();
+  });
+
+  // ───────────────── VISTA PÚBLICA (no logueado) ─────────────────
+  function vistaPublica(){
+    document.getElementById('hdrPts').style.display = 'none';
+    var vids = VIDEOS.length
+      ? VIDEOS.map(function(u){ return '<div class="vid"><iframe src="'+esc(u)+'" allowfullscreen></iframe></div>'; }).join('')
+      : '<p class="muted small">📹 Acá van a ir los videos del Club (los cargás vos desde el panel).</p>';
+    var ej = EJEMPLOS.map(function(p){
+      return '<div class="premio"><span class="ico">'+p.ico+'</span><div class="info"><b>'+esc(p.nombre)+'</b><span class="costo">'+fmt(p.costo)+' Puntos GDO</span></div></div>';
+    }).join('');
+    app.innerHTML =
+      '<div class="card hero"><h1>Hacete socio del CLUB GDO</h1>'+
+        '<p>Obtené beneficios y descuentos con tus compras. Por cada <b>$1</b> que gastás sumás <b>1 Punto GDO</b>, y los canjeás por premios. 🎁</p></div>'+
+      '<div class="card">'+
+        '<div class="tabs"><button id="tLogin" class="on" type="button">Ya soy socio</button><button id="tReg" type="button">Quiero asociarme</button></div>'+
+        '<div id="formBox"></div>'+
+      '</div>'+
+      '<div class="card"><h2>📹 Mirá de qué se trata</h2>'+vids+'</div>'+
+      '<div class="card"><h2>🎁 Ejemplos de premios</h2>'+ej+
+        '<p class="muted small" style="margin-top:8px">* Los premios y los puntos se actualizan desde el panel. Asociate para ver el catálogo completo.</p></div>'+
+      '<div class="card" style="text-align:center"><a class="volver" href="index.html">← Volver a la lista de precios</a></div>';
+    document.getElementById('tLogin').onclick = function(){ setTab('login'); };
+    document.getElementById('tReg').onclick = function(){ setTab('reg'); };
+    setTab('login');
+  }
+
+  function setTab(which){
+    var tL=document.getElementById('tLogin'), tR=document.getElementById('tReg'), box=document.getElementById('formBox');
+    if(!box) return;
+    tL.className = which==='login'?'on':''; tR.className = which==='reg'?'on':'';
+    if (which==='login'){
+      box.innerHTML =
+        '<div id="msg"></div>'+
+        '<label>Email</label><input id="email" type="email" autocomplete="email" placeholder="tucorreo@ejemplo.com"/>'+
+        '<label>Contraseña</label><input id="pass" type="password" autocomplete="current-password" placeholder="••••••••"/>'+
+        '<div style="height:12px"></div><button class="btn" id="goLogin" type="button">Entrar</button>'+
+        '<div style="text-align:center;margin-top:6px"><button class="btn-g" id="goReset" type="button">Olvidé mi contraseña</button></div>';
+      document.getElementById('goLogin').onclick = doLogin;
+      document.getElementById('goReset').onclick = doReset;
+    } else {
+      box.innerHTML =
+        '<div id="msg"></div>'+
+        '<label>Nombre y apellido</label><input id="nombre" type="text" autocomplete="name" placeholder="Tu nombre"/>'+
+        '<label>Email</label><input id="email" type="email" autocomplete="email" placeholder="tucorreo@ejemplo.com"/>'+
+        '<label>Contraseña (mín. 6)</label><input id="pass" type="password" autocomplete="new-password" placeholder="Creá una contraseña"/>'+
+        '<div style="height:12px"></div><button class="btn" id="goReg" type="button">Crear mi cuenta de socio</button>';
+      document.getElementById('goReg').onclick = doRegistro;
+    }
+  }
+
+  function setMsg(html, cls){ var m=document.getElementById('msg'); if(m) m.innerHTML = html ? '<div class="'+(cls||'err')+'">'+html+'</div>' : ''; }
+  function errTxt(e){
+    var c = e && e.code || '';
+    if (c.indexOf('email-already-in-use')>=0) return 'Ese email ya está registrado. Probá "Ya soy socio".';
+    if (c.indexOf('invalid-email')>=0) return 'El email no es válido.';
+    if (c.indexOf('weak-password')>=0) return 'La contraseña es muy corta (mínimo 6).';
+    if (c.indexOf('wrong-password')>=0 || c.indexOf('invalid-credential')>=0) return 'Email o contraseña incorrectos.';
+    if (c.indexOf('user-not-found')>=0) return 'No encontramos esa cuenta. ¿Querés asociarte?';
+    if (c.indexOf('too-many-requests')>=0) return 'Demasiados intentos. Esperá un momento.';
+    return 'No se pudo completar. Revisá tu conexión e intentá de nuevo.';
+  }
+
+  function doRegistro(){
+    var nombre=(document.getElementById('nombre').value||'').trim();
+    var email=(document.getElementById('email').value||'').trim();
+    var pass=document.getElementById('pass').value||'';
+    if(!nombre){ setMsg('Poné tu nombre.'); return; }
+    var b=document.getElementById('goReg'); b.disabled=true; b.textContent='Creando…';
+    auth.createUserWithEmailAndPassword(email, pass).then(function(cred){
+      // Crear perfil de socio con 0 puntos (las reglas exigen puntos==0 en el alta).
+      return db.collection('clientes').doc(cred.user.uid).set({
+        nombre: nombre, email: email, puntos: 0, creado: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }).catch(function(e){ setMsg(errTxt(e)); b.disabled=false; b.textContent='Crear mi cuenta de socio'; });
+  }
+
+  function doLogin(){
+    var email=(document.getElementById('email').value||'').trim();
+    var pass=document.getElementById('pass').value||'';
+    var b=document.getElementById('goLogin'); b.disabled=true; b.textContent='Entrando…';
+    auth.signInWithEmailAndPassword(email, pass).catch(function(e){ setMsg(errTxt(e)); b.disabled=false; b.textContent='Entrar'; });
+  }
+
+  function doReset(){
+    var email=(document.getElementById('email').value||'').trim();
+    if(!email){ setMsg('Escribí tu email arriba y toca de nuevo "Olvidé mi contraseña".'); return; }
+    auth.sendPasswordResetEmail(email).then(function(){ setMsg('Te enviamos un mail para recuperar la contraseña.', 'ok'); }).catch(function(e){ setMsg(errTxt(e)); });
+  }
+
+  // ───────────────── VISTA SOCIO (logueado) ─────────────────
+  function entrarSocio(user){
+    app.innerHTML = '<div class="card">Cargando tu cuenta…</div>';
+    var ref = db.collection('clientes').doc(user.uid);
+    ref.get().then(function(doc){
+      if(!doc.exists){
+        // Por si la cuenta existe en Auth pero no tiene perfil aún.
+        return ref.set({ nombre: user.displayName || (user.email||'').split('@')[0], email: user.email||'', puntos:0, creado: firebase.firestore.FieldValue.serverTimestamp() });
+      }
+    }).then(function(){
+      unsub = ref.onSnapshot(function(d){ renderSocio(user, d.data()||{}); }, function(){ /* permiso/red */ });
+    }).catch(function(){
+      app.innerHTML = '<div class="card err">No pudimos cargar tu cuenta. Probá recargar.</div>'+
+        '<div class="card" style="text-align:center"><button class="btn-2 btn" id="out" type="button">Cerrar sesión</button></div>';
+      var o=document.getElementById('out'); if(o) o.onclick=function(){ auth.signOut(); };
+    });
+  }
+
+  function renderSocio(user, socio){
+    var pts = socio.puntos||0;
+    var nom = (socio.nombre||'').split(' ')[0] || 'socio';
+    document.getElementById('hdrPts').style.display='inline-block';
+    document.getElementById('hdrPts').textContent = fmt(pts)+' pts';
+    app.innerHTML =
+      '<div class="card" style="text-align:center"><p class="muted">¡Hola '+esc(nom)+'! 👋 Tenés</p>'+
+        '<div class="pts-big">'+fmt(pts)+'</div><p class="muted small">Puntos GDO</p></div>'+
+      '<div class="card"><h2>🎁 Premios para canjear</h2><div id="premios"><p class="muted small">Cargando premios…</p></div></div>'+
+      '<div class="card"><h2>📋 Mis canjes</h2><div id="canjes"><p class="muted small">—</p></div></div>'+
+      '<div class="card" style="text-align:center"><a class="volver" href="index.html">← Ir a la lista de precios</a>'+
+        '<div style="height:12px"></div><button class="btn-g" id="out" type="button">Cerrar sesión</button></div>';
+    document.getElementById('out').onclick = function(){ auth.signOut(); };
+    cargarPremios(user, pts);
+    cargarCanjes(user);
+  }
+
+  function cargarPremios(user, pts){
+    var cont = document.getElementById('premios');
+    db.collection('premios').where('activo','==',true).get().then(function(snap){
+      if(snap.empty){ cont.innerHTML='<p class="muted small">Todavía no hay premios cargados. ¡Pronto!</p>'; return; }
+      var arr=[]; snap.forEach(function(d){ var p=d.data(); p._id=d.id; arr.push(p); });
+      arr.sort(function(a,b){ return (a.costo||0)-(b.costo||0); });
+      cont.innerHTML = arr.map(function(p){
+        var alcanza = pts >= (p.costo||0);
+        return '<div class="premio"><span class="ico">'+(p.ico||'🎁')+'</span>'+
+          '<div class="info"><b>'+esc(p.nombre)+'</b><span class="costo">'+fmt(p.costo)+' Puntos GDO</span></div>'+
+          '<button data-id="'+esc(p._id)+'" data-c="'+(p.costo||0)+'" data-n="'+esc(p.nombre)+'" '+(alcanza?'':'disabled')+'>'+(alcanza?'Canjear':'Te faltan')+'</button></div>';
+      }).join('');
+      cont.querySelectorAll('button[data-id]').forEach(function(b){
+        b.onclick = function(){ canjear(user, b.dataset.id, parseInt(b.dataset.c,10), b.dataset.n, b); };
+      });
+    }).catch(function(){ cont.innerHTML='<p class="muted small">No se pudieron cargar los premios.</p>'; });
+  }
+
+  function canjear(user, premioId, costo, nombre, btn){
+    if(!confirm('¿Canjear '+fmt(costo)+' Puntos GDO por "'+nombre+'"? Te vamos a contactar para coordinar la entrega.')) return;
+    btn.disabled=true; btn.textContent='Enviando…';
+    db.collection('canjes').add({
+      clienteUid: user.uid, premioId: premioId, premioNombre: nombre, puntos: costo,
+      estado: 'solicitado', ts: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function(){
+      alert('¡Listo! Tu solicitud de canje quedó registrada. Te contactamos para coordinar. 🎉');
+    }).catch(function(){
+      alert('No se pudo registrar el canje (puede que no te alcancen los puntos). Probá de nuevo.');
+      btn.disabled=false; btn.textContent='Canjear';
+    });
+  }
+
+  function cargarCanjes(user){
+    var cont = document.getElementById('canjes');
+    db.collection('canjes').where('clienteUid','==',user.uid).get().then(function(snap){
+      if(snap.empty){ cont.innerHTML='<p class="muted small">Todavía no canjeaste nada.</p>'; return; }
+      var arr=[]; snap.forEach(function(d){ arr.push(d.data()); });
+      var estados={ solicitado:'⏳ Solicitado', aprobado:'✅ Aprobado', entregado:'🎁 Entregado', rechazado:'❌ Rechazado' };
+      cont.innerHTML = arr.map(function(c){
+        return '<div class="premio"><div class="info"><b>'+esc(c.premioNombre)+'</b><span class="costo">'+fmt(c.puntos)+' pts</span></div>'+
+          '<span class="chip">'+(estados[c.estado]||c.estado)+'</span></div>';
+      }).join('');
+    }).catch(function(){ cont.innerHTML='<p class="muted small">—</p>'; });
+  }
+})();
+</script>
+</body>
+</html>

@@ -33,14 +33,12 @@
            border-radius:18px; padding:18px 22px; display:flex; flex-direction:column;
            box-shadow:0 12px 30px rgba(0,0,0,.45); }
   .carnet::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--naranja); z-index:3; }
-  .carnet .glow{ position:absolute; right:-40px; top:-40px; width:150px; height:150px; z-index:0; pointer-events:none;
-                 background:radial-gradient(circle,rgba(245,130,32,.30),transparent 70%); }
-  .ct-top{ display:flex; align-items:center; position:relative; z-index:1; }
-  .ct-club{ font-weight:900; letter-spacing:3px; font-size:19px; text-shadow:0 0 10px rgba(245,130,32,.45); }
+  .ct-top{ display:flex; align-items:flex-start; justify-content:space-between; position:relative; z-index:1; }
+  .ct-brand{ display:inline-flex; flex-direction:column; align-items:center; gap:8px; }
+  .ct-club{ font-weight:900; letter-spacing:3px; font-size:19px; text-shadow:0 0 10px rgba(245,130,32,.85), 0 0 22px rgba(245,130,32,.5); }
   .ct-club .o{ color:var(--naranja); }
-  .ct-tag{ margin-left:auto; font-size:9px; letter-spacing:2px; color:var(--naranja); border:1px solid var(--naranja); padding:3px 9px; border-radius:20px; font-weight:700; }
-  .ct-logo{ margin-top:10px; position:relative; z-index:1; }
-  .ct-logo img{ height:62px; width:auto; display:block; }
+  .ct-brand img{ height:60px; width:auto; display:block; }
+  .ct-tag{ font-size:9px; letter-spacing:2px; color:var(--naranja); border:1px solid var(--naranja); padding:3px 9px; border-radius:20px; font-weight:700; }
   .ct-bot{ flex:1; display:flex; justify-content:space-between; align-items:flex-end; position:relative; z-index:1; }
   .ct-nro{ font-size:10px; color:#9aa1aa; letter-spacing:2px; }
   .ct-nro b{ display:block; font-size:26px; color:var(--naranja); letter-spacing:2px; font-weight:900; line-height:1; }
@@ -269,9 +267,7 @@
     app.innerHTML =
       '<p class="saludo">¡Hola '+esc(nom)+'! 👋 Esta es tu credencial de socio:</p>'+
       '<div class="carnet">'+
-        '<span class="glow"></span>'+
-        '<div class="ct-top"><span class="ct-club">GDO <span class="o">CLUB</span></span><span class="ct-tag">MIEMBRO</span></div>'+
-        '<div class="ct-logo"><img src="assets/isotipo-blanco.svg" alt="GDO"/></div>'+
+        '<div class="ct-top"><span class="ct-brand"><span class="ct-club">GDO <span class="o">CLUB</span></span><img src="assets/isotipo-blanco.svg" alt="GDO"/></span><span class="ct-tag">MIEMBRO</span></div>'+
         '<div class="ct-bot">'+
           '<div>'+
             '<div class="ct-nro">SOCIO N°<b>'+nroFmt+'</b></div>'+

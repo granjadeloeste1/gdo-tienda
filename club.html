@@ -131,10 +131,19 @@
 
   var unsub = null;
 
+  // ¿Entró escaneando el QR del mostrador? (club.html?local) → check-in.
+  var enLocal = false;
+  try { enLocal = new URLSearchParams(location.search).has('local'); }
+  catch (e) { enLocal = /[?&]local(=|&|$)/.test(location.search); }
+
   auth.onAuthStateChanged(function (user) {
     if (unsub) { unsub(); unsub = null; }
-    if (user && !user.isAnonymous) entrarSocio(user);
-    else vistaPublica();
+    if (user && !user.isAnonymous) {
+      if (enLocal) checkInLocal(user);
+      else entrarSocio(user);
+    } else {
+      vistaPublica();
+    }
   });
 
   // ───────────────── VISTA PÚBLICA (no logueado) ─────────────────
@@ -146,9 +155,13 @@
     var ej = EJEMPLOS.map(function(p){
       return '<div class="premio"><span class="ico">'+p.ico+'</span><div class="info"><b>'+esc(p.nombre)+'</b><span class="costo">'+fmt(p.costo)+' Puntos GDO</span></div></div>';
     }).join('');
+    var avisoLocal = enLocal
+      ? '<div class="card ok" style="text-align:center;margin-top:14px">📍 <b>Estás en el local.</b> Iniciá sesión o asociate para sumar los Puntos GDO de tu compra.</div>'
+      : '';
     app.innerHTML =
       '<div class="card hero"><h1>Hacete socio de <span class="marca">GDO CLUB</span></h1>'+
         '<p>Obtené beneficios y descuentos con tus compras. Por cada <b>$1</b> que gastás sumás <b>1 Punto GDO</b>, y los canjeás por premios. 🎁</p></div>'+
+      avisoLocal+
       '<div class="card">'+
         '<div class="tabs"><button id="tLogin" class="on" type="button">Ya soy socio</button><button id="tReg" type="button">Quiero asociarme</button></div>'+
         '<div id="formBox"></div>'+
@@ -257,18 +270,66 @@
     });
   }
 
-  function renderSocio(user, socio){
+  // ───────────────── CHECK-IN EN EL MOSTRADOR (QR) ─────────────────
+  // El socio escaneó el QR único. Registramos su visita (sin puntos: los carga
+  // el cajero) y le mostramos la credencial para que la muestre en la caja.
+  function checkInLocal(user){
+    app.innerHTML = '<div class="card">📍 Registrando tu visita…</div>';
+    var ref = db.collection('clientes').doc(user.uid);
+    ref.get().then(function(doc){
+      if(!doc.exists){
+        return crearSocio(user.uid, user.displayName || (user.email||'').split('@')[0], user.email||'')
+          .then(function(){ return ref.get(); });
+      }
+      return doc;
+    }).then(function(doc){
+      var socio = (doc && doc.data && doc.data()) || {};
+      return db.collection('visitas').doc(user.uid).set({
+        clienteUid: user.uid,
+        nombre: socio.nombre || (user.email||'').split('@')[0] || 'Socio',
+        nroSocio: socio.nroSocio || 0,
+        estado: 'pendiente',
+        ts: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function(){ return socio; });
+    }).then(function(socio){
+      renderCheckIn(user, socio);
+    }).catch(function(){
+      app.innerHTML = '<div class="card err">No pudimos registrar tu visita. Revisá tu conexión y volvé a escanear el código del mostrador.</div>'+
+        '<div class="card" style="text-align:center"><button class="btn btn-2" id="reint" type="button">Reintentar</button></div>';
+      var r=document.getElementById('reint'); if(r) r.onclick=function(){ checkInLocal(user); };
+    });
+  }
+
+  function renderCheckIn(user, socio){
+    document.getElementById('hdrPts').style.display='none';
+    app.innerHTML =
+      '<div class="card hero" style="text-align:center">'+
+        '<div style="font-size:52px;line-height:1">✅</div>'+
+        '<h1 style="margin-top:6px">¡Estás en el local!</h1>'+
+        '<p>Mostrale esta pantalla al cajero. Te va a cargar los <b class="marca">Puntos GDO</b> de tu compra. 🛒</p></div>'+
+      carnetHTML(socio)+'<div style="height:14px"></div>'+
+      '<div class="card" style="text-align:center">'+
+        '<button class="btn" id="verCuenta" type="button">Ver mi cuenta y premios</button>'+
+        '<div style="height:10px"></div>'+
+        '<button class="btn-g" id="out" type="button">Cerrar sesión</button>'+
+      '</div>';
+    document.getElementById('verCuenta').onclick = function(){
+      enLocal = false;
+      try { history.replaceState({}, '', 'club.html'); } catch (e) {}
+      entrarSocio(user);
+    };
+    document.getElementById('out').onclick = function(){ auth.signOut(); };
+  }
+
+  // Tarjeta de socio (la usan la vista de cuenta y la confirmación de check-in).
+  function carnetHTML(socio){
     var pts = socio.puntos||0;
     var nom = (socio.nombre||'').split(' ')[0] || 'socio';
     var _p = ('00000000' + (socio.nroSocio||0)).slice(-8);
     var nroFmt = _p.slice(0,4) + ' ' + _p.slice(4);
     var fechaIngreso = '—';
     try { if (socio.creado && socio.creado.toDate) { var _d = socio.creado.toDate(); fechaIngreso = ('0'+(_d.getMonth()+1)).slice(-2) + '/' + _d.getFullYear(); } } catch (e) {}
-    document.getElementById('hdrPts').style.display='inline-block';
-    document.getElementById('hdrPts').textContent = fmt(pts)+' pts';
-    app.innerHTML =
-      '<p class="saludo">¡Hola '+esc(nom)+'! 👋 Esta es tu credencial de socio:</p>'+
-      '<div class="carnet">'+
+    return '<div class="carnet">'+
         '<div class="ct-left">'+
           '<div class="ct-brand">'+
             '<span class="ct-club">GDO <span class="o">CLUB</span></span>'+
@@ -284,7 +345,17 @@
           '<span class="ct-tag">MIEMBRO</span>'+
           '<div class="ct-pts"><b>'+fmt(pts)+'</b><span>PUNTOS GDO</span></div>'+
         '</div>'+
-      '</div><div style="height:14px"></div>'+
+      '</div>';
+  }
+
+  function renderSocio(user, socio){
+    var pts = socio.puntos||0;
+    var nom = (socio.nombre||'').split(' ')[0] || 'socio';
+    document.getElementById('hdrPts').style.display='inline-block';
+    document.getElementById('hdrPts').textContent = fmt(pts)+' pts';
+    app.innerHTML =
+      '<p class="saludo">¡Hola '+esc(nom)+'! 👋 Esta es tu credencial de socio:</p>'+
+      carnetHTML(socio)+'<div style="height:14px"></div>'+
       '<div class="card"><h2>🎁 Premios para canjear</h2><div id="premios"><p class="muted small">Cargando premios…</p></div></div>'+
       '<div class="card"><h2>📋 Mis canjes</h2><div id="canjes"><p class="muted small">—</p></div></div>'+
       '<div class="card" style="text-align:center"><a class="volver" href="index.html">← Ir a la lista de precios</a>'+

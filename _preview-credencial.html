@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Preview credencial GDO CLUB</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{ --naranja:#F58220; }
+  body{ background:#f4f5f7; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+        min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:24px; }
+  .tit{ color:#5b6470; font-size:13px; }
+  .carnet{ position:relative; overflow:hidden; aspect-ratio:1.58/1; width:400px; max-width:92vw;
+           background:linear-gradient(135deg,#26262b 0%,#0a0a0b 60%); color:#fff; border:1px solid #2c2c31;
+           border-radius:18px; padding:18px 22px; display:flex; flex-direction:row;
+           box-shadow:0 12px 30px rgba(0,0,0,.45); }
+  .carnet::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--naranja); z-index:3; }
+  .ct-left{ flex:1; min-width:0; display:flex; flex-direction:column; position:relative; z-index:1; }
+  .ct-brand{ flex:1; align-self:flex-start; display:flex; flex-direction:column; align-items:center; }
+  .ct-club{ font-weight:900; letter-spacing:3px; font-size:19px; text-shadow:0 0 10px rgba(245,130,32,.85), 0 0 22px rgba(245,130,32,.5); }
+  .ct-club .o{ color:var(--naranja); }
+  .ct-logo{ flex:1; display:flex; align-items:center; }
+  .ct-logo img{ height:90px; width:auto; display:block; }
+  .ct-nro{ font-size:10px; color:#9aa1aa; letter-spacing:2px; }
+  .ct-nro b{ display:block; font-size:20px; color:var(--naranja); letter-spacing:1.5px; font-weight:900; line-height:1; }
+  .ct-name{ font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-top:5px; }
+  .ct-since{ font-size:8px; color:#9aa1aa; letter-spacing:1px; margin-top:5px; }
+  .ct-right{ display:flex; flex-direction:column; align-items:flex-end; justify-content:space-between; position:relative; z-index:1; padding-left:8px; }
+  .ct-tag{ font-size:9px; letter-spacing:2px; color:var(--naranja); border:1px solid var(--naranja); padding:3px 9px; border-radius:20px; font-weight:700; }
+  .ct-pts{ text-align:right; } .ct-pts b{ display:block; font-size:20px; color:var(--naranja); font-weight:900; line-height:1; }
+  .ct-pts span{ font-size:8px; color:#9aa1aa; letter-spacing:1.5px; }
+</style>
+</head>
+<body>
+  <div class="tit">Vista previa de la credencial GDO CLUB (datos de ejemplo)</div>
+  <div class="carnet">
+    <div class="ct-left">
+      <div class="ct-brand">
+        <span class="ct-club">GDO <span class="o">CLUB</span></span>
+        <div class="ct-logo"><img src="assets/isotipo-blanco.svg" alt="GDO"/></div>
+      </div>
+      <div class="ct-data">
+        <div class="ct-nro">SOCIO N°<b>0000 0001</b></div>
+        <div class="ct-name">Juan Pérez</div>
+        <div class="ct-since">SOCIO DESDE 06/2026</div>
+      </div>
+    </div>
+    <div class="ct-right">
+      <span class="ct-tag">MIEMBRO</span>
+      <div class="ct-pts"><b>12.500</b><span>PUNTOS GDO</span></div>
+    </div>
+  </div>
+</body>
+</html>

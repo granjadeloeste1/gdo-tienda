@@ -93,6 +93,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>
 (function () {
   // ── Config Firebase (mismo proyecto que la tienda) ──
@@ -130,6 +131,7 @@
   var fmt = function (n){ return Number(n||0).toLocaleString('es-AR'); };
 
   var unsub = null;
+  var lastSocio = {};   // últimos datos del socio (para armar el voucher)
 
   // ¿Entró escaneando el QR del mostrador? (club.html?local) → check-in.
   var enLocal = false;
@@ -214,15 +216,22 @@
   // Crea el perfil de socio tomando el SIGUIENTE número de socio en una
   // transacción atómica (sin duplicados). El número es cosmético; los puntos
   // arrancan en 0 (las reglas lo exigen).
+  // Idempotente: si el perfil del socio YA existe (p. ej. dos cargas casi
+  // simultáneas en el primer ingreso), NO lo vuelve a crear ni le cambia el N°
+  // (eso evita el "permission-denied" por intentar pisar el nroSocio). Si dos
+  // corren a la vez, la transacción reintenta sola y la 2ª ve el doc ya creado.
   function crearSocio(uid, nombre, email){
     var cref = db.collection('club_config').doc('contador');
     var uref = db.collection('clientes').doc(uid);
     return db.runTransaction(function(tx){
-      return tx.get(cref).then(function(c){
-        var n = (c.exists ? (c.data().n||0) : 0) + 1;
-        if (c.exists) tx.update(cref, {n:n}); else tx.set(cref, {n:n});
-        tx.set(uref, { nombre:nombre, email:email, puntos:0, nroSocio:n, creado: firebase.firestore.FieldValue.serverTimestamp() });
-        return n;
+      return tx.get(uref).then(function(u){
+        if (u.exists) return (u.data()||{}).nroSocio || 0;   // ya es socio: no tocar
+        return tx.get(cref).then(function(c){
+          var n = (c.exists ? (c.data().n||0) : 0) + 1;
+          if (c.exists) tx.update(cref, {n:n}); else tx.set(cref, {n:n});
+          tx.set(uref, { nombre:nombre, email:email, puntos:0, nroSocio:n, creado: firebase.firestore.FieldValue.serverTimestamp() });
+          return n;
+        });
       });
     });
   }
@@ -252,21 +261,31 @@
   }
 
   // ───────────────── VISTA SOCIO (logueado) ─────────────────
+  var _entrando = false;
   function entrarSocio(user){
+    if(_entrando) return;            // evita corridas dobles de onAuthStateChanged
+    _entrando = true;
     app.innerHTML = '<div class="card">Cargando tu cuenta…</div>';
     var ref = db.collection('clientes').doc(user.uid);
-    ref.get().then(function(doc){
-      if(!doc.exists){
-        // Por si la cuenta existe en Auth pero no tiene perfil aún: lo creamos
-        // asignando número de socio.
-        return crearSocio(user.uid, user.displayName || (user.email||'').split('@')[0], user.email||'');
-      }
-    }).then(function(){
-      unsub = ref.onSnapshot(function(d){ renderSocio(user, d.data()||{}); }, function(){ /* permiso/red */ });
-    }).catch(function(){
+    var escuchar = function(){ unsub = ref.onSnapshot(function(d){ if(d.exists) renderSocio(user, d.data()||{}); }, function(){ /* permiso/red */ }); };
+    var fallar = function(){
       app.innerHTML = '<div class="card err">No pudimos cargar tu cuenta. Probá recargar.</div>'+
         '<div class="card" style="text-align:center"><button class="btn-2 btn" id="out" type="button">Cerrar sesión</button></div>';
       var o=document.getElementById('out'); if(o) o.onclick=function(){ auth.signOut(); };
+    };
+    ref.get().then(function(doc){
+      if(!doc.exists){
+        return crearSocio(user.uid, user.displayName || (user.email||'').split('@')[0], user.email||'');
+      }
+    }).then(function(){
+      _entrando = false; escuchar();
+    }).catch(function(){
+      // Carrera del primer ingreso: si el perfil EN REALIDAD quedó creado, no es
+      // error → escuchamos igual. Solo mostramos error si de verdad no existe.
+      ref.get().then(function(d2){
+        _entrando = false;
+        if(d2.exists) escuchar(); else fallar();
+      }).catch(function(){ _entrando = false; fallar(); });
     });
   }
 
@@ -349,6 +368,7 @@
   }
 
   function renderSocio(user, socio){
+    lastSocio = socio || {};
     var pts = socio.puntos||0;
     var nom = (socio.nombre||'').split(' ')[0] || 'socio';
     document.getElementById('hdrPts').style.display='inline-block';
@@ -375,38 +395,103 @@
         var alcanza = pts >= (p.costo||0);
         return '<div class="premio"><span class="ico">'+(p.ico||'🎁')+'</span>'+
           '<div class="info"><b>'+esc(p.nombre)+'</b><span class="costo">'+fmt(p.costo)+' Puntos GDO</span></div>'+
-          '<button data-id="'+esc(p._id)+'" data-c="'+(p.costo||0)+'" data-n="'+esc(p.nombre)+'" '+(alcanza?'':'disabled')+'>'+(alcanza?'Canjear':'Te faltan')+'</button></div>';
+          '<button data-id="'+esc(p._id)+'" data-c="'+(p.costo||0)+'" data-n="'+esc(p.nombre)+'" data-i="'+esc(p.ico||'🎁')+'" '+(alcanza?'':'disabled')+'>'+(alcanza?'Canjear':'Te faltan')+'</button></div>';
       }).join('');
       cont.querySelectorAll('button[data-id]').forEach(function(b){
-        b.onclick = function(){ canjear(user, b.dataset.id, parseInt(b.dataset.c,10), b.dataset.n, b); };
+        b.onclick = function(){ canjear(user, b.dataset.id, parseInt(b.dataset.c,10), b.dataset.n, b.dataset.i, b); };
       });
     }).catch(function(){ cont.innerHTML='<p class="muted small">No se pudieron cargar los premios.</p>'; });
   }
 
-  function canjear(user, premioId, costo, nombre, btn){
-    if(!confirm('¿Canjear '+fmt(costo)+' Puntos GDO por "'+nombre+'"? Te vamos a contactar para coordinar la entrega.')) return;
-    btn.disabled=true; btn.textContent='Enviando…';
-    db.collection('canjes').add({
-      clienteUid: user.uid, premioId: premioId, premioNombre: nombre, puntos: costo,
-      estado: 'solicitado', ts: firebase.firestore.FieldValue.serverTimestamp()
+  // Código legible y único del voucher (12 hex de crypto → GDO-XXXX-XXXX-XXXX).
+  function nuevoCodigo(){
+    var a = new Uint8Array(6);
+    if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(a);
+    else { for(var k=0;k<a.length;k++) a[k] = Math.floor(Math.random()*256); }
+    var hex=''; for(var i=0;i<a.length;i++){ hex += ('0'+a[i].toString(16)).slice(-2); }
+    hex = hex.toUpperCase();
+    return 'GDO-'+hex.slice(0,4)+'-'+hex.slice(4,8)+'-'+hex.slice(8,12);
+  }
+
+  // CANJE AUTOMÁTICO: descuenta los puntos y emite el voucher en UNA transacción.
+  // Las reglas exigen que los puntos bajen exactamente el costo (anti-estafa).
+  function canjear(user, premioId, costo, nombre, ico, btn){
+    if(!confirm('¿Canjear '+fmt(costo)+' Puntos GDO por "'+nombre+'"?\n\nSe descuentan al instante y te generamos un VOUCHER para presentar en el local.')) return;
+    btn.disabled=true; btn.textContent='Generando…';
+    var cref = db.collection('clientes').doc(user.uid);
+    var vref = db.collection('canjes').doc();
+    var codigo = nuevoCodigo();
+    var venceMs = Date.now() + 30*24*60*60*1000;   // 30 días
+    db.runTransaction(function(tx){
+      return tx.get(cref).then(function(c){
+        if(!c.exists) throw new Error('sin-perfil');
+        var saldo = (c.data().puntos||0);
+        if(saldo < costo) throw new Error('saldo');
+        tx.update(cref, { puntos: saldo - costo });
+        tx.set(vref, {
+          clienteUid: user.uid, premioId: premioId, premioNombre: nombre, premioIco: ico||'🎁',
+          costo: costo, estado: 'emitido', usado: false, codigo: codigo,
+          socioNombre: (lastSocio.nombre||''), socioNro: (lastSocio.nroSocio||0),
+          venceMs: venceMs, ts: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      });
     }).then(function(){
-      alert('¡Listo! Tu solicitud de canje quedó registrada. Te contactamos para coordinar. 🎉');
-    }).catch(function(){
-      alert('No se pudo registrar el canje (puede que no te alcancen los puntos). Probá de nuevo.');
+      voucherView({ _id: vref.id, premioNombre:nombre, premioIco:ico||'🎁', costo:costo, codigo:codigo,
+        usado:false, venceMs:venceMs, socioNombre:lastSocio.nombre, socioNro:lastSocio.nroSocio });
+    }).catch(function(e){
+      var m = (e&&e.message)||'';
+      alert(m==='saldo' ? 'No te alcanzan los puntos para este premio.'
+           : 'No se pudo generar el canje. Probá de nuevo en un momento.');
       btn.disabled=false; btn.textContent='Canjear';
     });
+  }
+
+  // Voucher en pantalla (overlay sobre todo, así un re-render no lo borra).
+  function voucherView(c){
+    var prev=document.getElementById('voucherOverlay'); if(prev) prev.remove();
+    var venceTxt = c.venceMs ? new Date(c.venceMs).toLocaleDateString('es-AR') : '—';
+    var _p = ('00000000'+(c.socioNro||0)).slice(-8); var nroFmt=_p.slice(0,4)+' '+_p.slice(4);
+    var ov=document.createElement('div'); ov.id='voucherOverlay';
+    ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto';
+    ov.innerHTML =
+      '<div style="max-width:360px;width:100%">'+
+        '<div style="position:relative;background:linear-gradient(135deg,#26262b,#0a0a0b 60%);color:#fff;border:1px solid #2c2c31;border-left:6px solid #F58220;border-radius:18px;padding:18px;box-shadow:0 12px 30px rgba(0,0,0,.5)">'+
+          (c.usado?'<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);border-radius:18px;z-index:5"><span style="border:3px solid #e53935;color:#e53935;font-weight:900;font-size:30px;letter-spacing:3px;padding:6px 16px;border-radius:8px;transform:rotate(-12deg)">ANULADO</span></div>':'')+
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><img src="assets/isotipo-blanco.svg" style="height:28px"/><b style="letter-spacing:2px;font-size:13px">GDO <span style="color:#F58220">CLUB</span></b><span style="margin-left:auto;font-size:8.5px;color:#9aa1aa;letter-spacing:1px">VOUCHER DE CANJE</span></div>'+
+          '<div style="text-align:center;margin:4px 0 10px"><div style="font-size:34px">'+(c.premioIco||'🎁')+'</div><div style="font-weight:800;font-size:16px;margin-top:2px">'+esc(c.premioNombre||'')+'</div><div style="font-size:11px;color:#9aa1aa">'+fmt(c.costo)+' Puntos GDO</div></div>'+
+          '<div id="vchQR" style="background:#fff;width:166px;height:166px;margin:0 auto;border-radius:10px;display:flex;align-items:center;justify-content:center"></div>'+
+          '<div style="text-align:center;font-family:monospace;font-size:14px;letter-spacing:1px;margin-top:8px;color:#F58220;font-weight:700">'+esc(c.codigo||'')+'</div>'+
+          '<div style="font-size:9.5px;color:#9aa1aa;margin-top:8px">SOCIO '+esc(c.socioNombre||'')+' · N° '+nroFmt+'</div>'+
+          '<div style="font-size:9px;color:#9aa1aa;margin-top:2px">Vence: '+venceTxt+'</div>'+
+          '<div style="font-size:8.5px;color:#7a808a;margin-top:8px;line-height:1.45;border-top:1px solid #2c2c31;padding-top:6px">Válido para UN ÚNICO canje en el local. Prohibida su reproducción. Sin valor comercial. El primero en escanearse anula al resto (original y copias comparten el mismo código).</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:8px;margin-top:12px">'+
+          (c.usado?'':'<a id="vchWa" class="btn" style="flex:1;text-decoration:none" target="_blank">📲 Guardar en WhatsApp</a>')+
+          '<button id="vchClose" class="btn btn-2" style="flex:1">Cerrar</button>'+
+        '</div>'+
+      '</div>';
+    document.body.appendChild(ov);
+    try{ new QRCode(document.getElementById('vchQR'), { text:'GDOCANJE:'+c._id, width:150, height:150, correctLevel:QRCode.CorrectLevel.M }); }catch(e){}
+    var wa=document.getElementById('vchWa');
+    if(wa){ var txt='🎁 Mi voucher GDO CLUB\nPremio: '+(c.premioNombre||'')+'\nCódigo: '+(c.codigo||'')+'\nVálido para 1 (un) canje en el local. Vence '+venceTxt+'.'; wa.href='https://wa.me/?text='+encodeURIComponent(txt); }
+    document.getElementById('vchClose').onclick=function(){ ov.remove(); };
+    ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
   }
 
   function cargarCanjes(user){
     var cont = document.getElementById('canjes');
     db.collection('canjes').where('clienteUid','==',user.uid).get().then(function(snap){
-      if(snap.empty){ cont.innerHTML='<p class="muted small">Todavía no canjeaste nada.</p>'; return; }
-      var arr=[]; snap.forEach(function(d){ arr.push(d.data()); });
-      var estados={ solicitado:'⏳ Solicitado', aprobado:'✅ Aprobado', entregado:'🎁 Entregado', rechazado:'❌ Rechazado' };
+      if(snap.empty){ cont.innerHTML='<p class="muted small">Todavía no tenés canjes. Canjeá un premio y te damos un voucher. 🎟️</p>'; return; }
+      var arr=[]; snap.forEach(function(d){ var x=d.data(); x._id=d.id; arr.push(x); });
+      arr.sort(function(a,b){ return ((b.ts&&b.ts.toMillis?b.ts.toMillis():0)-(a.ts&&a.ts.toMillis?a.ts.toMillis():0)); });
       cont.innerHTML = arr.map(function(c){
-        return '<div class="premio"><div class="info"><b>'+esc(c.premioNombre)+'</b><span class="costo">'+fmt(c.puntos)+' pts</span></div>'+
-          '<span class="chip">'+(estados[c.estado]||c.estado)+'</span></div>';
+        var chip = c.usado ? '<span class="chip">✔ Usado</span>' : '<span class="chip" style="background:#eafaf1;color:#1e8449">✅ Vigente · ver</span>';
+        return '<div class="premio" data-v="'+esc(c._id)+'" style="cursor:pointer"><span class="ico">'+(c.premioIco||'🎁')+'</span>'+
+          '<div class="info"><b>'+esc(c.premioNombre||'')+'</b><span class="costo">'+esc(c.codigo||'')+'</span></div>'+chip+'</div>';
       }).join('');
+      cont.querySelectorAll('[data-v]').forEach(function(el){
+        el.onclick=function(){ var c=null; for(var i=0;i<arr.length;i++){ if(arr[i]._id===el.dataset.v){ c=arr[i]; break; } } if(c) voucherView(c); };
+      });
     }).catch(function(){ cont.innerHTML='<p class="muted small">—</p>'; });
   }
 })();

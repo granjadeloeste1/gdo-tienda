@@ -491,7 +491,7 @@
             '<button id="vchClose" class="btn btn-2" style="width:100%">Cerrar</button>'+
           '</div>'+
         '</div>';
-      try{ new QRCode(document.getElementById('vchQR'), { text:'GDOCANJE:'+c._id, width:150, height:150, correctLevel:QRCode.CorrectLevel.M }); }catch(e){}
+      try{ new QRCode(document.getElementById('vchQR'), { text:'https://rutas.granjadeloeste.com/#/v/'+c._id, width:150, height:150, correctLevel:QRCode.CorrectLevel.M }); }catch(e){}
       document.getElementById('vchClose').onclick=cerrar;
     }
 

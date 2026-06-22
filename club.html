@@ -465,15 +465,13 @@
           '<div style="font-size:9px;color:#9aa1aa;margin-top:2px">Vence: '+venceTxt+'</div>'+
           '<div style="font-size:8.5px;color:#7a808a;margin-top:8px;line-height:1.45;border-top:1px solid #2c2c31;padding-top:6px">Válido para UN ÚNICO canje en el local. Prohibida su reproducción. Sin valor comercial. El primero en escanearse anula al resto (original y copias comparten el mismo código).</div>'+
         '</div>'+
-        '<div style="display:flex;gap:8px;margin-top:12px">'+
-          (c.usado?'':'<a id="vchWa" class="btn" style="flex:1;text-decoration:none" target="_blank">📲 Guardar en WhatsApp</a>')+
-          '<button id="vchClose" class="btn btn-2" style="flex:1">Cerrar</button>'+
+        '<div style="margin-top:12px">'+
+          '<div style="font-size:11px;color:#fff;background:rgba(255,255,255,.08);border-radius:8px;padding:8px;text-align:center;margin-bottom:8px">💡 Este voucher queda guardado en <b>Mis canjes</b>. Mostralo en el local para canjearlo.</div>'+
+          '<button id="vchClose" class="btn btn-2" style="width:100%">Cerrar</button>'+
         '</div>'+
       '</div>';
     document.body.appendChild(ov);
     try{ new QRCode(document.getElementById('vchQR'), { text:'GDOCANJE:'+c._id, width:150, height:150, correctLevel:QRCode.CorrectLevel.M }); }catch(e){}
-    var wa=document.getElementById('vchWa');
-    if(wa){ var txt='🎁 Mi voucher GDO CLUB\nPremio: '+(c.premioNombre||'')+'\nCódigo: '+(c.codigo||'')+'\nVálido para 1 (un) canje en el local. Vence '+venceTxt+'.'; wa.href='https://wa.me/?text='+encodeURIComponent(txt); }
     document.getElementById('vchClose').onclick=function(){ ov.remove(); };
     ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
   }

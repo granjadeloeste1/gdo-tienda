@@ -253,6 +253,11 @@ td.l{color:#3a4048}
   </div>
 </div>
 <div class="wrap">
+  <a id="clubCta" href="club.html" style="display:flex;align-items:center;gap:9px;text-decoration:none;background:#111;color:#fff;border:1px solid #2a2a2a;border-left:4px solid #F58220;border-radius:12px;padding:11px 14px;margin:0 0 12px;font-size:13.5px;font-weight:700;line-height:1.3">
+    <span style="font-size:18px">⭐</span>
+    <span id="clubCtaTxt">Hacete socio del <span style="color:#F58220">GDO CLUB</span> y sumá puntos con tus compras</span>
+    <span style="margin-left:auto;color:#F58220;font-size:18px">›</span>
+  </a>
   <input class="search" id="s" type="text" placeholder="Buscar producto..." oninput="filt()">
   <div id="root"></div>
   <div style="text-align:center;font-size:10.5px;color:#9aa1aa;padding:10px 10px 16px;opacity:.85;line-height:1.4">Propiedad de Granja del Oeste<sup style="font-size:8px">&reg;</sup> · v21</div>
@@ -591,6 +596,7 @@ render();
         <span class="sv" id="grandTotal">$ 0</span>
       </div>
       <div class="form" id="cartForm" style="display:none">
+        <div id="clubNote" style="display:none;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;line-height:1.4"></div>
         <h3>Tus datos</h3>
         <div class="fg" id="fgName">
           <label>Nombre y apellido <span class="req">*</span></label>
@@ -703,15 +709,27 @@ window.GDO = window.GDO || {};
   const settle = (en) => { if (settled) return; settled = true; finish(en); };
 
   // Login anónimo: da request.auth != null para las reglas de Firestore sin
-  // pedirle nada al usuario. Si la consola no lo tiene habilitado, igual
-  // intentamos Firestore (sirve mientras las reglas estén en modo prueba).
+  // pedirle nada al usuario. PERO si el cliente ya entró como SOCIO del GDO CLUB
+  // (mismo dominio, sesión email persistida), NO lo pisamos con un anónimo: lo
+  // dejamos logueado para vincular su pedido y sumarle puntos.
+  let _triedAnon = false;
   FB.auth.onAuthStateChanged((user) => {
-    if (user) FB.uid = user.uid;
-    settle(true);
-  });
-  FB.auth.signInAnonymously().catch((e) => {
-    console.warn('[GDO] Auth anónima no disponible (¿habilitada en la consola?). Intento Firestore igual.', e && e.code);
-    settle(true);
+    if (user) {
+      FB.uid = user.uid;
+      FB.user = user;
+      FB.esSocio = !user.isAnonymous;
+      settle(true);
+    } else {
+      FB.user = null; FB.esSocio = false;
+      if (!_triedAnon) {
+        _triedAnon = true;
+        FB.auth.signInAnonymously().catch((e) => {
+          console.warn('[GDO] Auth anónima no disponible (¿habilitada en la consola?). Intento Firestore igual.', e && e.code);
+          settle(true);
+        });
+      }
+    }
+    try { if (window.GDO && GDO.clubUI) GDO.clubUI(user && !user.isAnonymous ? user : null); } catch (e) {}
   });
 
   // Red de seguridad: si nada respondió (offline), seguimos en modo local.
@@ -1316,15 +1334,46 @@ window.GDO = window.GDO || {};
     // coordenadas las ubica sola la app de reparto (locatePending) al abrir
     // Pedidos (la tienda es anónima: las reglas la dejan CREAR pero no editar,
     // así que el geocodificado lo hace reparto, que entra como personal).
+    // Si el cliente está logueado como SOCIO del Club, vinculamos el pedido a su
+    // cuenta (clienteUid) para acreditarle los puntos al entregar. El MONTO de
+    // puntos lo confirma el personal (anti-estafa): acá solo guardamos el total
+    // estimado como referencia (totalEstimado), nunca 'puntos'.
+    var socioUid = (window.GDO && GDO.FB && GDO.FB.esSocio && GDO.FB.uid) ? GDO.FB.uid : null;
+    var totalEst = (typeof cartTotal === 'function') ? Math.round(cartTotal()) : 0;
     guardar({
       id: nid(), origen:'tienda', cliente:name, telefono:tel,
       direccion:addr, localidad:localidad, entrecalles:entrecalles, lat:lat, lng:lng,
       items:items, fechaEntrega:'', especificaciones:esp.join(' · '),
       formaPago: pay || '',
       prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
+      clienteUid: socioUid, totalEstimado: totalEst,
       ventana:'', historia:[], ts:Date.now()
     });
   }
+
+  // Pinta el CTA del Club y la nota del checkout según el cliente esté logueado
+  // como socio o no. La llama onAuthStateChanged (arriba) cuando cambia la sesión.
+  (window.GDO = window.GDO || {}).clubUI = function (user) {
+    var cta = document.getElementById('clubCtaTxt');
+    var note = document.getElementById('clubNote');
+    var fmt = function (n) { return Number(n || 0).toLocaleString('es-AR'); };
+    var safe = function (s) { return String(s == null ? '' : s).replace(/[<>&]/g, ''); };
+    if (user) {
+      var nom = safe(user.displayName || (user.email || '').split('@')[0] || 'socio');
+      if (cta) cta.innerHTML = 'Hola <b>' + nom + '</b> · sos socio del <span style="color:#F58220">GDO CLUB</span>';
+      if (note) { note.style.display = 'block'; note.style.background = '#0f1a12'; note.style.border = '1px solid #1e3a26'; note.style.borderLeft = '4px solid #1e8449'; note.style.color = '#bfe9cd'; note.innerHTML = '✅ Estás logueado como socio: este pedido te va a <b>sumar Puntos GDO</b> cuando se entregue.'; }
+      try {
+        if (GDO.FB && GDO.FB.db && user.uid) {
+          GDO.FB.db.collection('clientes').doc(user.uid).get().then(function (d) {
+            if (d.exists && cta) cta.innerHTML = 'Hola <b>' + nom + '</b> · <span style="color:#F58220">' + fmt(d.data().puntos) + ' Puntos GDO</span>';
+          }).catch(function () {});
+        }
+      } catch (e) {}
+    } else {
+      if (cta) cta.innerHTML = 'Hacete socio del <span style="color:#F58220">GDO CLUB</span> y sumá puntos con tus compras';
+      if (note) { note.style.display = 'block'; note.style.background = '#fff7ef'; note.style.border = '1px solid #f3cda0'; note.style.borderLeft = '4px solid #F58220'; note.style.color = '#7a4a12'; note.innerHTML = '⭐ ¿Sos socio del <b>GDO CLUB</b>? <a href="club.html" style="color:#F58220;font-weight:700">Iniciá sesión</a> para sumar puntos con este pedido.'; }
+    }
+  };
 
   var _send=window.sendWhatsApp;
   if(typeof _send==='function'){

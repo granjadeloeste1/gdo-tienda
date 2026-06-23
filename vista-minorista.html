@@ -143,15 +143,16 @@
 
   // ====== CONFIGURACION (vendrá de la hoja CONFIGURACION del Sheet) ======
   var CFG = {
-    minPedido: 75000, envioGratis: true, envioGratisDesde: 75000,
-    horario: '8 a 14 hs',
+    minPedido: 50000, envioGratis: true, envioGratisDesde: 75000,
+    horario: '10 a 14 hs',
     formasPago: ['Efectivo','Transferencia','QR'],
     sucursal: 'Acuña 1334, Villa Tesei',
     zonas: [
-      { nombre:'Castelar',    costo:7000, dias:['Lunes','Martes'] },
-      { nombre:'Hurlingham',  costo:0,    dias:['Lunes','Miércoles','Viernes'] },
-      { nombre:'Villa Tesei', costo:0,    dias:['Lunes a Sábado'] },
-      { nombre:'Morón',       costo:3000, dias:['Martes','Jueves'] }
+      { nombre:'Hurlingham, Morris, Barrio Altos de Podestá', costo:10000, dias:['Lunes'] },
+      { nombre:'Palomar, Ciudad Jardín',                      costo:10000, dias:['Martes'] },
+      { nombre:'Ramos Mejía, Haedo, Villa Sarmiento, Ciudadela', costo:10000, dias:['Miércoles'] },
+      { nombre:'Castelar, Ituzaingó, Morón',                  costo:10000, dias:['Jueves','Viernes'] },
+      { nombre:'Villa Tesei',                                 costo:7000,  dias:['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'] }
     ]
   };
 

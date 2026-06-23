@@ -181,7 +181,7 @@ window.GDO = window.GDO || {};
   var tried=false;
   FB.auth.onAuthStateChanged(function(user){
     if(user){ FB.uid=user.uid; settle(true); }
-    else if(!tried){ tried=true; FB.auth.signInAnonymously().catch(function(){ settle(true); }); }
+    else if(!tried){ tried=true; FB.auth.signInAnonymously().catch(function(e){ console.log('E2E_ANON_ERR '+(e&&e.code)); settle(true); }); }
   });
   setTimeout(function(){ settle(true); }, 3500);
 })();

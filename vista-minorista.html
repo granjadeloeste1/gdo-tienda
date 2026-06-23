@@ -96,8 +96,8 @@
 <header class="hdr"><button class="back" id="back">←</button><span class="lg"><img src="assets/isotipo-color.svg" alt="GDO"/></span><div><b id="htitle">Granja del Oeste</b><div class="sub" id="hsub">Lista de precios</div></div></header>
 <div class="wrap" id="app"></div>
 <div class="cartbar" id="cartbar"><div class="in">
-  <div style="flex:1;color:#fff;min-width:0"><b id="cbTot" style="font-size:17px">$ 0</b><span id="cbMin" style="display:block;font-size:11px;color:#ffd9b3"></span></div>
-  <button id="cbBtn">Ver pedido (<span id="cbCnt">0</span>)</button>
+  <div style="flex:1;color:#fff;min-width:0"><b id="cbTot" style="font-size:19px">$ 0</b><span id="cbMin" style="display:block;font-size:11px;color:#ffd9b3"></span></div>
+  <button id="cbBtn">🛒 Ver pedido</button>
 </div></div>
 <div class="toast" id="toast"></div>
 
@@ -131,10 +131,10 @@
   function stepLine(key, d){ var it=CART[key]; if(!it) return; if(it.tipo==='peso'){ it.qty=Math.max(0,it.qty+d); if(it.qty===0) delete CART[key]; } else { it.cant+=d; if(it.cant<=0) delete CART[key]; } sync(); drawCart(); }
   function delLine(key){ delete CART[key]; sync(); drawCart(); }
   function sync(){
-    var tot=cartTotal(), falta=Math.max(0,CFG.minPedido-tot);
-    $('#cbTot').textContent=money(tot); $('#cbCnt').textContent=cartCount();
-    $('#cbMin').textContent = falta>0 ? ('Te faltan '+money(falta)+' para el mínimo') : '✓ Llegaste al mínimo';
-    if(cartCount()) $('#cartbar').classList.add('show'); else { $('#cartbar').classList.remove('show'); cerrarCart(); }
+    var tot=cartTotal(), n=cartCount(), falta=Math.max(0,CFG.minPedido-tot);
+    $('#cbTot').textContent=money(tot);
+    $('#cbMin').textContent = n+' producto'+(n===1?'':'s')+' · '+(falta>0 ? ('faltan '+money(falta)) : '✓ llegaste al mínimo');
+    if(n) $('#cartbar').classList.add('show'); else { $('#cartbar').classList.remove('show'); cerrarCart(); }
   }
 
   // ====== Panel del carrito (overlay) ======
@@ -184,7 +184,7 @@
     $('#back').style.display='none'; $('#htitle').textContent='Granja del Oeste'; $('#hsub').textContent='Lista de precios';
     $('#cartbar').classList.remove('show');
     app.innerHTML =
-      '<div class="hero-logo"><img src="assets/logo-horizontal-color.svg" alt="Granja del Oeste"/></div>'+
+      '<div class="hero-logo"><img src="assets/logo-horizontal-puntos.svg" alt="Granja del Oeste"/></div>'+
       '<p class="lead">¿Cómo querés ver los precios?</p>'+
       '<div class="choose">'+
         '<button class="ch" data-go="may"><span class="ico">🏪</span><div><h3>Mayorista</h3><p>Precios por mayor · retiro en sucursal</p></div><span class="arr">›</span></button>'+

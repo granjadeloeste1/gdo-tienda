@@ -10,7 +10,7 @@
   .hdr .back{ background:none; border:0; color:#fff; font-size:20px; cursor:pointer; display:none }
   .wrap{ max-width:680px; margin:0 auto; padding:16px }
   /* chooser */
-  .hero-logo{ text-align:center; margin:22px 0 6px } .hero-logo img{ height:60px; width:auto }
+  .hero-logo{ text-align:center; margin:18px 0 8px } .hero-logo img{ height:96px; width:auto }
   .choose{ display:grid; gap:14px; margin-top:8px }
   .ch{ display:flex; align-items:center; gap:16px; background:#fff; border:1px solid var(--linea); border-left:5px solid var(--naranja); border-radius:16px; padding:20px; cursor:pointer; text-align:left; box-shadow:0 2px 8px rgba(0,0,0,.05); transition:transform .12s, box-shadow .15s }
   .ch:active{ transform:scale(.99) } .ch:hover{ box-shadow:0 8px 22px rgba(245,130,32,.15) }
@@ -56,6 +56,9 @@
   .var .vp{ font-weight:800; color:var(--naranja); font-size:14px; white-space:nowrap }
   .var .vp .ant{ display:block; font-size:10px; color:#b0b6bd; text-decoration:line-through; font-weight:600 }
   .var .add{ background:var(--naranja); color:#fff; border:0; border-radius:9px; width:34px; height:34px; font-size:20px; font-weight:700; cursor:pointer; flex-shrink:0; box-shadow:0 2px 7px rgba(245,130,32,.35) }
+  .var .qn{ display:inline-block; min-width:30px; text-align:center; font-weight:800; font-size:14px }
+  .var.incart{ background:#fff7ef; border-radius:8px }
+  .var .stp{ flex-shrink:0 }
   /* stepper / selector por peso */
   .stp{ display:inline-flex; align-items:center; border:1px solid #e0c9b0; border-radius:9px; overflow:hidden; background:#fff }
   .stp button{ width:32px; height:32px; border:0; background:#fff; color:var(--naranja); font-size:18px; font-weight:800; cursor:pointer }
@@ -111,30 +114,35 @@
   // ====== CONFIGURACION (vendrá de la hoja CONFIGURACION del Sheet) ======
   var CFG = { minPedido: 75000 };   // pedido mínimo minorista
 
-  // ====== Motor de precios por escalones (igual que la mayorista) ======
-  // Una variedad "N kg" se interpreta como un escalón: precio por kg = precio/N.
-  // Si TODAS las variedades de un producto son "N kg", el producto se vende por
-  // PESO (ponés los kg y baja el precio al escalón que toca). Si no, son opciones.
-  function parseKg(s){ var m=String(s||'').trim().match(/^(\d+(?:[.,]\d+)?)\s*kg$/i); return m?parseFloat(m[1].replace(',','.')):null; }
-  function esPorPeso(p){ return p.vars.length>0 && p.vars.every(function(v){ return parseKg(v.variedad)!==null; }); }
-  function tiersDe(p){ return p.vars.map(function(v){ var k=parseKg(v.variedad); return {min:k, perkg:v.precio/k}; }).sort(function(a,b){return a.min-b.min;}); }
-  function precioPeso(tiers, qty){ var t=tiers[0]; for(var i=0;i<tiers.length;i++){ if(qty>=tiers[i].min) t=tiers[i]; } return Math.round(t.perkg*qty); }
-  function perkgDe(tiers, qty){ var t=tiers[0]; for(var i=0;i<tiers.length;i++){ if(qty>=tiers[i].min) t=tiers[i]; } return Math.round(t.perkg); }
-
-  // ====== Carrito ======
-  var CART = {};   // key -> item
-  function lineTotal(it){ return it.tipo==='peso' ? precioPeso(it.tiers,it.qty) : it.precioUnit*it.cant; }
+  // ====== Carrito: cada VARIEDAD es una línea (nombre + variedad + precio) ======
+  // El cliente ve el precio de cada opción (1 kg, 2 kg, 5 kg, sabores, unidades) y
+  // suma/resta con +/− en la misma lista. El precio de "5 kg" ya viene con su
+  // descuento por escala desde la hoja, así que se ve cuánto sale cada opción.
+  var CART = {};
+  function keyOf(n,v){ return n+'||'+v; }
+  function qtyOf(n,v){ var it=CART[keyOf(n,v)]; return it?it.cant:0; }
+  function lineTotal(it){ return it.precio*it.cant; }
   function cartTotal(){ var s=0; for(var k in CART) s+=lineTotal(CART[k]); return s; }
-  function cartCount(){ var n=0; for(var k in CART) n++; return n; }
-  function addPeso(nombre, tiers, qty){ var k='peso|'+nombre; if(CART[k]) CART[k].qty+=qty; else CART[k]={tipo:'peso',nombre:nombre,tiers:tiers,qty:qty}; sync(); toast('✓ Agregado al pedido'); }
-  function addVar(nombre, variedad, precio){ var k='var|'+nombre+'|'+variedad; if(CART[k]) CART[k].cant++; else CART[k]={tipo:'var',nombre:nombre,variedad:variedad,precioUnit:precio,cant:1}; sync(); toast('✓ Agregado al pedido'); }
-  function stepLine(key, d){ var it=CART[key]; if(!it) return; if(it.tipo==='peso'){ it.qty=Math.max(0,it.qty+d); if(it.qty===0) delete CART[key]; } else { it.cant+=d; if(it.cant<=0) delete CART[key]; } sync(); drawCart(); }
-  function delLine(key){ delete CART[key]; sync(); drawCart(); }
+  function cartCount(){ return Object.keys(CART).length; }
+  function setVar(nombre, variedad, precio, delta){
+    var k=keyOf(nombre,variedad), it=CART[k]||{nombre:nombre,variedad:variedad,precio:precio,cant:0};
+    it.cant+=delta; it.precio=precio;
+    if(it.cant<=0) delete CART[k]; else CART[k]=it;
+    sync(); drawCart();
+  }
+  function delLine(k){ delete CART[k]; sync(); drawCart(); }
+  function refreshSteppers(){
+    document.querySelectorAll('[data-q]').forEach(function(s){
+      var p=s.dataset.q.split('||'), q=qtyOf(p[0],p[1]);
+      s.textContent=q; var row=s.closest('.var'); if(row) row.classList.toggle('incart', q>0);
+    });
+  }
   function sync(){
     var tot=cartTotal(), n=cartCount(), falta=Math.max(0,CFG.minPedido-tot);
     $('#cbTot').textContent=money(tot);
     $('#cbMin').textContent = n+' producto'+(n===1?'':'s')+' · '+(falta>0 ? ('faltan '+money(falta)) : '✓ llegaste al mínimo');
     if(n) $('#cartbar').classList.add('show'); else { $('#cartbar').classList.remove('show'); cerrarCart(); }
+    refreshSteppers();
   }
 
   // ====== Panel del carrito (overlay) ======
@@ -161,11 +169,9 @@
     var keys=Object.keys(CART);
     if(!keys.length){ body.innerHTML='<p style="text-align:center;color:#9aa1aa;padding:24px 0">Tu pedido está vacío.</p>'; }
     else body.innerHTML=keys.map(function(k){
-      var it=CART[k], sub, det;
-      if(it.tipo==='peso'){ sub=it.qty+' kg · '+money(perkgDe(it.tiers,it.qty))+' /kg'; det=it.qty; }
-      else { sub=esc(it.variedad)+' · '+money(it.precioUnit)+' c/u'; det=it.cant; }
-      return '<div class="ci"><div class="cinfo"><b>'+esc(it.nombre)+'</b><span>'+sub+'</span></div>'+
-        '<div class="stp"><button data-dec="'+esc(k)+'">−</button><input value="'+det+(it.tipo==='peso'?' kg':'')+'" readonly style="width:'+(it.tipo==='peso'?'56':'42')+'px"><button data-inc="'+esc(k)+'">+</button></div>'+
+      var it=CART[k];
+      return '<div class="ci"><div class="cinfo"><b>'+esc(it.nombre)+'</b><span>'+esc(it.variedad)+' · '+money(it.precio)+' c/u</span></div>'+
+        '<div class="stp"><button data-cdec="'+esc(k)+'">−</button><input value="'+it.cant+'" readonly style="width:40px"><button data-cinc="'+esc(k)+'">+</button></div>'+
         '<div class="cprice">'+money(lineTotal(it))+'</div>'+
         '<button class="rm" data-rm="'+esc(k)+'">🗑</button></div>';
     }).join('');
@@ -174,8 +180,8 @@
     var warn=document.getElementById('cfWarn'), btn=document.getElementById('cfBtn');
     if(falta>0){ warn.textContent='Pedido mínimo '+money(CFG.minPedido)+' · te faltan '+money(falta); btn.disabled=true; }
     else { warn.textContent=''; btn.disabled=false; }
-    body.querySelectorAll('[data-dec]').forEach(function(b){ b.onclick=function(){ stepLine(b.dataset.dec,-1) } });
-    body.querySelectorAll('[data-inc]').forEach(function(b){ b.onclick=function(){ stepLine(b.dataset.inc, 1) } });
+    body.querySelectorAll('[data-cdec]').forEach(function(b){ var it=CART[b.dataset.cdec]; b.onclick=function(){ if(it) setVar(it.nombre,it.variedad,it.precio,-1) } });
+    body.querySelectorAll('[data-cinc]').forEach(function(b){ var it=CART[b.dataset.cinc]; b.onclick=function(){ if(it) setVar(it.nombre,it.variedad,it.precio, 1) } });
     body.querySelectorAll('[data-rm]').forEach(function(b){ b.onclick=function(){ delLine(b.dataset.rm) } });
   }
 
@@ -184,7 +190,7 @@
     $('#back').style.display='none'; $('#htitle').textContent='Granja del Oeste'; $('#hsub').textContent='Lista de precios';
     $('#cartbar').classList.remove('show');
     app.innerHTML =
-      '<div class="hero-logo"><img src="assets/logo-horizontal-puntos.svg" alt="Granja del Oeste"/></div>'+
+      '<div class="hero-logo"><img src="assets/logo-original.svg" alt="Granja del Oeste"/></div>'+
       '<p class="lead">¿Cómo querés ver los precios?</p>'+
       '<div class="choose">'+
         '<button class="ch" data-go="may"><span class="ico">🏪</span><div><h3>Mayorista</h3><p>Precios por mayor · retiro en sucursal</p></div><span class="arr">›</span></button>'+
@@ -237,35 +243,26 @@
     setInterval(function(){ go(i+1) }, 4500);
   }
 
-  var PRODS=[];
   function render(cats, openAll){
-    var acc=$('#acc'); PRODS=[];
+    var acc=$('#acc');
     acc.innerHTML = cats.map(function(c){
       var inner = c.subs.map(function(s){
         var prods = s.prods.map(function(p){
-          var pi = PRODS.push(p)-1;
-          var peso = esPorPeso(p);
           var min = Math.min.apply(null, p.vars.map(function(v){return v.precio}));
-          var multi = p.vars.length>1, body;
-          if(peso){
-            var tiers=tiersDe(p); p._tiers=tiers;
-            body='<div class="kgsel"><div class="row1">'+
-              '<span class="lbl">Cantidad</span>'+
-              '<div class="stp"><button data-kg="dec" data-pi="'+pi+'">−</button>'+
-                '<input id="kg_'+pi+'" type="number" min="1" value="1" data-pi="'+pi+'">'+
-                '<button data-kg="inc" data-pi="'+pi+'">+</button></div><span class="lbl">kg</span>'+
-              '<span class="pr" id="pr_'+pi+'"><small>'+money(perkgDe(tiers,1))+' /kg</small>'+money(precioPeso(tiers,1))+'</span>'+
-              '</div><button class="addbtn" data-addpeso="'+pi+'">Agregar al pedido</button></div>';
-          } else {
-            body='<div class="vars">'+ p.vars.map(function(v,vi){
-              return '<div class="var"><span class="vn">'+esc(v.variedad||'Unidad')+'</span>'+
-                '<span class="vp">'+(v.precioAnt?'<span class="ant">'+money(v.precioAnt)+'</span>':'')+money(v.precio)+'</span>'+
-                '<button class="addbtn2" data-addvar="'+pi+'" data-vi="'+vi+'">Agregar</button></div>';
-            }).join('')+'</div>';
-          }
+          var multi = p.vars.length>1;
+          var vars = p.vars.map(function(v){
+            var nA=esc(p.nombre), vA=esc(v.variedad||'Unidad');
+            return '<div class="var"><span class="vn">'+esc(v.variedad||'Unidad')+'</span>'+
+              '<span class="vp">'+(v.precioAnt?'<span class="ant">'+money(v.precioAnt)+'</span>':'')+money(v.precio)+'</span>'+
+              '<span class="stp">'+
+                '<button class="sdec" data-n="'+nA+'" data-v="'+vA+'" data-p="'+v.precio+'">−</button>'+
+                '<span class="qn" data-q="'+esc(p.nombre+'||'+(v.variedad||'Unidad'))+'">'+qtyOf(p.nombre,v.variedad||'Unidad')+'</span>'+
+                '<button class="sinc" data-n="'+nA+'" data-v="'+vA+'" data-p="'+v.precio+'">+</button>'+
+              '</span></div>';
+          }).join('');
           return '<div class="prod"><button class="prod-h"><div class="pi"><b>'+esc(p.nombre)+'</b>'+(p.desc?'<span>'+esc(p.desc)+'</span>':'')+'</div>'+
-            '<div class="desde"><small>'+((multi||peso)?'DESDE':'PRECIO')+'</small><b>'+money(min)+'</b></div><span class="chev">›</span></button>'+
-            body+'</div>';
+            '<div class="desde"><small>'+(multi?'DESDE':'PRECIO')+'</small><b>'+money(min)+'</b></div><span class="chev">›</span></button>'+
+            '<div class="vars">'+vars+'</div></div>';
         }).join('');
         return '<div class="sub'+(openAll?' open':'')+'"><button class="sub-h">'+esc(s.name)+'<span class="n">'+s.prods.length+'</span><span class="chev">›</span></button><div class="sub-body">'+prods+'</div></div>';
       }).join('');
@@ -275,13 +272,10 @@
     acc.querySelectorAll('.cat-h').forEach(function(b){ b.onclick=function(){ b.parentElement.classList.toggle('open') } });
     acc.querySelectorAll('.sub-h').forEach(function(b){ b.onclick=function(){ b.parentElement.classList.toggle('open') } });
     acc.querySelectorAll('.prod-h').forEach(function(b){ b.onclick=function(){ b.parentElement.classList.toggle('open') } });
-    // por peso: stepper + precio en vivo (baja al escalón que toca)
-    function kgVal(pi){ var i=document.getElementById('kg_'+pi); var n=parseFloat((i.value||'').replace(',','.')); return (!n||n<1)?1:n; }
-    function refreshPr(pi){ var p=PRODS[pi], q=kgVal(pi); document.getElementById('pr_'+pi).innerHTML='<small>'+money(perkgDe(p._tiers,q))+' /kg</small>'+money(precioPeso(p._tiers,q)); }
-    acc.querySelectorAll('[data-kg]').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); var pi=b.dataset.pi, i=document.getElementById('kg_'+pi), n=kgVal(pi); n=b.dataset.kg==='inc'?n+1:Math.max(1,n-1); i.value=n; refreshPr(pi); }; });
-    acc.querySelectorAll('input[id^="kg_"]').forEach(function(i){ i.onclick=function(e){e.stopPropagation()}; i.oninput=function(){ refreshPr(i.dataset.pi) }; });
-    acc.querySelectorAll('[data-addpeso]').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); var p=PRODS[b.dataset.addpeso]; addPeso(p.nombre, p._tiers, kgVal(b.dataset.addpeso)); }; });
-    acc.querySelectorAll('[data-addvar]').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); var p=PRODS[b.dataset.addvar], v=p.vars[b.dataset.vi]; addVar(p.nombre, v.variedad, v.precio); }; });
+    // +/− directo en la lista (suma/resta al pedido sin abrir el carrito)
+    acc.querySelectorAll('.sinc').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); setVar(b.dataset.n, b.dataset.v, +b.dataset.p, 1); }; });
+    acc.querySelectorAll('.sdec').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); setVar(b.dataset.n, b.dataset.v, +b.dataset.p, -1); }; });
+    refreshSteppers();
   }
 
   $('#cbBtn').onclick=verCart;

@@ -133,13 +133,10 @@
   #cbMin.free{ color:#2bd66b !important; font-size:13.5px !important; font-weight:900; letter-spacing:.2px }
   .envio.ok{ font-size:15px; padding:13px; box-shadow:0 0 0 2px #b6e3c6 inset; animation:pop .35s ease }
   @keyframes pop{ 0%{ transform:scale(.92) } 60%{ transform:scale(1.04) } 100%{ transform:scale(1) } }
-  /* sello de envio gratis sobre el banner */
-  .bnbadge{ position:absolute; top:12px; right:12px; z-index:4; background:#1e8449; color:#fff; text-align:center;
-    font-weight:800; font-size:10px; line-height:1.1; padding:9px 13px 8px; border-radius:50%/55%; min-width:96px;
-    transform:rotate(7deg); box-shadow:0 7px 18px rgba(0,0,0,.5); border:3px solid #fff; text-shadow:0 1px 2px rgba(0,0,0,.25) }
-  .bnbadge .em{ font-size:18px; display:block; line-height:1 }
-  .bnbadge b{ display:block; font-size:18px; color:#fff; margin:2px 0 1px }
-  .bnbadge small{ display:block; font-size:9px; font-weight:700; opacity:.92; letter-spacing:.3px }
+  /* barra destacada de ENVIO GRATIS (naranja + negro, identidad GDO) */
+  .freebar{ background:var(--naranja); color:#111; border-radius:12px; padding:11px 14px; margin-bottom:8px; text-align:center;
+    font-size:15px; font-weight:700; box-shadow:0 4px 12px rgba(245,130,32,.35); display:flex; align-items:center; justify-content:center; gap:6px }
+  .freebar b{ font-weight:900 } .freebar .big{ font-size:19px; background:#111; color:#fff; padding:2px 9px; border-radius:8px; margin-left:2px }
 </style></head>
 <body>
 <header class="hdr"><button class="back" id="back">←</button><span class="lg"><img src="assets/isotipo-color.svg" alt="GDO"/></span><div><b id="htitle">Granja del Oeste</b><div class="sub" id="hsub">Lista de precios</div></div></header>
@@ -244,6 +241,7 @@
     drawCart();
   }
   function val(id){ var e=document.getElementById(id); return e?e.value:''; }
+  function mapsUrl(){ return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(CFG.sucursal); }
 
   // ====== Checkout: modalidad + zona/día + datos (como mayorista) ======
   function checkout(){
@@ -257,7 +255,7 @@
         '<div id="ckEnvio"><label class="fl">Zona de entrega *</label>'+
           '<select id="ckZona" class="fin"><option value="">Elegí tu zona…</option>'+zonaOpts+'</select>'+
           '<div id="ckDias"></div></div>'+
-        '<div id="ckRetiro" style="display:none"><div class="note2">🏪 Retirás en <b>'+esc(CFG.sucursal)+'</b> · '+esc(CFG.horario)+'</div>'+
+        '<div id="ckRetiro" style="display:none"><div class="note2">🏪 Retirás en <b>'+esc(CFG.sucursal)+'</b> · '+esc(CFG.horario)+'<br><a href="'+mapsUrl()+'" target="_blank" rel="noopener" style="color:#a85f1a;font-weight:800">📍 Cómo llegar (Google Maps)</a></div>'+
           '<label class="fl">¿Qué día venís? (opcional)</label><input id="ckDiaR" class="fin" placeholder="Ej: jueves"/></div>'+
         '<label class="fl">Nombre y apellido *</label><input id="ckNom" class="fin" placeholder="Tu nombre"/>'+
         '<label class="fl">Teléfono / WhatsApp *</label><input id="ckTel" class="fin" inputmode="tel" placeholder="11 1234-5678"/>'+
@@ -323,6 +321,7 @@
         L.push('• *Modalidad:* Retiro en sucursal');
         L.push('• *Retiro en:* '+CFG.sucursal);
         var dr=(val('ckDiaR')||'').trim(); if(dr) L.push('• *Día de retiro:* '+dr);
+        L.push('• *Cómo llegar:* '+mapsUrl());
       }
       L.push('• *Forma de pago:* '+pago);
       if(notas) L.push('• *Notas generales:* '+notas);
@@ -436,10 +435,9 @@
     app.innerHTML=
       '<div class="banner"><div class="bn-track" id="bnt">'+
         '<img src="assets/banner/b1.jpg" alt="Envíos a domicilio"/>'+
-      '</div><div class="bn-dots" id="bnd"></div>'+
-      (CFG.envioGratis? '<div class="bnbadge"><span class="em">🚚</span>ENVÍO<b>GRATIS</b><small>desde '+money(CFG.envioGratisDesde)+'</small></div>':'')+
-      '</div>'+
-      '<div class="infostrip">🛒 Pedido mínimo '+money(CFG.minPedido)+' · 🚚 Envío gratis desde '+money(CFG.envioGratisDesde)+' · 🕒 '+CFG.horario+'</div>'+
+      '</div><div class="bn-dots" id="bnd"></div></div>'+
+      (CFG.envioGratis? '<div class="freebar">🚚 <b>ENVÍO GRATIS</b> en compras desde <b class="big">'+money(CFG.envioGratisDesde)+'</b></div>':'')+
+      '<div class="infostrip">🛒 Pedido mínimo <b>'+money(CFG.minPedido)+'</b> · 🕒 '+CFG.horario+'</div>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>';
     render(cats);
     startBanner();

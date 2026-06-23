@@ -112,7 +112,6 @@
 </div></div>
 <div class="toast" id="toast"></div>
 
-<script src="min-data.js"></script>
 <script>
   var $=function(s){return document.querySelector(s)}, app=$('#app');
   function money(n){ return '$ '+Number(n||0).toLocaleString('es-AR') }
@@ -280,14 +279,14 @@
           var multi = p.vars.length>1, body, etq, val;
           if(esPorPeso(p)){
             var tiers=tiersDe(p); TIERMAP[p.nombre]=tiers; var nA=esc(p.nombre);
-            var tabla='<div class="tiers">'+tiers.map(function(t,ti){ return '<div class="tr">'+(ti===0?'':'desde ')+t.min+' kg <b>'+money(t.perkg)+'/kg</b></div>'; }).join('')+'</div>';
+            var tabla='<div class="tiers">'+tiers.map(function(t){ return '<div class="tr">'+t.min+' kg <b>'+money(t.min*t.perkg)+'</b></div>'; }).join('')+'</div>';
             body='<div class="kgsel" data-pk="'+nA+'">'+tabla+
               '<div class="kgrow"><span class="lbl">¿Cuántos kg?</span>'+
                 '<span class="stp"><button class="pdec" data-n="'+nA+'">−</button>'+
                   '<span class="qn" data-qk="'+nA+'">'+pesoKg(p.nombre)+'</span>'+
                   '<button class="pinc" data-n="'+nA+'">+</button></span><span class="lbl">kg</span>'+
                 '<span class="ktot" data-tot="'+nA+'"></span></div></div>';
-            etq='POR KG'; val=money(tiers[0].perkg);
+            etq='DESDE'; val=money(tiers[0].min*tiers[0].perkg);
           } else {
             body='<div class="vars">'+ p.vars.map(function(v){
               var nA=esc(p.nombre), vA=esc(v.variedad||'Unidad');
@@ -320,9 +319,20 @@
     refreshSteppers();
   }
 
-  $('#cbBtn').onclick=verCart;
-  $('#back').onclick=chooser;
-  if(location.search.indexOf('lista')>=0){ lista(); var _c=document.querySelectorAll('.cat'); if(_c[3]){ _c[3].classList.add('open'); var _s=_c[3].querySelector('.sub'); if(_s){ _s.classList.add('open'); var _p=_s.querySelector('.prod'); if(_p)_p.classList.add('open'); } } }
-  else chooser();
+  function boot(){
+    $('#cbBtn').onclick=verCart;
+    $('#back').onclick=chooser;
+    if(location.search.indexOf('lista')>=0){ lista(); var _c=document.querySelectorAll('.cat'); if(_c[3]){ _c[3].classList.add('open'); var _s=_c[3].querySelector('.sub'); if(_s){ _s.classList.add('open'); var _p=_s.querySelector('.prod'); if(_p)_p.classList.add('open'); } } }
+    else chooser();
+  }
+  // Cargamos los datos SIEMPRE frescos (con timestamp) para que nunca queden
+  // precios viejos en caché del navegador/CDN.
+  (function(){
+    var s=document.createElement('script');
+    s.src='min-data.js?t='+(new Date().getTime());
+    s.onload=boot;
+    s.onerror=function(){ app.innerHTML='<div class="lead" style="margin-top:40px">No se pudo cargar la lista. Revisá tu conexión y recargá.</div>'; };
+    document.head.appendChild(s);
+  })();
 </script>
 </body></html>

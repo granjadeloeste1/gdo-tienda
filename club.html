@@ -495,6 +495,7 @@
     }).then(function(){
       voucherView({ _id: vref.id, premioNombre:nombre, premioIco:ico||'🎁', costo:costo, codigo:codigo,
         usado:false, venceMs:venceMs, socioNombre:lastSocio.nombre, socioNro:lastSocio.nroSocio });
+      cargarCanjes(user);  // refresca el historial del socio al instante (antes solo se leía al entrar)
     }).catch(function(e){
       var m = (e&&e.message)||'';
       alert(m==='saldo' ? 'No te alcanzan los puntos para este premio.'

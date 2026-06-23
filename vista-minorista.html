@@ -10,6 +10,7 @@
   .hdr .back{ background:none; border:0; color:#fff; font-size:20px; cursor:pointer; display:none }
   .wrap{ max-width:680px; margin:0 auto; padding:16px }
   /* chooser */
+  .hero-logo{ text-align:center; margin:22px 0 6px } .hero-logo img{ height:60px; width:auto }
   .choose{ display:grid; gap:14px; margin-top:8px }
   .ch{ display:flex; align-items:center; gap:16px; background:#fff; border:1px solid var(--linea); border-left:5px solid var(--naranja); border-radius:16px; padding:20px; cursor:pointer; text-align:left; box-shadow:0 2px 8px rgba(0,0,0,.05); transition:transform .12s, box-shadow .15s }
   .ch:active{ transform:scale(.99) } .ch:hover{ box-shadow:0 8px 22px rgba(245,130,32,.15) }
@@ -83,6 +84,7 @@
     $('#back').style.display='none'; $('#htitle').textContent='Granja del Oeste'; $('#hsub').textContent='Lista de precios';
     $('#cartbar').classList.remove('show');
     app.innerHTML =
+      '<div class="hero-logo"><img src="assets/logo-horizontal-color.svg" alt="Granja del Oeste"/></div>'+
       '<p class="lead">¿Cómo querés ver los precios?</p>'+
       '<div class="choose">'+
         '<button class="ch" data-go="may"><span class="ico">🏪</span><div><h3>Mayorista</h3><p>Precios por mayor · retiro en sucursal</p></div><span class="arr">›</span></button>'+
@@ -111,8 +113,6 @@
     app.innerHTML=
       '<div class="banner"><div class="bn-track" id="bnt">'+
         '<img src="assets/banner/b1.jpg" alt="Envíos a domicilio"/>'+
-        '<img src="assets/banner/b2.jpg" alt="Entregas a comercios · Retiro en sucursal"/>'+
-        '<img src="assets/banner/b3.jpg" alt="Acuña 1334 · Villa Tesei"/>'+
       '</div><div class="bn-dots" id="bnd"></div></div>'+
       '<div class="infostrip">🚚 Envío sin cargo desde $75.000 · 🕒 Lun a Sáb 8–14 hs</div>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>';

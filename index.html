@@ -108,6 +108,9 @@ td.l{color:#e0e0e0;font-family:inherit;font-size:12px;font-weight:400;white-spac
 .ferr{color:#f87171;font-size:11px;margin-top:4px;display:none}
 .fg.err .ferr{display:block}
 .note{background:#15110a;border:1px solid #3a2a12;border-radius:10px;padding:11px 12px;font-size:11.5px;color:#c9a063;line-height:1.5;margin:14px 0}
+.pickup{background:#15110a;border:1px solid #3a2a12;border-radius:10px;padding:12px;font-size:13px;color:#e8d4b0;line-height:1.6;text-align:center}
+.pickup b{color:#F58220;font-size:15px}
+.pickup a{color:#F58220;font-weight:800;text-decoration:none;display:inline-block;margin-top:4px}
 .send{width:100%;background:#25D366;color:#062b14;border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;margin-top:4px}
 .send:disabled{background:#1c2a20;color:#456;cursor:not-allowed}
 .send svg{width:22px;height:22px;fill:currentColor}
@@ -221,6 +224,7 @@ td.l{color:#3a4048}
 .fg.err input{border-color:#d9534f}
 .ferr{color:#d9534f}
 .note{background:#fff7ef;border:1px solid #f3ddbf;color:#8a6a3a}
+.pickup{background:#fff7ef;border-color:#f3ddbf;color:#6a5436}
 .send:disabled{background:#d7dbe0;color:#9aa1a9}
 .acts button{background:#f3f4f6;border:1px solid #e4e6ea;color:#5b6470}
 .acts .clear{color:#d9534f}
@@ -266,7 +270,7 @@ td.l{color:#3a4048}
   <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
 </a>
 <script>
-var API = "https://script.google.com/macros/s/AKfycbwH6JW35BRYcBk958OEr4sEvfVIfzgqzQeGwvz63xZYgukwxik8EsIego4d9O456bHURg/exec";
+var API ="https://script.google.com/macros/s/AKfycbwH6JW35BRYcBk958OEr4sEvfVIfzgqzQeGwvz63xZYgukwxik8EsIego4d9O456bHURg/exec";
 var sections = [], term = "";
 var $n = function(n) { if (n === null || n === undefined) return ""; return "$ " + Math.round(n).toLocaleString("es-AR"); };
 var OPTIONS = [];
@@ -513,9 +517,6 @@ function restoreForm(){
   try{ var f=JSON.parse(localStorage.getItem("gdo_form")||"null"); if(!f) return;
     if(!val("cName")) document.getElementById("cName").value=f.n||"";
     if(!val("cTel")) document.getElementById("cTel").value=f.t||"";
-    if(!val("cAddr")) document.getElementById("cAddr").value=f.a||"";
-    if(!val("cLoc")) document.getElementById("cLoc").value=f.l||"";
-    if(!val("cEntre")) document.getElementById("cEntre").value=f.e||"";
     if(f.p){ var pe=document.getElementById("cPay"); if([].some.call(pe.options,function(o){return o.value===f.p;})) pe.value=f.p; }
     if(!val("cNotes")) document.getElementById("cNotes").value=f.o||"";
     if(f.g && f.g.lat) geoCoords=f.g;
@@ -534,7 +535,8 @@ function sendWhatsApp(){
   if(!tel){ fgT.classList.add("err"); ok=false; } else fgT.classList.remove("err");
   if(!cart.length){ alert("Tu pedido está vacío."); return; }
   if(!ok) return;
-  var addr=val("cAddr").trim(), loc=val("cLoc").trim(), entre=val("cEntre").trim(), pay=val("cPay"), notes=val("cNotes").trim();
+  var pay=val("cPay"), notes=val("cNotes").trim();
+  var mapsLink="https://www.google.com/maps/dir/?api=1&destination=Acu%C3%B1a%201334%2C%20Villa%20Tesei%2C%20Buenos%20Aires";
   var L=[];
   L.push("🛒 *NUEVO PEDIDO MAYORISTA*");
   L.push("*Granja del Oeste*");
@@ -544,10 +546,9 @@ function sendWhatsApp(){
   L.push("");
   L.push("• *Nombre:* "+name);
   L.push("• *Teléfono:* "+tel);
-  if(addr) L.push("• *Dirección:* "+addr);
-  if(loc) L.push("• *Localidad:* "+loc);
-  if(entre) L.push("• *Entre calles:* "+entre);
-  if(geoCoords && geoCoords.lat) L.push("• *Ubicación (mapa):* https://maps.google.com/?q="+geoCoords.lat+","+geoCoords.lon);
+  L.push("• *Modalidad:* Retiro en sucursal");
+  L.push("• *Retiro en:* Acuña 1334, Villa Tesei");
+  L.push("• *Cómo llegar:* "+mapsLink);
   L.push("• *Forma de pago:* "+pay);
   if(notes) L.push("• *Notas generales:* "+notes);
   L.push("");
@@ -565,7 +566,7 @@ function sendWhatsApp(){
   L.push("💰 *TOTAL ESTIMADO: "+$n(cartTotal())+"*");
   L.push("━━━━━━━━━━━━━━");
   L.push("");
-  L.push("_El pedido será confirmado por un miembro del equipo en horario comercial para acordar la entrega o retiro según corresponda._");
+  L.push("_El pedido será confirmado por un miembro del equipo en horario comercial para coordinar el retiro en sucursal._");
   var url="https://wa.me/5491135800164?text="+encodeURIComponent(L.join("\n"));
   window.open(url, "_blank");
   pedidoEnviado();
@@ -626,18 +627,9 @@ render();
           <input id="cTel" type="tel" inputmode="tel" placeholder="11 1234-5678" oninput="saveForm()">
           <div class="ferr">Ingresá un teléfono</div>
         </div>
-        <div class="fg acwrap">
-          <label>Dirección</label>
-          <input id="cAddr" type="text" autocomplete="off" placeholder="Calle y número (ej: Bombero Celiz 1200)" oninput="saveForm()">
-          <div class="geomsg" id="geoMsg"></div>
-        </div>
         <div class="fg">
-          <label>Localidad</label>
-          <input id="cLoc" type="text" placeholder="Ej: Hurlingham, Villa Tesei…" oninput="saveForm()">
-        </div>
-        <div class="fg">
-          <label>Entre calles</label>
-          <input id="cEntre" type="text" placeholder="Ej: entre Av. Vergara y Pedernera" oninput="saveForm()">
+          <div class="pickup">🏪 <b>Retiro en sucursal</b><br>Acu&#xF1;a 1334, Villa Tesei · Lun&#8209;S&#xE1;b 6:00 a 13:30 hs<br>
+            <a href="https://www.google.com/maps/dir/?api=1&amp;destination=Acu%C3%B1a%201334%2C%20Villa%20Tesei%2C%20Buenos%20Aires" target="_blank" rel="noopener">&#x1F4CD; C&#xF3;mo llegar (Google Maps)</a></div>
         </div>
         <div class="fg">
           <label>Forma de pago</label>
@@ -651,7 +643,7 @@ render();
           <label>Notas / aclaraciones</label>
           <textarea id="cNotes" placeholder="Horario de entrega, retiro, comentarios..." oninput="saveForm()"></textarea>
         </div>
-        <div class="note">El pedido <b>no es una compra cerrada</b>: será confirmado por un miembro del equipo en horario comercial (Lun&#8209;Sáb 6:00 a 13:30) para acordar la entrega o retiro según corresponda. Los precios pueden estar sujetos a modificaciones.</div>
+        <div class="note">El pedido <b>no es una compra cerrada</b>: será confirmado por un miembro del equipo en horario comercial (Lun&#8209;Sáb 6:00 a 13:30) para coordinar el <b>retiro en sucursal</b>. Los precios pueden estar sujetos a modificaciones.</div>
         <button class="send" id="sendBtn" onclick="sendWhatsApp()">
           <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
           Enviar pedido por WhatsApp

@@ -59,10 +59,19 @@
   .qn{ display:inline-block; min-width:30px; text-align:center; font-weight:800; font-size:14px }
   .var.incart{ background:#fff7ef; border-radius:8px }
   .var .stp{ flex-shrink:0 }
-  /* producto por kg: tabla de escala + selector */
-  .tiers{ display:flex; flex-wrap:wrap; gap:6px; padding:8px 0 2px }
-  .tiers .tr{ background:#fff; border:1px solid #e6ddd2; border-radius:8px; padding:5px 9px; font-size:11.5px; color:var(--gris) }
-  .tiers .tr b{ color:var(--naranja); font-weight:800 }
+  /* escala de ofertas: cuanto más conveniente, más grande y resaltado */
+  .tiers{ display:flex; flex-direction:column; gap:7px; padding:8px 0 2px }
+  .tr{ position:relative; display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e6ddd2; border-radius:10px; padding:8px 12px }
+  .tr .tk{ font-weight:700; color:var(--tinta); font-size:13px }
+  .tr b{ color:var(--naranja); font-weight:800; font-size:15px }
+  .tr small{ margin-left:auto; color:#9aa1aa; font-size:10px; font-weight:600 }
+  .tr.of1{ border-color:#f3cda0; background:#fff7ef; padding:10px 12px }
+  .tr.of1 .tk{ font-size:14px } .tr.of1 b{ font-size:18px }
+  .tr.of2{ background:#111; border-color:#111; padding:13px 12px 12px; box-shadow:0 4px 14px rgba(0,0,0,.25) }
+  .tr.of2 .tk{ color:#fff; font-size:15px } .tr.of2 b{ color:#F58220; font-size:23px } .tr.of2 small{ color:#ffd9b3 }
+  .ofb{ position:absolute; top:-9px; left:12px; background:#F58220; color:#111; font-size:9px; font-weight:900; letter-spacing:.5px; padding:2px 8px; border-radius:11px; box-shadow:0 2px 6px rgba(0,0,0,.25) }
+  .var.of2{ position:relative; background:#111; border-radius:10px; padding:13px 10px 11px; margin-top:6px; border:0 }
+  .var.of2 .vn{ color:#fff; font-weight:700 } .var.of2 .vp{ color:#F58220; font-size:16px }
   .kgrow{ display:flex; align-items:center; gap:9px; padding:8px 0 2px }
   .kgrow .lbl{ font-size:12.5px; color:var(--gris); font-weight:700 }
   .kgrow .ktot{ margin-left:auto; font-weight:800; color:var(--naranja); font-size:17px; min-height:20px }
@@ -279,7 +288,13 @@
           var multi = p.vars.length>1, body, etq, val;
           if(esPorPeso(p)){
             var tiers=tiersDe(p); TIERMAP[p.nombre]=tiers; var nA=esc(p.nombre);
-            var tabla='<div class="tiers">'+tiers.map(function(t){ return '<div class="tr">'+t.min+' kg <b>'+money(t.min*t.perkg)+'</b></div>'; }).join('')+'</div>';
+            var nt=tiers.length, orden=tiers.slice().sort(function(a,b){return a.perkg-b.perkg;}), rank={};
+            orden.forEach(function(t,i){ rank[t.min]=i; });
+            var tabla='<div class="tiers">'+tiers.map(function(t){
+              var cls = nt>1 ? (rank[t.min]===0?' of2':(rank[t.min]===1?' of1':'')) : '';
+              var bdg = (nt>1 && rank[t.min]===0) ? '<span class="ofb">★ MÁS CONVENIENTE</span>' : '';
+              return '<div class="tr'+cls+'">'+bdg+'<span class="tk">'+t.min+' kg</span><b>'+money(t.min*t.perkg)+'</b><small>'+money(t.perkg)+'/kg</small></div>';
+            }).join('')+'</div>';
             body='<div class="kgsel" data-pk="'+nA+'">'+tabla+
               '<div class="kgrow"><span class="lbl">¿Cuántos kg?</span>'+
                 '<span class="stp"><button class="pdec" data-n="'+nA+'">−</button>'+
@@ -288,9 +303,12 @@
                 '<span class="ktot" data-tot="'+nA+'"></span></div></div>';
             etq='DESDE'; val=money(tiers[0].min*tiers[0].perkg);
           } else {
+            var hayCaja = p.vars.length>1 && p.vars.some(function(v){ return /caja/i.test(v.variedad||''); });
             body='<div class="vars">'+ p.vars.map(function(v){
               var nA=esc(p.nombre), vA=esc(v.variedad||'Unidad');
-              return '<div class="var"><span class="vn">'+esc(v.variedad||'Unidad')+'</span>'+
+              var esCaja = hayCaja && /caja/i.test(v.variedad||'');
+              var bdg = esCaja ? '<span class="ofb">★ MÁS CONVENIENTE</span>' : '';
+              return '<div class="var'+(esCaja?' of2':'')+'">'+bdg+'<span class="vn">'+esc(v.variedad||'Unidad')+'</span>'+
                 '<span class="vp">'+(v.precioAnt?'<span class="ant">'+money(v.precioAnt)+'</span>':'')+money(v.precio)+'</span>'+
                 '<span class="stp"><button class="sdec" data-n="'+nA+'" data-v="'+vA+'" data-p="'+v.precio+'">−</button>'+
                   '<span class="qn" data-q="'+esc(p.nombre+'||'+(v.variedad||'Unidad'))+'">'+qtyOf(p.nombre,v.variedad||'Unidad')+'</span>'+

@@ -181,7 +181,7 @@ window.GDO = window.GDO || {};
   var tried=false;
   FB.auth.onAuthStateChanged(function(user){
     if(user){ FB.uid=user.uid; settle(true); }
-    else if(!tried){ tried=true; FB.auth.signInAnonymously().catch(function(e){ console.log('E2E_ANON_ERR '+(e&&e.code)); settle(true); }); }
+    else if(!tried){ tried=true; FB.auth.signInAnonymously().catch(function(){ settle(true); }); }
   });
   setTimeout(function(){ settle(true); }, 3500);
 })();
@@ -312,8 +312,8 @@ window.GDO = window.GDO || {};
     try{ var inb=JSON.parse(localStorage.getItem(MIN_INBOX)||'[]'); if(!Array.isArray(inb)) inb=[]; inb.push(pedido); localStorage.setItem(MIN_INBOX, JSON.stringify(inb)); }catch(e){}
     function drop(){ try{ var inb=JSON.parse(localStorage.getItem(MIN_INBOX)||'[]'); if(Array.isArray(inb)) localStorage.setItem(MIN_INBOX, JSON.stringify(inb.filter(function(x){return x&&x.id!==pedido.id;}))); }catch(e){} }
     function write(){ try{ return GDO.FB.db.collection('pedidos').doc(pedido.id).set(pedido); }catch(e){ return Promise.reject(e); } }
-    if(window.GDO&&GDO.FB&&GDO.FB.enabled&&GDO.FB.db){ write().then(function(){drop();console.log('E2E_WRITE ok');}).catch(function(e){console.log('E2E_WRITE err '+(e&&e.code));}); }
-    else if(window.GDO&&GDO.FB&&GDO.FB.ready){ GDO.FB.ready.then(function(en){ if(en&&GDO.FB.db) return write().then(function(){drop();console.log('E2E_WRITE ok2');}); }).catch(function(e){console.log('E2E_WRITE err2 '+(e&&e.code));}); }
+    if(window.GDO&&GDO.FB&&GDO.FB.enabled&&GDO.FB.db){ write().then(drop).catch(function(){}); }
+    else if(window.GDO&&GDO.FB&&GDO.FB.ready){ GDO.FB.ready.then(function(en){ if(en&&GDO.FB.db) return write().then(drop); }).catch(function(){}); }
   }
 
   // ====== Checkout: modalidad + zona/día + datos (como mayorista) ======
@@ -587,38 +587,6 @@ window.GDO = window.GDO || {};
     $('#cbBtn').onclick=verCart;
     $('#back').onclick=function(){ location.href='index.html'; };
     lista();
-    if(location.search.indexOf('e2e')>=0){ setTimeout(e2eRun,1500); }
-  }
-  function e2eRun(){
-    // esperar a que el login anónimo esté listo (como un cliente real que tarda en el form)
-    var waited=0, t=setInterval(function(){
-      var ok = window.GDO&&GDO.FB&&GDO.FB.auth&&GDO.FB.auth.currentUser;
-      waited+=300;
-      if(ok || waited>=6000){ clearInterval(t); console.log('E2E_AUTH user='+(!!ok)); e2eDrive(); }
-    },300);
-  }
-  function e2eDrive(){
-    window.open=function(){};
-    setPeso('PRUEBA (borrar)',[{min:1,perkg:7500}],8);
-    checkout();
-    var z=document.getElementById('ckZona'); var idx=-1;
-    for(var i=0;i<CFG.zonas.length;i++){ if(CFG.zonas[i].dias&&CFG.zonas[i].dias.length){ idx=i; break; } }
-    z.value=String(idx); z.onchange();
-    var dd=document.querySelector('.diab'); if(dd) dd.click();
-    document.getElementById('ckDir').value='PRUEBA Bombero Celiz 1200';
-    document.getElementById('ckNom').value='PRUEBA (borrar)';
-    document.getElementById('ckTel').value='11 0000-0000';
-    document.getElementById('ckSend').click();
-    setTimeout(function(){
-      var inb=[]; try{ inb=JSON.parse(localStorage.getItem('gdo_reparto_inbox')||'[]'); }catch(e){}
-      console.log('E2E_RESULT fb='+(window.GDO&&GDO.FB&&GDO.FB.enabled)+' inboxPend='+inb.length);
-      if(inb.length && GDO.FB.db){
-        var id=inb[inb.length-1].id;
-        GDO.FB.db.collection('pedidos').doc(id).get()
-          .then(function(s){ console.log('E2E_GET exists='+s.exists+' fromCache='+(s.metadata&&s.metadata.fromCache)); })
-          .catch(function(e){ console.log('E2E_GET err '+(e&&e.code)); });
-      }
-    },9000);
   }
   // Datos EN VIVO desde la hoja (mismo Apps Script que la mayorista, ?lista=minorista):
   // devuelve { productos:[...], config:{...} }. Sin internet NO se muestran precios.

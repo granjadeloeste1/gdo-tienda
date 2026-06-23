@@ -606,7 +606,6 @@ window.GDO = window.GDO || {};
     $('#cbBtn').onclick=verCart;
     $('#back').onclick=function(){ location.href='index.html'; };
     lista();
-    if(location.search.indexOf('actest')>=0){ setTimeout(function(){ checkout(); var inp=document.getElementById('ckDir'); inp.value='Bombero Celiz'; inp.dispatchEvent(new Event('input')); }, 1800); }
   }
   // Datos EN VIVO desde la hoja (mismo Apps Script que la mayorista, ?lista=minorista):
   // devuelve { productos:[...], config:{...} }. Sin internet NO se muestran precios.

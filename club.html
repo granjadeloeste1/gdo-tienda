@@ -155,6 +155,14 @@
   try { enLocal = new URLSearchParams(location.search).has('local'); }
   catch (e) { enLocal = /[?&]local(=|&|$)/.test(location.search); }
 
+  // ACCESO ANTICIPADO: link privado (con clave en la URL) para que el dueño deje
+  // entrar a socios elegidos aunque el club esté apagado para el público.
+  // Uso: club.html?acceso=gdo2026
+  var accesoAnticipado = (function () {
+    try { return new URLSearchParams(location.search).get('acceso') === 'gdo2026'; }
+    catch (e) { return /[?&]acceso=gdo2026(&|$)/.test(location.search); }
+  })();
+
   // ¿El club está activo? (doc club_config/flags {activo}, lo prende el personal)
   // Si no hay doc o falla la lectura → tratamos como DESACTIVADO (no publicar a medias).
   function checkClubActivo(cb) {
@@ -174,7 +182,7 @@
     if (unsub) { unsub(); unsub = null; }
     if (!user) { auth.signInAnonymously().catch(function () { vistaProximamente(); }); return; } // sin sesión: anónimo para leer el flag
     checkClubActivo(function (activo) {
-      if (!activo) { vistaProximamente(); return; }   // club apagado → no mostrar
+      if (!activo && !accesoAnticipado) { vistaProximamente(); return; }   // apagado y sin clave → no mostrar
       if (user.isAnonymous) { vistaPublica(); return; }
       if (enLocal) checkInLocal(user);
       else entrarSocio(user);

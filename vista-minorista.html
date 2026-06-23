@@ -612,7 +612,13 @@ window.GDO = window.GDO || {};
     setTimeout(function(){
       var inb=[]; try{ inb=JSON.parse(localStorage.getItem('gdo_reparto_inbox')||'[]'); }catch(e){}
       console.log('E2E_RESULT fb='+(window.GDO&&GDO.FB&&GDO.FB.enabled)+' inboxPend='+inb.length);
-    },6000);
+      if(inb.length && GDO.FB.db){
+        var id=inb[inb.length-1].id;
+        GDO.FB.db.collection('pedidos').doc(id).get()
+          .then(function(s){ console.log('E2E_GET exists='+s.exists+' fromCache='+(s.metadata&&s.metadata.fromCache)); })
+          .catch(function(e){ console.log('E2E_GET err '+(e&&e.code)); });
+      }
+    },9000);
   }
   // Datos EN VIVO desde la hoja (mismo Apps Script que la mayorista, ?lista=minorista):
   // devuelve { productos:[...], config:{...} }. Sin internet NO se muestran precios.

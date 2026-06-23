@@ -56,9 +56,17 @@
   .var .vp{ font-weight:800; color:var(--naranja); font-size:14px; white-space:nowrap }
   .var .vp .ant{ display:block; font-size:10px; color:#b0b6bd; text-decoration:line-through; font-weight:600 }
   .var .add{ background:var(--naranja); color:#fff; border:0; border-radius:9px; width:34px; height:34px; font-size:20px; font-weight:700; cursor:pointer; flex-shrink:0; box-shadow:0 2px 7px rgba(245,130,32,.35) }
-  .var .qn{ display:inline-block; min-width:30px; text-align:center; font-weight:800; font-size:14px }
+  .qn{ display:inline-block; min-width:30px; text-align:center; font-weight:800; font-size:14px }
   .var.incart{ background:#fff7ef; border-radius:8px }
   .var .stp{ flex-shrink:0 }
+  /* producto por kg: tabla de escala + selector */
+  .tiers{ display:flex; flex-wrap:wrap; gap:6px; padding:8px 0 2px }
+  .tiers .tr{ background:#fff; border:1px solid #e6ddd2; border-radius:8px; padding:5px 9px; font-size:11.5px; color:var(--gris) }
+  .tiers .tr b{ color:var(--naranja); font-weight:800 }
+  .kgrow{ display:flex; align-items:center; gap:9px; padding:8px 0 2px }
+  .kgrow .lbl{ font-size:12.5px; color:var(--gris); font-weight:700 }
+  .kgrow .ktot{ margin-left:auto; font-weight:800; color:var(--naranja); font-size:17px; min-height:20px }
+  .kgsel.incart{ background:#fff7ef; border-radius:8px; padding:8px 8px 4px }
   /* stepper / selector por peso */
   .stp{ display:inline-flex; align-items:center; border:1px solid #e0c9b0; border-radius:9px; overflow:hidden; background:#fff }
   .stp button{ width:32px; height:32px; border:0; background:#fff; color:var(--naranja); font-size:18px; font-weight:800; cursor:pointer }
@@ -114,28 +122,43 @@
   // ====== CONFIGURACION (vendrá de la hoja CONFIGURACION del Sheet) ======
   var CFG = { minPedido: 75000 };   // pedido mínimo minorista
 
-  // ====== Carrito: cada VARIEDAD es una línea (nombre + variedad + precio) ======
-  // El cliente ve el precio de cada opción (1 kg, 2 kg, 5 kg, sabores, unidades) y
-  // suma/resta con +/− en la misma lista. El precio de "5 kg" ya viene con su
-  // descuento por escala desde la hoja, así que se ve cuánto sale cada opción.
-  var CART = {};
-  function keyOf(n,v){ return n+'||'+v; }
-  function qtyOf(n,v){ var it=CART[keyOf(n,v)]; return it?it.cant:0; }
-  function lineTotal(it){ return it.precio*it.cant; }
+  // ====== Escala por kg (igual que la mayorista) ======
+  // En la hoja, las filas "N kg" guardan el PRECIO POR KG de ese escalón.
+  // Ej: 1 kg=7500/kg, 2 kg=7000/kg, 5 kg=6500/kg. Si TODAS las variedades de un
+  // producto son "N kg" → se vende POR KG (selector + precio automático).
+  function parseKg(s){ var m=String(s||'').trim().match(/^(\d+(?:[.,]\d+)?)\s*kg$/i); return m?parseFloat(m[1].replace(',','.')):null; }
+  function esPorPeso(p){ return p.vars.length>0 && p.vars.every(function(v){ return parseKg(v.variedad)!==null; }); }
+  function tiersDe(p){ return p.vars.map(function(v){ return {min:parseKg(v.variedad), perkg:v.precio}; }).sort(function(a,b){return a.min-b.min;}); }
+  function perkg(tiers, kg){ var t=tiers[0]; for(var i=0;i<tiers.length;i++){ if(kg>=tiers[i].min) t=tiers[i]; } return t.perkg; }
+
+  // ====== Carrito. Dos tipos de línea ======
+  //  'peso': producto por kg {tipo,nombre,tiers,kg}  ·  'var': variedad suelta {tipo,nombre,variedad,precio,cant}
+  var CART = {}, TIERMAP = {};
+  function pkey(n){ return 'P|'+n; }
+  function vkey(n,v){ return 'V|'+n+'||'+v; }
+  function lineTotal(it){ return it.tipo==='peso' ? perkg(it.tiers,it.kg)*it.kg : it.precio*it.cant; }
   function cartTotal(){ var s=0; for(var k in CART) s+=lineTotal(CART[k]); return s; }
   function cartCount(){ return Object.keys(CART).length; }
+  function pesoKg(n){ var it=CART[pkey(n)]; return it?it.kg:0; }
+  function qtyOf(n,v){ var it=CART[vkey(n,v)]; return it?it.cant:0; }
+  function setPeso(nombre, tiers, delta){
+    var k=pkey(nombre), it=CART[k]||{tipo:'peso',nombre:nombre,tiers:tiers,kg:0};
+    it.kg=Math.max(0,it.kg+delta); it.tiers=tiers;
+    if(it.kg===0) delete CART[k]; else CART[k]=it;
+    sync(); drawCart();
+  }
   function setVar(nombre, variedad, precio, delta){
-    var k=keyOf(nombre,variedad), it=CART[k]||{nombre:nombre,variedad:variedad,precio:precio,cant:0};
+    var k=vkey(nombre,variedad), it=CART[k]||{tipo:'var',nombre:nombre,variedad:variedad,precio:precio,cant:0};
     it.cant+=delta; it.precio=precio;
     if(it.cant<=0) delete CART[k]; else CART[k]=it;
     sync(); drawCart();
   }
   function delLine(k){ delete CART[k]; sync(); drawCart(); }
   function refreshSteppers(){
-    document.querySelectorAll('[data-q]').forEach(function(s){
-      var p=s.dataset.q.split('||'), q=qtyOf(p[0],p[1]);
-      s.textContent=q; var row=s.closest('.var'); if(row) row.classList.toggle('incart', q>0);
-    });
+    document.querySelectorAll('[data-q]').forEach(function(s){ var p=s.dataset.q.split('||'),q=qtyOf(p[0],p[1]); s.textContent=q; var r=s.closest('.var'); if(r) r.classList.toggle('incart',q>0); });
+    document.querySelectorAll('[data-qk]').forEach(function(s){ s.textContent=pesoKg(s.dataset.qk); });
+    document.querySelectorAll('[data-tot]').forEach(function(s){ var it=CART[pkey(s.dataset.tot)]; s.textContent = it ? money(lineTotal(it)) : ''; });
+    document.querySelectorAll('[data-pk]').forEach(function(r){ r.classList.toggle('incart', pesoKg(r.dataset.pk)>0); });
   }
   function sync(){
     var tot=cartTotal(), n=cartCount(), falta=Math.max(0,CFG.minPedido-tot);
@@ -170,16 +193,22 @@
     if(!keys.length){ body.innerHTML='<p style="text-align:center;color:#9aa1aa;padding:24px 0">Tu pedido está vacío.</p>'; }
     else body.innerHTML=keys.map(function(k){
       var it=CART[k];
+      if(it.tipo==='peso'){
+        return '<div class="ci"><div class="cinfo"><b>'+esc(it.nombre)+'</b><span>'+it.kg+' kg · '+money(perkg(it.tiers,it.kg))+' /kg</span></div>'+
+          '<div class="stp"><button data-pdec="'+esc(it.nombre)+'">−</button><input value="'+it.kg+' kg" readonly style="width:56px"><button data-pinc="'+esc(it.nombre)+'">+</button></div>'+
+          '<div class="cprice">'+money(lineTotal(it))+'</div><button class="rm" data-rm="'+esc(k)+'">🗑</button></div>';
+      }
       return '<div class="ci"><div class="cinfo"><b>'+esc(it.nombre)+'</b><span>'+esc(it.variedad)+' · '+money(it.precio)+' c/u</span></div>'+
         '<div class="stp"><button data-cdec="'+esc(k)+'">−</button><input value="'+it.cant+'" readonly style="width:40px"><button data-cinc="'+esc(k)+'">+</button></div>'+
-        '<div class="cprice">'+money(lineTotal(it))+'</div>'+
-        '<button class="rm" data-rm="'+esc(k)+'">🗑</button></div>';
+        '<div class="cprice">'+money(lineTotal(it))+'</div><button class="rm" data-rm="'+esc(k)+'">🗑</button></div>';
     }).join('');
     var tot=cartTotal(), falta=Math.max(0,CFG.minPedido-tot);
     document.getElementById('cfTot').textContent=money(tot);
     var warn=document.getElementById('cfWarn'), btn=document.getElementById('cfBtn');
     if(falta>0){ warn.textContent='Pedido mínimo '+money(CFG.minPedido)+' · te faltan '+money(falta); btn.disabled=true; }
     else { warn.textContent=''; btn.disabled=false; }
+    body.querySelectorAll('[data-pdec]').forEach(function(b){ var it=CART[pkey(b.dataset.pdec)]; b.onclick=function(){ if(it) setPeso(it.nombre,it.tiers,-1) } });
+    body.querySelectorAll('[data-pinc]').forEach(function(b){ var it=CART[pkey(b.dataset.pinc)]; b.onclick=function(){ if(it) setPeso(it.nombre,it.tiers, 1) } });
     body.querySelectorAll('[data-cdec]').forEach(function(b){ var it=CART[b.dataset.cdec]; b.onclick=function(){ if(it) setVar(it.nombre,it.variedad,it.precio,-1) } });
     body.querySelectorAll('[data-cinc]').forEach(function(b){ var it=CART[b.dataset.cinc]; b.onclick=function(){ if(it) setVar(it.nombre,it.variedad,it.precio, 1) } });
     body.querySelectorAll('[data-rm]').forEach(function(b){ b.onclick=function(){ delLine(b.dataset.rm) } });
@@ -244,25 +273,35 @@
   }
 
   function render(cats, openAll){
-    var acc=$('#acc');
+    var acc=$('#acc'); TIERMAP={};
     acc.innerHTML = cats.map(function(c){
       var inner = c.subs.map(function(s){
         var prods = s.prods.map(function(p){
-          var min = Math.min.apply(null, p.vars.map(function(v){return v.precio}));
-          var multi = p.vars.length>1;
-          var vars = p.vars.map(function(v){
-            var nA=esc(p.nombre), vA=esc(v.variedad||'Unidad');
-            return '<div class="var"><span class="vn">'+esc(v.variedad||'Unidad')+'</span>'+
-              '<span class="vp">'+(v.precioAnt?'<span class="ant">'+money(v.precioAnt)+'</span>':'')+money(v.precio)+'</span>'+
-              '<span class="stp">'+
-                '<button class="sdec" data-n="'+nA+'" data-v="'+vA+'" data-p="'+v.precio+'">−</button>'+
-                '<span class="qn" data-q="'+esc(p.nombre+'||'+(v.variedad||'Unidad'))+'">'+qtyOf(p.nombre,v.variedad||'Unidad')+'</span>'+
-                '<button class="sinc" data-n="'+nA+'" data-v="'+vA+'" data-p="'+v.precio+'">+</button>'+
-              '</span></div>';
-          }).join('');
+          var multi = p.vars.length>1, body, etq, val;
+          if(esPorPeso(p)){
+            var tiers=tiersDe(p); TIERMAP[p.nombre]=tiers; var nA=esc(p.nombre);
+            var tabla='<div class="tiers">'+tiers.map(function(t,ti){ return '<div class="tr">'+(ti===0?'':'desde ')+t.min+' kg <b>'+money(t.perkg)+'/kg</b></div>'; }).join('')+'</div>';
+            body='<div class="kgsel" data-pk="'+nA+'">'+tabla+
+              '<div class="kgrow"><span class="lbl">¿Cuántos kg?</span>'+
+                '<span class="stp"><button class="pdec" data-n="'+nA+'">−</button>'+
+                  '<span class="qn" data-qk="'+nA+'">'+pesoKg(p.nombre)+'</span>'+
+                  '<button class="pinc" data-n="'+nA+'">+</button></span><span class="lbl">kg</span>'+
+                '<span class="ktot" data-tot="'+nA+'"></span></div></div>';
+            etq='POR KG'; val=money(tiers[0].perkg);
+          } else {
+            body='<div class="vars">'+ p.vars.map(function(v){
+              var nA=esc(p.nombre), vA=esc(v.variedad||'Unidad');
+              return '<div class="var"><span class="vn">'+esc(v.variedad||'Unidad')+'</span>'+
+                '<span class="vp">'+(v.precioAnt?'<span class="ant">'+money(v.precioAnt)+'</span>':'')+money(v.precio)+'</span>'+
+                '<span class="stp"><button class="sdec" data-n="'+nA+'" data-v="'+vA+'" data-p="'+v.precio+'">−</button>'+
+                  '<span class="qn" data-q="'+esc(p.nombre+'||'+(v.variedad||'Unidad'))+'">'+qtyOf(p.nombre,v.variedad||'Unidad')+'</span>'+
+                  '<button class="sinc" data-n="'+nA+'" data-v="'+vA+'" data-p="'+v.precio+'">+</button></span></div>';
+            }).join('')+'</div>';
+            var min=Math.min.apply(null,p.vars.map(function(v){return v.precio})); etq=(multi?'DESDE':'PRECIO'); val=money(min);
+          }
           return '<div class="prod"><button class="prod-h"><div class="pi"><b>'+esc(p.nombre)+'</b>'+(p.desc?'<span>'+esc(p.desc)+'</span>':'')+'</div>'+
-            '<div class="desde"><small>'+(multi?'DESDE':'PRECIO')+'</small><b>'+money(min)+'</b></div><span class="chev">›</span></button>'+
-            '<div class="vars">'+vars+'</div></div>';
+            '<div class="desde"><small>'+etq+'</small><b>'+val+'</b></div><span class="chev">›</span></button>'+
+            body+'</div>';
         }).join('');
         return '<div class="sub'+(openAll?' open':'')+'"><button class="sub-h">'+esc(s.name)+'<span class="n">'+s.prods.length+'</span><span class="chev">›</span></button><div class="sub-body">'+prods+'</div></div>';
       }).join('');
@@ -272,7 +311,10 @@
     acc.querySelectorAll('.cat-h').forEach(function(b){ b.onclick=function(){ b.parentElement.classList.toggle('open') } });
     acc.querySelectorAll('.sub-h').forEach(function(b){ b.onclick=function(){ b.parentElement.classList.toggle('open') } });
     acc.querySelectorAll('.prod-h').forEach(function(b){ b.onclick=function(){ b.parentElement.classList.toggle('open') } });
-    // +/− directo en la lista (suma/resta al pedido sin abrir el carrito)
+    // por kg: +/− que calcula el precio del escalón automáticamente
+    acc.querySelectorAll('.pinc').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); setPeso(b.dataset.n, TIERMAP[b.dataset.n], 1); }; });
+    acc.querySelectorAll('.pdec').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); setPeso(b.dataset.n, TIERMAP[b.dataset.n], -1); }; });
+    // variedades sueltas: +/− por unidad
     acc.querySelectorAll('.sinc').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); setVar(b.dataset.n, b.dataset.v, +b.dataset.p, 1); }; });
     acc.querySelectorAll('.sdec').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); setVar(b.dataset.n, b.dataset.v, +b.dataset.p, -1); }; });
     refreshSteppers();

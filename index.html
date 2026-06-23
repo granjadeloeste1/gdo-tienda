@@ -24,6 +24,12 @@ body{background:#0a0a0a;color:#f5f5f5;font-family:-apple-system,BlinkMacSystemFo
 .hi-i{font-size:11px;color:#666}.hi-i span{color:#F58220}
 .hi-f{font-size:10px;color:#555;margin-top:3px}
 .wrap{max-width:680px;margin:0 auto;padding:14px 14px 80px}
+/* Banner + franja superior (misma estética que la minorista) */
+.banner{position:relative;border-radius:16px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.25);margin-bottom:12px}
+.banner img{width:100%;display:block;aspect-ratio:851/315;object-fit:cover}
+.infostrip{background:#fff7ef;border:1px solid #f3e3d0;color:#a85f1a;border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:600;text-align:center;margin-bottom:12px}
+.infostrip b{color:#8a4f15}
+.expand-all{display:inline-flex;align-items:center;gap:6px;background:#111;color:#F58220;border:1px solid #2a2a2a;border-radius:20px;padding:7px 13px;margin:0 0 12px;font-size:12.5px;font-weight:700;cursor:pointer}
 .search{width:100%;background:#111;border:1px solid #1e1e1e;border-radius:8px;color:#f5f5f5;padding:11px 14px;font-size:14px;outline:none;margin-bottom:12px;-webkit-appearance:none}
 .search:focus{border-color:#F58220}
 details{background:#111;border:1px solid #1e1e1e;border-radius:12px;margin-bottom:10px;overflow:hidden}
@@ -296,12 +302,15 @@ td.l{color:#3a4048}
 </div>
 <div class="wrap">
   <button type="button" onclick="document.getElementById('gdoChooser').style.display='flex'" style="display:inline-flex;align-items:center;gap:6px;background:#fff;color:#111;border:1px solid #ddd;border-radius:20px;padding:7px 14px;margin:0 0 12px;font-size:13px;font-weight:700;cursor:pointer">&lsaquo; Cambiar lista</button>
+  <div class="banner"><img src="assets/banner/b3.jpg" alt="Granja del Oeste — Acuña 1334, Villa Tesei"/></div>
+  <div class="infostrip">🏪 <b>Retiro en sucursal</b> &middot; 📍 Acuña 1334, Villa Tesei &middot; 🕒 Lun a Sáb 6 a 13:30 hs</div>
   <a id="clubCta" href="club.html" style="display:flex;align-items:center;gap:9px;text-decoration:none;background:#111;color:#fff;border:1px solid #2a2a2a;border-left:4px solid #F58220;border-radius:12px;padding:11px 14px;margin:0 0 12px;font-size:13.5px;font-weight:700;line-height:1.3">
     <span style="font-size:18px">⭐</span>
     <span id="clubCtaTxt">Hacete socio del <span style="color:#F58220">GDO CLUB</span> y sumá puntos con tus compras</span>
     <span style="margin-left:auto;color:#F58220;font-size:18px">›</span>
   </a>
   <input class="search" id="s" type="text" placeholder="Buscar producto..." oninput="filt()">
+  <button type="button" class="expand-all" id="toggleAll" onclick="toggleAllCats()">📂 Abrir todo</button>
   <div id="root"></div>
   <div style="text-align:center;font-size:10.5px;color:#9aa1aa;padding:10px 10px 16px;opacity:.85;line-height:1.4">Propiedad de Granja del Oeste<sup style="font-size:8px">&reg;</sup> · v21</div>
 </div>
@@ -409,12 +418,19 @@ function render() {
       tbH += "</tbody></table></div>";
     });
     if (!vis) return;
-    html += "<details open><summary>" + sec.title + "</summary><div class=\"sb\">" + tbH + "</div></details>";
+    html += "<details" + (t ? " open" : "") + "><summary>" + sec.title + "</summary><div class=\"sb\">" + tbH + "</div></details>";
   });
   root.innerHTML = html || vistaVacia();
 }
 
 function filt() { term = document.getElementById("s").value; render(); }
+// Abrir/cerrar TODAS las categorías de una (las categorías arrancan cerradas).
+function toggleAllCats() {
+  var abrir = document.querySelectorAll('#root details:not([open])').length > 0;
+  document.querySelectorAll('#root details').forEach(function(d){ d.open = abrir; });
+  var btn = document.getElementById('toggleAll');
+  if (btn) btn.textContent = abrir ? '📁 Cerrar todo' : '📂 Abrir todo';
+}
 // Carga RAPIDA y sin precios viejos:
 // 1) Si hay una copia guardada reciente (<8h, mismo dia de laburo), se muestra
 //    AL INSTANTE para que abra rapido (sobre todo en el navegador de WhatsApp).

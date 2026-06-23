@@ -116,6 +116,10 @@
   .diab.on{ background:#111; color:#fff; border-color:#111 }
   .note2{ background:#fff7ef; border:1px solid #f3cda0; color:#a85f1a; border-radius:10px; padding:10px; font-size:13px; margin-top:6px }
   .ckline{ display:flex; justify-content:space-between; font-size:14px; color:var(--gris); margin-bottom:5px }
+  .okbox{ background:#fff; border-radius:18px; max-width:340px; width:calc(100% - 40px); text-align:center; padding:30px 24px; box-shadow:0 20px 50px rgba(0,0,0,.45); animation:pop .35s ease }
+  .okbox .okic{ width:74px; height:74px; border-radius:50%; background:#1e8449; color:#fff; font-size:40px; display:flex; align-items:center; justify-content:center; margin:0 auto 16px }
+  .okbox h2{ margin:0 0 8px; font-size:22px; color:#111 }
+  .okbox p{ margin:0 0 20px; color:#555; font-size:15px; line-height:1.45 }
   .btn-conf{ width:100%; background:#25D366; color:#fff; border:0; border-radius:11px; padding:14px; font-size:15px; font-weight:800; cursor:pointer }
   .btn-conf:disabled{ background:#cfd4da; cursor:default }
   /* barra carrito */
@@ -252,14 +256,18 @@
         '<div class="seg"><button type="button" data-mod="envio" class="on">🚚 Envío a domicilio</button><button type="button" data-mod="retiro">🏪 Retiro en sucursal</button></div>'+
         '<div id="ckEnvio"><label class="fl">Zona de entrega *</label>'+
           '<select id="ckZona" class="fin"><option value="">Elegí tu zona…</option>'+zonaOpts+'</select>'+
-          '<div id="ckDias"></div>'+
-          '<label class="fl">Dirección *</label><input id="ckDir" class="fin" placeholder="Calle, número, entre calles"/></div>'+
+          '<div id="ckDias"></div></div>'+
         '<div id="ckRetiro" style="display:none"><div class="note2">🏪 Retirás en <b>'+esc(CFG.sucursal)+'</b> · '+esc(CFG.horario)+'</div>'+
           '<label class="fl">¿Qué día venís? (opcional)</label><input id="ckDiaR" class="fin" placeholder="Ej: jueves"/></div>'+
-        '<label class="fl">Nombre y apellido *</label><input id="ckNom" class="fin"/>'+
-        '<label class="fl">Teléfono / WhatsApp *</label><input id="ckTel" class="fin" inputmode="tel"/>'+
+        '<label class="fl">Nombre y apellido *</label><input id="ckNom" class="fin" placeholder="Tu nombre"/>'+
+        '<label class="fl">Teléfono / WhatsApp *</label><input id="ckTel" class="fin" inputmode="tel" placeholder="11 1234-5678"/>'+
+        '<div id="ckDom">'+
+          '<label class="fl">Dirección *</label><input id="ckDir" class="fin" placeholder="Calle y número (ej: Bombero Celiz 1200)"/>'+
+          '<label class="fl">Localidad</label><input id="ckLoc" class="fin" placeholder="Ej: Hurlingham, Villa Tesei…"/>'+
+          '<label class="fl">Entre calles</label><input id="ckEntre" class="fin" placeholder="Ej: entre Av. Vergara y Pedernera"/>'+
+        '</div>'+
         '<label class="fl">Forma de pago</label><select id="ckPago" class="fin">'+CFG.formasPago.map(function(f){return '<option>'+esc(f)+'</option>';}).join('')+'</select>'+
-        '<label class="fl">Notas (opcional)</label><textarea id="ckNotas" class="fin" rows="2"></textarea>'+
+        '<label class="fl">Notas / aclaraciones</label><textarea id="ckNotas" class="fin" rows="2" placeholder="Horario, comentarios…"></textarea>'+
       '</div>'+
       '<div class="cfoot">'+
         '<div class="ckline"><span>Productos</span><span id="ckSub"></span></div>'+
@@ -280,7 +288,7 @@
       else envL.style.display='none';
       document.getElementById('ckTot').textContent=money(sub+env);
     }
-    ov.querySelectorAll('[data-mod]').forEach(function(b){ b.onclick=function(){ modo=b.dataset.mod; ov.querySelectorAll('[data-mod]').forEach(function(x){x.classList.toggle('on',x===b)}); document.getElementById('ckEnvio').style.display=modo==='envio'?'block':'none'; document.getElementById('ckRetiro').style.display=modo==='retiro'?'block':'none'; recalc(); }; });
+    ov.querySelectorAll('[data-mod]').forEach(function(b){ b.onclick=function(){ modo=b.dataset.mod; ov.querySelectorAll('[data-mod]').forEach(function(x){x.classList.toggle('on',x===b)}); document.getElementById('ckEnvio').style.display=modo==='envio'?'block':'none'; document.getElementById('ckRetiro').style.display=modo==='retiro'?'block':'none'; document.getElementById('ckDom').style.display=modo==='envio'?'block':'none'; recalc(); }; });
     document.getElementById('ckZona').onchange=function(){
       zona=this.value===''?null:+this.value; dia=null;
       var cd=document.getElementById('ckDias');
@@ -293,20 +301,72 @@
       var nom=(val('ckNom')||'').trim(), tel=(val('ckTel')||'').trim(), msg=document.getElementById('ckMsg');
       if(!nom||!tel){ msg.textContent='Completá tu nombre y teléfono.'; return; }
       if(modo==='envio'){ if(zona==null){ msg.textContent='Elegí tu zona de entrega.'; return; } if(!dia){ msg.textContent='Elegí el día de entrega.'; return; } if(!(val('ckDir')||'').trim()){ msg.textContent='Completá tu dirección.'; return; } }
-      var L=['*Pedido GDO — Lista Minorista*',''];
-      for(var k in CART){ var it=CART[k]; L.push(it.tipo==='peso' ? ('• '+it.nombre+' — '+it.kg+' kg = '+money(lineTotal(it))) : ('• '+it.nombre+' ('+it.variedad+') x'+it.cant+' = '+money(lineTotal(it)))); }
       var sub=cartTotal(), env=envioCosto();
-      L.push(''); L.push('Subtotal: '+money(sub));
-      if(modo==='envio') L.push('Envío: '+(env===0?'sin cargo':money(env)));
-      L.push('TOTAL: '+money(sub+env)); L.push('');
-      if(modo==='envio'){ L.push('Entrega a domicilio'); L.push('Zona: '+CFG.zonas[zona].nombre+' — Día: '+dia); L.push('Dirección: '+(val('ckDir')||'').trim()); }
-      else { L.push('Retiro en sucursal ('+CFG.sucursal+')'+((val('ckDiaR')||'').trim()?' — '+(val('ckDiaR')).trim():'')); }
-      L.push('Pago: '+(val('ckPago')||''));
-      if((val('ckNotas')||'').trim()) L.push('Notas: '+(val('ckNotas')).trim());
-      L.push(''); L.push('Cliente: '+nom+' — '+tel);
+      var addr=(val('ckDir')||'').trim(), loc=(val('ckLoc')||'').trim(), entre=(val('ckEntre')||'').trim(), pago=(val('ckPago')||''), notas=(val('ckNotas')||'').trim();
+      var L=[];
+      L.push('🛒 *NUEVO PEDIDO MINORISTA*');
+      L.push('*Granja del Oeste*');
+      L.push('');
+      L.push('━━━━━━━━━━━━━━');
+      L.push('👤 *DATOS DEL CLIENTE*');
+      L.push('');
+      L.push('• *Nombre:* '+nom);
+      L.push('• *Teléfono:* '+tel);
+      if(modo==='envio'){
+        L.push('• *Modalidad:* Envío a domicilio');
+        L.push('• *Zona:* '+CFG.zonas[zona].nombre);
+        L.push('• *Día de entrega:* '+dia);
+        L.push('• *Dirección:* '+addr);
+        if(loc) L.push('• *Localidad:* '+loc);
+        if(entre) L.push('• *Entre calles:* '+entre);
+      } else {
+        L.push('• *Modalidad:* Retiro en sucursal');
+        L.push('• *Retiro en:* '+CFG.sucursal);
+        var dr=(val('ckDiaR')||'').trim(); if(dr) L.push('• *Día de retiro:* '+dr);
+      }
+      L.push('• *Forma de pago:* '+pago);
+      if(notas) L.push('• *Notas generales:* '+notas);
+      L.push('');
+      L.push('━━━━━━━━━━━━━━');
+      L.push('📦 *DETALLE DEL PEDIDO*');
+      L.push('');
+      var i=0;
+      for(var k in CART){ var it=CART[k]; i++;
+        if(it.tipo==='peso'){
+          L.push('*'+i+') '+it.nombre+'*');
+          L.push('    '+it.kg+' kg × '+money(perkg(it.tiers,it.kg))+' = *'+money(lineTotal(it))+'*');
+        } else {
+          L.push('*'+i+') '+it.nombre+' ('+it.variedad+')*');
+          L.push('    '+it.cant+' un × '+money(it.precio)+' = *'+money(lineTotal(it))+'*');
+        }
+        L.push('');
+      }
+      L.push('━━━━━━━━━━━━━━');
+      L.push('• *Subtotal:* '+money(sub));
+      if(modo==='envio') L.push('• *Envío:* '+(env===0?'sin cargo':money(env)));
+      L.push('💰 *TOTAL: '+money(sub+env)+'*');
+      L.push('━━━━━━━━━━━━━━');
+      L.push('');
+      L.push('_El pedido será confirmado por un miembro del equipo en horario comercial para acordar la entrega o retiro según corresponda._');
       window.open('https://wa.me/5491135800164?text='+encodeURIComponent(L.join('\n')),'_blank');
+      ov.remove();
+      pedidoEnviado();
     };
     recalc();
+  }
+  function pedidoEnviado(){
+    for(var k in CART) delete CART[k];
+    sync(); cerrarCart(); $('#cartbar').classList.remove('show');
+    var d=document.createElement('div'); d.id='okped'; d.className='cartov'; d.style.alignItems='center';
+    d.innerHTML='<div class="okbox">'+
+      '<div class="okic">✅</div>'+
+      '<h2>¡Pedido enviado!</h2>'+
+      '<p>Ya está listo. Te abrimos <b>WhatsApp</b> con tu pedido para que lo envíes y el equipo lo confirme.</p>'+
+      '<button class="btn-conf" id="okclose">Listo</button>'+
+    '</div>';
+    document.body.appendChild(d);
+    document.getElementById('okclose').onclick=function(){ d.remove(); chooser(); };
+    d.onclick=function(e){ if(e.target===d){ d.remove(); chooser(); } };
   }
   function cerrarCart(){ var o=document.getElementById('cartov'); if(o) o.remove(); }
   function drawCart(){

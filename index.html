@@ -536,7 +536,7 @@ function sendWhatsApp(){
   if(!ok) return;
   var addr=val("cAddr").trim(), loc=val("cLoc").trim(), entre=val("cEntre").trim(), pay=val("cPay"), notes=val("cNotes").trim();
   var L=[];
-  L.push("🛒 *NUEVO PEDIDO*");
+  L.push("🛒 *NUEVO PEDIDO MAYORISTA*");
   L.push("*Granja del Oeste*");
   L.push("");
   L.push("━━━━━━━━━━━━━━");
@@ -568,6 +568,24 @@ function sendWhatsApp(){
   L.push("_El pedido será confirmado por un miembro del equipo en horario comercial para acordar la entrega o retiro según corresponda._");
   var url="https://wa.me/5491135800164?text="+encodeURIComponent(L.join("\n"));
   window.open(url, "_blank");
+  pedidoEnviado();
+}
+/* Al finalizar el envío: cierra el pedido en la web, vacía el carrito y avisa
+   que ya está listo (se sigue enviando desde WhatsApp). */
+function pedidoEnviado(){
+  try{ cart=[]; persistCart(); renderCart(); renderCartBar(); }catch(e){}
+  try{ closeCart(); }catch(e){}
+  var prev=document.getElementById("okPed"); if(prev) prev.remove();
+  var d=document.createElement("div"); d.id="okPed";
+  d.style.cssText="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:24px";
+  d.innerHTML='<div style="background:#fff;border-radius:18px;max-width:340px;width:100%;text-align:center;padding:30px 24px;box-shadow:0 20px 50px rgba(0,0,0,.45)">'+
+    '<div style="width:74px;height:74px;border-radius:50%;background:#1e8449;color:#fff;font-size:40px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">✅</div>'+
+    '<h2 style="margin:0 0 8px;font-size:22px;color:#111">¡Pedido enviado!</h2>'+
+    '<p style="margin:0 0 20px;color:#555;font-size:15px;line-height:1.45">Ya está listo. Te abrimos <b>WhatsApp</b> con tu pedido para que lo envíes y el equipo lo confirme.</p>'+
+    '<button onclick="document.getElementById(\'okPed\').remove()" style="width:100%;background:#F58220;color:#fff;border:0;border-radius:11px;padding:14px;font-size:15px;font-weight:800;cursor:pointer">Listo</button>'+
+  '</div>';
+  d.addEventListener("click",function(e){ if(e.target===d) d.remove(); });
+  document.body.appendChild(d);
 }
 loadCart();
 renderCartBar();

@@ -312,8 +312,8 @@ window.GDO = window.GDO || {};
     try{ var inb=JSON.parse(localStorage.getItem(MIN_INBOX)||'[]'); if(!Array.isArray(inb)) inb=[]; inb.push(pedido); localStorage.setItem(MIN_INBOX, JSON.stringify(inb)); }catch(e){}
     function drop(){ try{ var inb=JSON.parse(localStorage.getItem(MIN_INBOX)||'[]'); if(Array.isArray(inb)) localStorage.setItem(MIN_INBOX, JSON.stringify(inb.filter(function(x){return x&&x.id!==pedido.id;}))); }catch(e){} }
     function write(){ try{ return GDO.FB.db.collection('pedidos').doc(pedido.id).set(pedido); }catch(e){ return Promise.reject(e); } }
-    if(window.GDO&&GDO.FB&&GDO.FB.enabled&&GDO.FB.db){ write().then(drop).catch(function(){}); }
-    else if(window.GDO&&GDO.FB&&GDO.FB.ready){ GDO.FB.ready.then(function(en){ if(en&&GDO.FB.db) return write().then(drop); }).catch(function(){}); }
+    if(window.GDO&&GDO.FB&&GDO.FB.enabled&&GDO.FB.db){ write().then(function(){drop();console.log('E2E_WRITE ok');}).catch(function(e){console.log('E2E_WRITE err '+(e&&e.code));}); }
+    else if(window.GDO&&GDO.FB&&GDO.FB.ready){ GDO.FB.ready.then(function(en){ if(en&&GDO.FB.db) return write().then(function(){drop();console.log('E2E_WRITE ok2');}); }).catch(function(e){console.log('E2E_WRITE err2 '+(e&&e.code));}); }
   }
 
   // ====== Checkout: modalidad + zona/día + datos (como mayorista) ======
@@ -590,6 +590,14 @@ window.GDO = window.GDO || {};
     if(location.search.indexOf('e2e')>=0){ setTimeout(e2eRun,1500); }
   }
   function e2eRun(){
+    // esperar a que el login anónimo esté listo (como un cliente real que tarda en el form)
+    var waited=0, t=setInterval(function(){
+      var ok = window.GDO&&GDO.FB&&GDO.FB.auth&&GDO.FB.auth.currentUser;
+      waited+=300;
+      if(ok || waited>=6000){ clearInterval(t); console.log('E2E_AUTH user='+(!!ok)); e2eDrive(); }
+    },300);
+  }
+  function e2eDrive(){
     window.open=function(){};
     setPeso('PRUEBA (borrar)',[{min:1,perkg:7500}],8);
     checkout();

@@ -402,19 +402,9 @@
   }
 
   // ---------- chooser ----------
-  function chooser(){
-    $('#back').style.display='none'; $('#htitle').textContent='Granja del Oeste'; $('#hsub').textContent='Lista de precios';
-    $('#cartbar').classList.remove('show');
-    app.innerHTML =
-      '<div class="hero-logo"><img src="assets/logo-original.svg" alt="Granja del Oeste"/></div>'+
-      '<p class="lead">¿Cómo querés ver los precios?</p>'+
-      '<div class="choose">'+
-        '<button class="ch" data-go="may"><span class="ico">🏪</span><div><h3>Mayorista</h3><p>Precios por mayor · retiro en sucursal</p></div><span class="arr">›</span></button>'+
-        '<button class="ch" data-go="min"><span class="ico">🏠</span><div><h3>Minorista</h3><p>Precios al público · retiro o envío a domicilio</p></div><span class="arr">›</span></button>'+
-      '</div>';
-    app.querySelector('[data-go="min"]').onclick=lista;
-    app.querySelector('[data-go="may"]').onclick=function(){ toast('La mayorista es la lista actual (MOSTRADOR)'); };
-  }
+  // La pantalla de elección Mayorista/Minorista vive en index.html (entrada única).
+  // Acá "volver" siempre regresa a esa pantalla.
+  function chooser(){ location.href='index.html'; }
 
   // ---------- agrupar ----------
   function group(items){
@@ -519,18 +509,23 @@
 
   function boot(){
     $('#cbBtn').onclick=verCart;
-    $('#back').onclick=chooser;
-    if(location.search.indexOf('lista')>=0){ lista(); var _c=document.querySelectorAll('.cat'); if(_c[3]){ _c[3].classList.add('open'); var _s=_c[3].querySelector('.sub'); if(_s){ _s.classList.add('open'); var _p=_s.querySelector('.prod'); if(_p)_p.classList.add('open'); } } }
-    else chooser();
+    $('#back').onclick=function(){ location.href='index.html'; };
+    lista();
   }
-  // Cargamos los datos SIEMPRE frescos (con timestamp) para que nunca queden
-  // precios viejos en caché del navegador/CDN.
+  // Datos EN VIVO desde la hoja (mismo Apps Script que la mayorista, ?lista=minorista):
+  // devuelve { productos:[...], config:{...} }. Sin internet NO se muestran precios.
   (function(){
-    var s=document.createElement('script');
-    s.src='min-data.js?t='+(new Date().getTime());
-    s.onload=boot;
-    s.onerror=function(){ app.innerHTML='<div class="lead" style="margin-top:40px">No se pudo cargar la lista. Revisá tu conexión y recargá.</div>'; };
-    document.head.appendChild(s);
+    var API='https://script.google.com/macros/s/AKfycbwH6JW35BRYcBk958OEr4sEvfVIfzgqzQeGwvz63xZYgukwxik8EsIego4d9O456bHURg/exec';
+    fetch(API+'?lista=minorista')
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        window.MIN_DATA = (d && d.productos) ? d.productos : [];
+        if(d && d.config){ CFG = d.config; }
+        boot();
+      })
+      .catch(function(){
+        app.innerHTML='<div class="lead" style="margin-top:40px">No se pudo cargar la lista. Revisá tu conexión y recargá.</div>';
+      });
   })();
 </script>
 </body></html>

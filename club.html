@@ -65,6 +65,23 @@
   .premio .costo{ font-size:12px; color:var(--gris); }
   .premio button{ background:var(--naranja); color:#fff; border:0; border-radius:8px; padding:8px 14px; font-weight:700; cursor:pointer; font-size:13px; white-space:nowrap; }
   .premio button:disabled{ background:#cfd4da; cursor:default; }
+  /* ── Premios estilo tarjeta + barra de progreso (look fidelización premium) ── */
+  .sec-t{ display:flex; align-items:center; gap:8px; font-size:16px; margin:0 0 12px; font-weight:800; }
+  .sec-t::before{ content:''; width:4px; height:18px; background:var(--naranja); border-radius:3px; }
+  .prm{ background:#fff; border:1px solid var(--linea); border-radius:14px; padding:13px; margin-bottom:10px; transition:transform .12s, box-shadow .15s; }
+  .prm:last-child{ margin-bottom:0; }
+  .prm.on{ border-color:#f3cda0; box-shadow:0 5px 16px rgba(245,130,32,.13); }
+  .prm:active{ transform:scale(.99); }
+  .prm-top{ display:flex; align-items:center; gap:12px; }
+  .prm-ico{ font-size:28px; width:50px; height:50px; display:flex; align-items:center; justify-content:center; background:#faf2e9; border-radius:12px; flex-shrink:0; }
+  .prm-info{ flex:1; min-width:0; }
+  .prm-info b{ display:block; font-size:15px; line-height:1.25; }
+  .prm-cost{ font-size:12px; color:var(--naranja); font-weight:800; letter-spacing:.2px; }
+  .prm-btn{ background:var(--naranja); color:#fff; border:0; border-radius:10px; padding:10px 16px; font-weight:800; cursor:pointer; font-size:13px; white-space:nowrap; box-shadow:0 2px 8px rgba(245,130,32,.35); }
+  .prm-falta{ font-size:11px; color:var(--gris); white-space:nowrap; text-align:right; font-weight:700; line-height:1.3; }
+  .pbar{ height:6px; background:#eef0f2; border-radius:6px; margin-top:11px; overflow:hidden; }
+  .pbar i{ display:block; height:100%; width:0; background:linear-gradient(90deg,#F9A24A,#F58220); border-radius:6px; transition:width .5s ease; }
+  .prm.on .pbar i{ background:linear-gradient(90deg,#2bbd6e,#1e8449); }
   .vid{ position:relative; padding-top:56.25%; border-radius:12px; overflow:hidden; margin:10px 0; background:#000; }
   .vid iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
   .err{ background:#fdecea; color:#b93a2b; border-radius:8px; padding:10px; font-size:13px; margin:8px 0; }
@@ -376,8 +393,8 @@
     app.innerHTML =
       '<p class="saludo">¡Hola '+esc(nom)+'! 👋 Esta es tu credencial de socio:</p>'+
       carnetHTML(socio)+'<div style="height:14px"></div>'+
-      '<div class="card"><h2>🎁 Premios para canjear</h2><div id="premios"><p class="muted small">Cargando premios…</p></div></div>'+
-      '<div class="card"><h2>📋 Mis canjes</h2><div id="canjes"><p class="muted small">—</p></div></div>'+
+      '<div class="card"><h2 class="sec-t">🎁 Premios para canjear</h2><div id="premios"><p class="muted small">Cargando premios…</p></div></div>'+
+      '<div class="card"><h2 class="sec-t">🎟️ Mis canjes</h2><div id="canjes"><p class="muted small">—</p></div></div>'+
       '<div class="card" style="text-align:center"><a class="volver" href="index.html">← Ir a la lista de precios</a>'+
         '<div style="height:12px"></div><button class="btn-g" id="out" type="button">Cerrar sesión</button></div>';
     document.getElementById('out').onclick = function(){ auth.signOut(); };
@@ -392,10 +409,19 @@
       var arr=[]; snap.forEach(function(d){ var p=d.data(); p._id=d.id; arr.push(p); });
       arr.sort(function(a,b){ return (a.costo||0)-(b.costo||0); });
       cont.innerHTML = arr.map(function(p){
-        var alcanza = pts >= (p.costo||0);
-        return '<div class="premio"><span class="ico">'+(p.ico||'🎁')+'</span>'+
-          '<div class="info"><b>'+esc(p.nombre)+'</b><span class="costo">'+fmt(p.costo)+' Puntos GDO</span></div>'+
-          '<button data-id="'+esc(p._id)+'" data-c="'+(p.costo||0)+'" data-n="'+esc(p.nombre)+'" data-i="'+esc(p.ico||'🎁')+'" '+(alcanza?'':'disabled')+'>'+(alcanza?'Canjear':'Te faltan')+'</button></div>';
+        var costo = p.costo||0;
+        var alcanza = pts >= costo;
+        var pct = costo>0 ? Math.min(100, Math.round(pts/costo*100)) : 100;
+        return '<div class="prm'+(alcanza?' on':'')+'">'+
+          '<div class="prm-top">'+
+            '<span class="prm-ico">'+(p.ico||'🎁')+'</span>'+
+            '<div class="prm-info"><b>'+esc(p.nombre)+'</b><span class="prm-cost">'+fmt(costo)+' Puntos GDO</span></div>'+
+            (alcanza
+              ? '<button class="prm-btn" data-id="'+esc(p._id)+'" data-c="'+costo+'" data-n="'+esc(p.nombre)+'" data-i="'+esc(p.ico||'🎁')+'">Canjear</button>'
+              : '<span class="prm-falta">Te faltan<br>'+fmt(costo-pts)+'</span>')+
+          '</div>'+
+          '<div class="pbar"><i style="width:'+pct+'%"></i></div>'+
+        '</div>';
       }).join('');
       cont.querySelectorAll('button[data-id]').forEach(function(b){
         b.onclick = function(){ canjear(user, b.dataset.id, parseInt(b.dataset.c,10), b.dataset.n, b.dataset.i, b); };

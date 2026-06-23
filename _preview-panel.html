@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Preview panel GDO CLUB</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{ --naranja:#F58220; --tinta:#1a1a1a; --gris:#5b6470; --linea:#e6e8eb; --ok:#1e8449; }
+  body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; background:#f4f5f7; color:var(--tinta); }
+  .hdr{ background:#111; color:#fff; padding:14px 16px; border-bottom:3px solid var(--naranja); }
+  .hn{ max-width:680px; margin:0 auto; display:flex; align-items:center; gap:12px; }
+  .hn .logo{ height:32px } .hn b{ font-size:18px; letter-spacing:.5px } .hn .pts{ margin-left:auto; font-size:13px; background:var(--naranja); color:#111; padding:5px 11px; border-radius:20px; font-weight:800 }
+  .wrap{ max-width:680px; margin:0 auto; padding:16px }
+  .card{ background:#fff; border:1px solid var(--linea); border-radius:14px; padding:18px; margin:14px 0; box-shadow:0 1px 3px rgba(0,0,0,.04) }
+  h2{ font-size:16px } .muted{ color:var(--gris) } .small{ font-size:13px }
+  .saludo{ text-align:center; color:var(--gris); margin:4px 0 12px }
+  .carnet{ position:relative; overflow:hidden; aspect-ratio:1.58/1; max-width:400px; margin:0 auto; background:linear-gradient(135deg,#26262b 0%,#0a0a0b 60%); color:#fff; border:1px solid #2c2c31; border-radius:18px; padding:18px 22px; display:flex; flex-direction:row; box-shadow:0 12px 30px rgba(0,0,0,.45) }
+  .carnet::before{ content:''; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--naranja); z-index:3 }
+  .ct-left{ flex:1; min-width:0; display:flex; flex-direction:column; position:relative; z-index:1 }
+  .ct-brand{ flex:1; align-self:flex-start; display:flex; flex-direction:column; align-items:center }
+  .ct-club{ font-weight:900; letter-spacing:3px; font-size:19px; text-shadow:0 0 10px rgba(245,130,32,.85), 0 0 22px rgba(245,130,32,.5) }
+  .ct-club .o{ color:var(--naranja) }
+  .ct-logo{ flex:1; display:flex; align-items:center }
+  .ct-logo img{ height:90px; width:auto; display:block; filter:drop-shadow(0 0 10px rgba(245,130,32,.85)) drop-shadow(0 0 22px rgba(245,130,32,.5)) }
+  .ct-nro{ font-size:10px; color:#9aa1aa; letter-spacing:2px } .ct-nro b{ display:block; font-size:20px; color:var(--naranja); letter-spacing:1.5px; font-weight:900; line-height:1 }
+  .ct-name{ font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-top:5px }
+  .ct-since{ font-size:8px; color:#9aa1aa; letter-spacing:1px; margin-top:5px }
+  .ct-right{ display:flex; flex-direction:column; align-items:flex-end; justify-content:space-between; position:relative; z-index:1; padding-left:8px }
+  .ct-tag{ font-size:9px; letter-spacing:2px; color:var(--naranja); border:1px solid var(--naranja); padding:3px 9px; border-radius:20px; font-weight:700 }
+  .ct-pts{ text-align:right } .ct-pts b{ display:block; font-size:20px; color:var(--naranja); font-weight:900; line-height:1 } .ct-pts span{ font-size:8px; color:#9aa1aa; letter-spacing:1.5px }
+  .sec-t{ display:flex; align-items:center; gap:8px; font-size:16px; margin:0 0 12px; font-weight:800 }
+  .sec-t::before{ content:''; width:4px; height:18px; background:var(--naranja); border-radius:3px }
+  .prm{ background:#fff; border:1px solid var(--linea); border-radius:14px; padding:13px; margin-bottom:10px }
+  .prm.on{ border-color:#f3cda0; box-shadow:0 5px 16px rgba(245,130,32,.13) }
+  .prm-top{ display:flex; align-items:center; gap:12px }
+  .prm-ico{ font-size:28px; width:50px; height:50px; display:flex; align-items:center; justify-content:center; background:#faf2e9; border-radius:12px; flex-shrink:0 }
+  .prm-info{ flex:1; min-width:0 } .prm-info b{ display:block; font-size:15px; line-height:1.25 }
+  .prm-cost{ font-size:12px; color:var(--naranja); font-weight:800 }
+  .prm-btn{ background:var(--naranja); color:#fff; border:0; border-radius:10px; padding:10px 16px; font-weight:800; font-size:13px; white-space:nowrap; box-shadow:0 2px 8px rgba(245,130,32,.35) }
+  .prm-falta{ font-size:11px; color:var(--gris); white-space:nowrap; text-align:right; font-weight:700; line-height:1.3 }
+  .pbar{ height:6px; background:#eef0f2; border-radius:6px; margin-top:11px; overflow:hidden }
+  .pbar i{ display:block; height:100%; background:linear-gradient(90deg,#F9A24A,#F58220); border-radius:6px }
+  .prm.on .pbar i{ background:linear-gradient(90deg,#2bbd6e,#1e8449) }
+  .premio{ display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--linea) } .premio:last-child{ border-bottom:0 }
+  .premio .ico{ font-size:26px } .premio .info{ flex:1 } .premio .info b{ display:block } .premio .costo{ font-size:12px; color:var(--gris) }
+  .chip{ display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px; background:#eef0f2; color:var(--gris) }
+</style></head>
+<body>
+<header class="hdr"><div class="hn"><img class="logo" src="assets/isotipo-blanco.svg"/><b>GDO CLUB</b><span class="pts">12.500 pts</span></div></header>
+<div class="wrap">
+  <p class="saludo">¡Hola Juan! 👋 Esta es tu credencial de socio:</p>
+  <div class="carnet"><div class="ct-left"><div class="ct-brand"><span class="ct-club">GDO <span class="o">CLUB</span></span><div class="ct-logo"><img src="assets/isotipo-blanco.svg"/></div></div>
+    <div class="ct-data"><div class="ct-nro">SOCIO N°<b>0000 0001</b></div><div class="ct-name">Juan Pérez</div><div class="ct-since">SOCIO DESDE 06/2026</div></div></div>
+    <div class="ct-right"><span class="ct-tag">MIEMBRO</span><div class="ct-pts"><b>12.500</b><span>PUNTOS GDO</span></div></div></div>
+  <div style="height:14px"></div>
+  <div class="card"><h2 class="sec-t">🎁 Premios para canjear</h2>
+    <div class="prm on"><div class="prm-top"><span class="prm-ico">🥚</span><div class="prm-info"><b>Docena de huevos</b><span class="prm-cost">10.000 Puntos GDO</span></div><button class="prm-btn">Canjear</button></div><div class="pbar"><i style="width:100%"></i></div></div>
+    <div class="prm"><div class="prm-top"><span class="prm-ico">🍔</span><div class="prm-info"><b>1 kg de hamburguesas de pollo</b><span class="prm-cost">500.000 Puntos GDO</span></div><span class="prm-falta">Te faltan<br>487.500</span></div><div class="pbar"><i style="width:3%"></i></div></div>
+    <div class="prm"><div class="prm-top"><span class="prm-ico">🥩</span><div class="prm-info"><b>2 kg de milanesa</b><span class="prm-cost">750.000 Puntos GDO</span></div><span class="prm-falta">Te faltan<br>737.500</span></div><div class="pbar"><i style="width:2%"></i></div></div>
+  </div>
+  <div class="card"><h2 class="sec-t">🎟️ Mis canjes</h2>
+    <div class="premio"><span class="ico">🥚</span><div class="info"><b>Docena de huevos</b><span class="costo" style="font-family:monospace">GDO-A1B2-C3D4-E5F6</span></div><span class="chip" style="background:#eafaf1;color:#1e8449">✅ Vigente · ver</span></div>
+    <div class="premio"><span class="ico">🍗</span><div class="info"><b>Promo pollo</b><span class="costo" style="font-family:monospace">GDO-9Z8Y-7X6W-5V4U</span></div><span class="chip">✔ Usado</span></div>
+  </div>
+</div>
+</body></html>

@@ -56,6 +56,34 @@
   .var .vp{ font-weight:800; color:var(--naranja); font-size:14px; white-space:nowrap }
   .var .vp .ant{ display:block; font-size:10px; color:#b0b6bd; text-decoration:line-through; font-weight:600 }
   .var .add{ background:var(--naranja); color:#fff; border:0; border-radius:9px; width:34px; height:34px; font-size:20px; font-weight:700; cursor:pointer; flex-shrink:0; box-shadow:0 2px 7px rgba(245,130,32,.35) }
+  /* stepper / selector por peso */
+  .stp{ display:inline-flex; align-items:center; border:1px solid #e0c9b0; border-radius:9px; overflow:hidden; background:#fff }
+  .stp button{ width:32px; height:32px; border:0; background:#fff; color:var(--naranja); font-size:18px; font-weight:800; cursor:pointer }
+  .stp input{ width:46px; height:32px; border:0; text-align:center; font-size:14px; font-weight:700; -moz-appearance:textfield }
+  .stp input::-webkit-outer-spin-button,.stp input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0 }
+  .kgsel{ padding:8px 2px 4px }
+  .kgsel .row1{ display:flex; align-items:center; gap:10px }
+  .kgsel .lbl{ font-size:12.5px; color:var(--gris); font-weight:700 }
+  .kgsel .pr{ margin-left:auto; font-weight:800; color:var(--naranja); font-size:17px }
+  .kgsel .pr small{ display:block; font-size:9px; color:#9aa1aa; text-align:right; font-weight:600 }
+  .kgsel .addbtn,.var .addbtn2{ background:var(--naranja); color:#fff; border:0; border-radius:10px; font-weight:800; cursor:pointer; box-shadow:0 2px 8px rgba(245,130,32,.35) }
+  .kgsel .addbtn{ width:100%; padding:11px; font-size:14px; margin-top:9px }
+  .var .addbtn2{ padding:8px 13px; font-size:12.5px; white-space:nowrap }
+  /* overlay carrito */
+  .cartov{ position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.5); display:flex; align-items:flex-end; justify-content:center }
+  .cartsheet{ background:#fff; width:100%; max-width:680px; max-height:88vh; border-radius:18px 18px 0 0; display:flex; flex-direction:column; overflow:hidden }
+  .cartsheet .csh{ display:flex; align-items:center; gap:10px; padding:14px 16px; background:#111; color:#fff }
+  .cartsheet .csh img{ height:22px } .cartsheet .csh b{ font-size:16px } .cartsheet .csh .x{ margin-left:auto; background:none; border:0; font-size:24px; cursor:pointer; color:#fff }
+  .cartsheet .cbody{ overflow:auto; padding:6px 16px }
+  .ci{ display:flex; align-items:center; gap:10px; padding:12px 0; border-bottom:1px solid var(--linea) } .ci:last-child{ border-bottom:0 }
+  .ci .cinfo{ flex:1; min-width:0 } .ci .cinfo b{ display:block; font-size:14px; line-height:1.2 } .ci .cinfo span{ font-size:12px; color:var(--gris) }
+  .ci .cprice{ font-weight:800; color:var(--naranja); white-space:nowrap; font-size:14px; min-width:74px; text-align:right }
+  .ci .rm{ background:none; border:0; color:#c0392b; font-size:17px; cursor:pointer; padding:4px }
+  .cartsheet .cfoot{ border-top:1px solid var(--linea); padding:14px 16px }
+  .cartsheet .tot{ display:flex; justify-content:space-between; font-size:19px; font-weight:900; margin-bottom:8px }
+  .minwarn{ font-size:12.5px; color:#c0392b; text-align:center; margin-bottom:10px; font-weight:700 }
+  .btn-conf{ width:100%; background:#25D366; color:#fff; border:0; border-radius:11px; padding:14px; font-size:15px; font-weight:800; cursor:pointer }
+  .btn-conf:disabled{ background:#cfd4da; cursor:default }
   /* barra carrito */
   .cartbar{ position:fixed; left:0; right:0; bottom:0; background:#111; border-top:2px solid var(--naranja); padding:12px 16px; display:none }
   .cartbar.show{ display:block } .cartbar .in{ max-width:680px; margin:0 auto; display:flex; align-items:center; gap:12px }
@@ -67,17 +95,89 @@
 <body>
 <header class="hdr"><button class="back" id="back">←</button><span class="lg"><img src="assets/isotipo-color.svg" alt="GDO"/></span><div><b id="htitle">Granja del Oeste</b><div class="sub" id="hsub">Lista de precios</div></div></header>
 <div class="wrap" id="app"></div>
-<div class="cartbar" id="cartbar"><div class="in"><span class="cnt" id="cnt">0</span><button>Ver mi pedido</button></div></div>
+<div class="cartbar" id="cartbar"><div class="in">
+  <div style="flex:1;color:#fff;min-width:0"><b id="cbTot" style="font-size:17px">$ 0</b><span id="cbMin" style="display:block;font-size:11px;color:#ffd9b3"></span></div>
+  <button id="cbBtn">Ver pedido (<span id="cbCnt">0</span>)</button>
+</div></div>
 <div class="toast" id="toast"></div>
 
 <script src="min-data.js"></script>
 <script>
   var $=function(s){return document.querySelector(s)}, app=$('#app');
-  var cart=0;
   function money(n){ return '$ '+Number(n||0).toLocaleString('es-AR') }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}) }
   function toast(t){ var e=$('#toast'); e.textContent=t; e.classList.add('show'); setTimeout(function(){e.classList.remove('show')},1400) }
-  function addCart(){ cart++; $('#cnt').textContent=cart; $('#cartbar').classList.add('show'); toast('✓ Agregado al pedido') }
+
+  // ====== CONFIGURACION (vendrá de la hoja CONFIGURACION del Sheet) ======
+  var CFG = { minPedido: 75000 };   // pedido mínimo minorista
+
+  // ====== Motor de precios por escalones (igual que la mayorista) ======
+  // Una variedad "N kg" se interpreta como un escalón: precio por kg = precio/N.
+  // Si TODAS las variedades de un producto son "N kg", el producto se vende por
+  // PESO (ponés los kg y baja el precio al escalón que toca). Si no, son opciones.
+  function parseKg(s){ var m=String(s||'').trim().match(/^(\d+(?:[.,]\d+)?)\s*kg$/i); return m?parseFloat(m[1].replace(',','.')):null; }
+  function esPorPeso(p){ return p.vars.length>0 && p.vars.every(function(v){ return parseKg(v.variedad)!==null; }); }
+  function tiersDe(p){ return p.vars.map(function(v){ var k=parseKg(v.variedad); return {min:k, perkg:v.precio/k}; }).sort(function(a,b){return a.min-b.min;}); }
+  function precioPeso(tiers, qty){ var t=tiers[0]; for(var i=0;i<tiers.length;i++){ if(qty>=tiers[i].min) t=tiers[i]; } return Math.round(t.perkg*qty); }
+  function perkgDe(tiers, qty){ var t=tiers[0]; for(var i=0;i<tiers.length;i++){ if(qty>=tiers[i].min) t=tiers[i]; } return Math.round(t.perkg); }
+
+  // ====== Carrito ======
+  var CART = {};   // key -> item
+  function lineTotal(it){ return it.tipo==='peso' ? precioPeso(it.tiers,it.qty) : it.precioUnit*it.cant; }
+  function cartTotal(){ var s=0; for(var k in CART) s+=lineTotal(CART[k]); return s; }
+  function cartCount(){ var n=0; for(var k in CART) n++; return n; }
+  function addPeso(nombre, tiers, qty){ var k='peso|'+nombre; if(CART[k]) CART[k].qty+=qty; else CART[k]={tipo:'peso',nombre:nombre,tiers:tiers,qty:qty}; sync(); toast('✓ Agregado al pedido'); }
+  function addVar(nombre, variedad, precio){ var k='var|'+nombre+'|'+variedad; if(CART[k]) CART[k].cant++; else CART[k]={tipo:'var',nombre:nombre,variedad:variedad,precioUnit:precio,cant:1}; sync(); toast('✓ Agregado al pedido'); }
+  function stepLine(key, d){ var it=CART[key]; if(!it) return; if(it.tipo==='peso'){ it.qty=Math.max(0,it.qty+d); if(it.qty===0) delete CART[key]; } else { it.cant+=d; if(it.cant<=0) delete CART[key]; } sync(); drawCart(); }
+  function delLine(key){ delete CART[key]; sync(); drawCart(); }
+  function sync(){
+    var tot=cartTotal(), falta=Math.max(0,CFG.minPedido-tot);
+    $('#cbTot').textContent=money(tot); $('#cbCnt').textContent=cartCount();
+    $('#cbMin').textContent = falta>0 ? ('Te faltan '+money(falta)+' para el mínimo') : '✓ Llegaste al mínimo';
+    if(cartCount()) $('#cartbar').classList.add('show'); else { $('#cartbar').classList.remove('show'); cerrarCart(); }
+  }
+
+  // ====== Panel del carrito (overlay) ======
+  function verCart(){
+    if(document.getElementById('cartov')) return;
+    var ov=document.createElement('div'); ov.id='cartov'; ov.className='cartov';
+    ov.innerHTML='<div class="cartsheet">'+
+      '<div class="csh"><img src="assets/isotipo-blanco.svg" alt="GDO"/><b>Mi pedido</b><button class="x" id="cx">&times;</button></div>'+
+      '<div class="cbody" id="cbody"></div>'+
+      '<div class="cfoot">'+
+        '<div class="tot"><span>Total</span><span id="cfTot">$ 0</span></div>'+
+        '<div class="minwarn" id="cfWarn"></div>'+
+        '<button class="btn-conf" id="cfBtn">📲 Hacer pedido por WhatsApp</button>'+
+      '</div></div>';
+    document.body.appendChild(ov);
+    ov.onclick=function(e){ if(e.target===ov) cerrarCart(); };
+    document.getElementById('cx').onclick=cerrarCart;
+    document.getElementById('cfBtn').onclick=function(){ toast('(demo) Acá se arma el pedido por WhatsApp'); };
+    drawCart();
+  }
+  function cerrarCart(){ var o=document.getElementById('cartov'); if(o) o.remove(); }
+  function drawCart(){
+    var body=document.getElementById('cbody'); if(!body) return;
+    var keys=Object.keys(CART);
+    if(!keys.length){ body.innerHTML='<p style="text-align:center;color:#9aa1aa;padding:24px 0">Tu pedido está vacío.</p>'; }
+    else body.innerHTML=keys.map(function(k){
+      var it=CART[k], sub, det;
+      if(it.tipo==='peso'){ sub=it.qty+' kg · '+money(perkgDe(it.tiers,it.qty))+' /kg'; det=it.qty; }
+      else { sub=esc(it.variedad)+' · '+money(it.precioUnit)+' c/u'; det=it.cant; }
+      return '<div class="ci"><div class="cinfo"><b>'+esc(it.nombre)+'</b><span>'+sub+'</span></div>'+
+        '<div class="stp"><button data-dec="'+esc(k)+'">−</button><input value="'+det+(it.tipo==='peso'?' kg':'')+'" readonly style="width:'+(it.tipo==='peso'?'56':'42')+'px"><button data-inc="'+esc(k)+'">+</button></div>'+
+        '<div class="cprice">'+money(lineTotal(it))+'</div>'+
+        '<button class="rm" data-rm="'+esc(k)+'">🗑</button></div>';
+    }).join('');
+    var tot=cartTotal(), falta=Math.max(0,CFG.minPedido-tot);
+    document.getElementById('cfTot').textContent=money(tot);
+    var warn=document.getElementById('cfWarn'), btn=document.getElementById('cfBtn');
+    if(falta>0){ warn.textContent='Pedido mínimo '+money(CFG.minPedido)+' · te faltan '+money(falta); btn.disabled=true; }
+    else { warn.textContent=''; btn.disabled=false; }
+    body.querySelectorAll('[data-dec]').forEach(function(b){ b.onclick=function(){ stepLine(b.dataset.dec,-1) } });
+    body.querySelectorAll('[data-inc]').forEach(function(b){ b.onclick=function(){ stepLine(b.dataset.inc, 1) } });
+    body.querySelectorAll('[data-rm]').forEach(function(b){ b.onclick=function(){ delLine(b.dataset.rm) } });
+  }
 
   // ---------- chooser ----------
   function chooser(){
@@ -114,7 +214,7 @@
       '<div class="banner"><div class="bn-track" id="bnt">'+
         '<img src="assets/banner/b1.jpg" alt="Envíos a domicilio"/>'+
       '</div><div class="bn-dots" id="bnd"></div></div>'+
-      '<div class="infostrip">🚚 Envío sin cargo desde $75.000 · 🕒 Lun a Sáb 8–14 hs</div>'+
+      '<div class="infostrip">🛒 Pedido mínimo $75.000 · 🚚 Envío sin cargo · 🕒 Lun a Sáb 8–14 hs</div>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>';
     render(cats);
     startBanner();
@@ -137,35 +237,56 @@
     setInterval(function(){ go(i+1) }, 4500);
   }
 
+  var PRODS=[];
   function render(cats, openAll){
-    var acc=$('#acc');
-    acc.innerHTML = cats.map(function(c,ci){
+    var acc=$('#acc'); PRODS=[];
+    acc.innerHTML = cats.map(function(c){
       var inner = c.subs.map(function(s){
         var prods = s.prods.map(function(p){
+          var pi = PRODS.push(p)-1;
+          var peso = esPorPeso(p);
           var min = Math.min.apply(null, p.vars.map(function(v){return v.precio}));
-          var multi = p.vars.length>1;
-          var vars = p.vars.map(function(v){
-            return '<div class="var"><span class="vn">'+esc(v.variedad||'Unidad')+'</span>'+
-              '<span class="vp">'+(v.precioAnt?'<span class="ant">'+money(v.precioAnt)+'</span>':'')+money(v.precio)+'</span>'+
-              '<button class="add" title="Agregar">+</button></div>';
-          }).join('');
+          var multi = p.vars.length>1, body;
+          if(peso){
+            var tiers=tiersDe(p); p._tiers=tiers;
+            body='<div class="kgsel"><div class="row1">'+
+              '<span class="lbl">Cantidad</span>'+
+              '<div class="stp"><button data-kg="dec" data-pi="'+pi+'">−</button>'+
+                '<input id="kg_'+pi+'" type="number" min="1" value="1" data-pi="'+pi+'">'+
+                '<button data-kg="inc" data-pi="'+pi+'">+</button></div><span class="lbl">kg</span>'+
+              '<span class="pr" id="pr_'+pi+'"><small>'+money(perkgDe(tiers,1))+' /kg</small>'+money(precioPeso(tiers,1))+'</span>'+
+              '</div><button class="addbtn" data-addpeso="'+pi+'">Agregar al pedido</button></div>';
+          } else {
+            body='<div class="vars">'+ p.vars.map(function(v,vi){
+              return '<div class="var"><span class="vn">'+esc(v.variedad||'Unidad')+'</span>'+
+                '<span class="vp">'+(v.precioAnt?'<span class="ant">'+money(v.precioAnt)+'</span>':'')+money(v.precio)+'</span>'+
+                '<button class="addbtn2" data-addvar="'+pi+'" data-vi="'+vi+'">Agregar</button></div>';
+            }).join('')+'</div>';
+          }
           return '<div class="prod"><button class="prod-h"><div class="pi"><b>'+esc(p.nombre)+'</b>'+(p.desc?'<span>'+esc(p.desc)+'</span>':'')+'</div>'+
-            '<div class="desde"><small>'+(multi?'DESDE':'PRECIO')+'</small><b>'+money(min)+'</b></div><span class="chev">›</span></button>'+
-            '<div class="vars">'+vars+'</div></div>';
+            '<div class="desde"><small>'+((multi||peso)?'DESDE':'PRECIO')+'</small><b>'+money(min)+'</b></div><span class="chev">›</span></button>'+
+            body+'</div>';
         }).join('');
         return '<div class="sub'+(openAll?' open':'')+'"><button class="sub-h">'+esc(s.name)+'<span class="n">'+s.prods.length+'</span><span class="chev">›</span></button><div class="sub-body">'+prods+'</div></div>';
       }).join('');
       return '<div class="cat'+(openAll?' open':'')+'"><button class="cat-h">'+esc(c.name)+'<span class="n">'+c.subs.reduce(function(a,s){return a+s.prods.length},0)+'</span><span class="chev">›</span></button><div class="cat-body">'+inner+'</div></div>';
     }).join('');
-    // interacciones (cada nivel se abre por separado)
+    // abrir/cerrar cada nivel
     acc.querySelectorAll('.cat-h').forEach(function(b){ b.onclick=function(){ b.parentElement.classList.toggle('open') } });
     acc.querySelectorAll('.sub-h').forEach(function(b){ b.onclick=function(){ b.parentElement.classList.toggle('open') } });
     acc.querySelectorAll('.prod-h').forEach(function(b){ b.onclick=function(){ b.parentElement.classList.toggle('open') } });
-    acc.querySelectorAll('.add').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); addCart() } });
+    // por peso: stepper + precio en vivo (baja al escalón que toca)
+    function kgVal(pi){ var i=document.getElementById('kg_'+pi); var n=parseFloat((i.value||'').replace(',','.')); return (!n||n<1)?1:n; }
+    function refreshPr(pi){ var p=PRODS[pi], q=kgVal(pi); document.getElementById('pr_'+pi).innerHTML='<small>'+money(perkgDe(p._tiers,q))+' /kg</small>'+money(precioPeso(p._tiers,q)); }
+    acc.querySelectorAll('[data-kg]').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); var pi=b.dataset.pi, i=document.getElementById('kg_'+pi), n=kgVal(pi); n=b.dataset.kg==='inc'?n+1:Math.max(1,n-1); i.value=n; refreshPr(pi); }; });
+    acc.querySelectorAll('input[id^="kg_"]').forEach(function(i){ i.onclick=function(e){e.stopPropagation()}; i.oninput=function(){ refreshPr(i.dataset.pi) }; });
+    acc.querySelectorAll('[data-addpeso]').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); var p=PRODS[b.dataset.addpeso]; addPeso(p.nombre, p._tiers, kgVal(b.dataset.addpeso)); }; });
+    acc.querySelectorAll('[data-addvar]').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); var p=PRODS[b.dataset.addvar], v=p.vars[b.dataset.vi]; addVar(p.nombre, v.variedad, v.precio); }; });
   }
 
+  $('#cbBtn').onclick=verCart;
   $('#back').onclick=chooser;
-  if(location.search.indexOf('lista')>=0){ lista(); var _c=document.querySelectorAll('.cat'); if(_c[4]){ _c[4].classList.add('open'); var _s=_c[4].querySelector('.sub'); if(_s){ _s.classList.add('open'); var _p=_s.querySelector('.prod'); if(_p)_p.classList.add('open'); } } }
+  if(location.search.indexOf('lista')>=0){ lista(); var _c=document.querySelectorAll('.cat'); if(_c[3]){ _c[3].classList.add('open'); var _s=_c[3].querySelector('.sub'); if(_s){ _s.classList.add('open'); var _p=_s.querySelector('.prod'); if(_p)_p.classList.add('open'); } } }
   else chooser();
 </script>
 </body></html>

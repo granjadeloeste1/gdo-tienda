@@ -155,14 +155,30 @@
   try { enLocal = new URLSearchParams(location.search).has('local'); }
   catch (e) { enLocal = /[?&]local(=|&|$)/.test(location.search); }
 
+  // ¿El club está activo? (doc club_config/flags {activo}, lo prende el personal)
+  // Si no hay doc o falla la lectura → tratamos como DESACTIVADO (no publicar a medias).
+  function checkClubActivo(cb) {
+    db.collection('club_config').doc('flags').get()
+      .then(function (d) { cb(d.exists && d.data().activo === true); })
+      .catch(function () { cb(false); });
+  }
+  function vistaProximamente() {
+    app.innerHTML = '<div class="card" style="text-align:center;padding:34px 22px">' +
+      '<div style="font-size:48px">🐔</div>' +
+      '<h2 style="margin:12px 0 8px">GDO CLUB</h2>' +
+      '<p style="color:#555;line-height:1.5;margin:0">¡Muy pronto! Estamos terminando de preparar nuestro programa de socios. Volvé en unos días.</p>' +
+      '</div>';
+  }
+
   auth.onAuthStateChanged(function (user) {
     if (unsub) { unsub(); unsub = null; }
-    if (user && !user.isAnonymous) {
+    if (!user) { auth.signInAnonymously().catch(function () { vistaProximamente(); }); return; } // sin sesión: anónimo para leer el flag
+    checkClubActivo(function (activo) {
+      if (!activo) { vistaProximamente(); return; }   // club apagado → no mostrar
+      if (user.isAnonymous) { vistaPublica(); return; }
       if (enLocal) checkInLocal(user);
       else entrarSocio(user);
-    } else {
-      vistaPublica();
-    }
+    });
   });
 
   // ───────────────── VISTA PÚBLICA (no logueado) ─────────────────

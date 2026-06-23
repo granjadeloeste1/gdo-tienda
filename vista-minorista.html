@@ -26,7 +26,12 @@
   .cat-h .chev{ transition:transform .2s; color:var(--naranja) }
   .cat.open .cat-h .chev{ transform:rotate(90deg) }
   .cat-body{ display:none; padding:4px 10px 10px } .cat.open .cat-body{ display:block }
-  .sub-h{ font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--naranja); padding:12px 6px 6px }
+  .sub{ margin:8px 0 }
+  .sub-h{ display:flex; align-items:center; gap:8px; width:100%; background:#fff7ef; border:1px solid #f3e3d0; border-radius:10px; padding:11px 12px; font-family:inherit; font-size:12.5px; font-weight:800; letter-spacing:.6px; text-transform:uppercase; color:var(--naranja); cursor:pointer; text-align:left }
+  .sub-h .n{ margin-left:auto; font-size:10px; color:#c08a4e; font-weight:700 }
+  .sub-h .chev{ transition:transform .2s }
+  .sub.open .sub-h .chev{ transform:rotate(90deg) }
+  .sub-body{ display:none; padding:8px 2px 2px } .sub.open .sub-body{ display:block }
   .prod{ border:1px solid var(--linea); border-radius:12px; margin-bottom:8px; overflow:hidden }
   .prod-h{ display:flex; align-items:center; gap:12px; width:100%; background:#fff; border:0; padding:12px; cursor:pointer; text-align:left; font-family:inherit }
   .prod-h .pi{ flex:1; min-width:0 } .prod-h .pi b{ display:block; font-size:14.5px; line-height:1.25 }
@@ -118,18 +123,19 @@
             '<div class="desde"><small>'+(multi?'DESDE':'PRECIO')+'</small><b>'+money(min)+'</b></div><span class="chev">›</span></button>'+
             '<div class="vars">'+vars+'</div></div>';
         }).join('');
-        return '<div class="sub-h">'+esc(s.name)+'</div>'+prods;
+        return '<div class="sub'+(openAll?' open':'')+'"><button class="sub-h">'+esc(s.name)+'<span class="n">'+s.prods.length+'</span><span class="chev">›</span></button><div class="sub-body">'+prods+'</div></div>';
       }).join('');
       return '<div class="cat'+(openAll?' open':'')+'"><button class="cat-h">'+esc(c.name)+'<span class="n">'+c.subs.reduce(function(a,s){return a+s.prods.length},0)+'</span><span class="chev">›</span></button><div class="cat-body">'+inner+'</div></div>';
     }).join('');
-    // interacciones
+    // interacciones (cada nivel se abre por separado)
     acc.querySelectorAll('.cat-h').forEach(function(b){ b.onclick=function(){ b.parentElement.classList.toggle('open') } });
+    acc.querySelectorAll('.sub-h').forEach(function(b){ b.onclick=function(){ b.parentElement.classList.toggle('open') } });
     acc.querySelectorAll('.prod-h').forEach(function(b){ b.onclick=function(){ b.parentElement.classList.toggle('open') } });
     acc.querySelectorAll('.add').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); addCart() } });
   }
 
   $('#back').onclick=chooser;
-  if(location.search.indexOf('lista')>=0){ lista(); var _c=document.querySelectorAll('.cat'); if(_c[3]){ _c[3].classList.add('open'); var _p=_c[3].querySelectorAll('.prod'); if(_p[0])_p[0].classList.add('open'); } }
+  if(location.search.indexOf('lista')>=0){ lista(); var _c=document.querySelectorAll('.cat'); if(_c[4]){ _c[4].classList.add('open'); var _s=_c[4].querySelector('.sub'); if(_s){ _s.classList.add('open'); var _p=_s.querySelector('.prod'); if(_p)_p.classList.add('open'); } } }
   else chooser();
 </script>
 </body></html>

@@ -171,7 +171,7 @@
   function sync(){
     var tot=cartTotal(), n=cartCount(), falta=Math.max(0,CFG.minPedido-tot);
     $('#cbTot').textContent=money(tot);
-    $('#cbMin').textContent = n+' producto'+(n===1?'':'s')+' · '+(falta>0 ? ('faltan '+money(falta)) : '✓ llegaste al mínimo');
+    $('#cbMin').textContent = n+' producto'+(n===1?'':'s')+(falta>0 ? (' · faltan '+money(falta)+' (mínimo '+money(CFG.minPedido)+')') : ' · ✓ podés hacer el pedido');
     if(n) $('#cartbar').classList.add('show'); else { $('#cartbar').classList.remove('show'); cerrarCart(); }
     refreshSteppers();
   }

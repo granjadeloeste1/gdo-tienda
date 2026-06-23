@@ -16,6 +16,17 @@
   .ch .ico{ font-size:40px } .ch h3{ font-size:19px; margin-bottom:3px } .ch p{ font-size:13px; color:var(--gris); line-height:1.4 }
   .ch .arr{ margin-left:auto; color:var(--naranja); font-size:24px }
   .lead{ text-align:center; color:var(--gris); font-size:14px; margin:6px 0 16px }
+  /* logo header */
+  .hdr .lg{ width:36px; height:36px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 0 0 2px rgba(245,130,32,.6) }
+  .hdr .lg img{ width:25px; height:25px; display:block }
+  /* banner rotativo */
+  .banner{ position:relative; border-radius:16px; overflow:hidden; box-shadow:0 6px 18px rgba(0,0,0,.15); margin-bottom:12px }
+  .bn-track{ display:flex; transition:transform .55s ease }
+  .bn-track img{ width:100%; flex:0 0 100%; display:block; aspect-ratio:851/315; object-fit:cover }
+  .bn-dots{ position:absolute; left:0; right:0; bottom:9px; display:flex; gap:6px; justify-content:center }
+  .bn-dots i{ width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.55); cursor:pointer; transition:all .2s }
+  .bn-dots i.on{ background:#fff; width:18px; border-radius:4px }
+  .infostrip{ background:#fff7ef; border:1px solid #f3e3d0; color:#a85f1a; border-radius:10px; padding:9px 12px; font-size:12.5px; font-weight:600; text-align:center; margin-bottom:12px }
   /* search */
   .search{ width:100%; padding:12px 14px; border:1px solid #cfd4da; border-radius:12px; font-size:15px; margin-bottom:14px }
   .search:focus{ outline:0; border-color:var(--naranja) }
@@ -53,7 +64,7 @@
   .toast.show{ opacity:1 }
 </style></head>
 <body>
-<header class="hdr"><button class="back" id="back">←</button><div><b id="htitle">Granja del Oeste</b><div class="sub" id="hsub">Lista de precios</div></div></header>
+<header class="hdr"><button class="back" id="back">←</button><span class="lg"><img src="assets/isotipo-color.svg" alt="GDO"/></span><div><b id="htitle">Granja del Oeste</b><div class="sub" id="hsub">Lista de precios</div></div></header>
 <div class="wrap" id="app"></div>
 <div class="cartbar" id="cartbar"><div class="in"><span class="cnt" id="cnt">0</span><button>Ver mi pedido</button></div></div>
 <div class="toast" id="toast"></div>
@@ -97,14 +108,33 @@
   function lista(){
     $('#back').style.display='block'; $('#htitle').textContent='Lista Minorista'; $('#hsub').textContent='Precios al público';
     var cats=group(window.MIN_DATA||[]);
-    app.innerHTML='<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>';
+    app.innerHTML=
+      '<div class="banner"><div class="bn-track" id="bnt">'+
+        '<img src="assets/banner/b1.jpg" alt="Envíos a domicilio"/>'+
+        '<img src="assets/banner/b2.jpg" alt="Entregas a comercios · Retiro en sucursal"/>'+
+        '<img src="assets/banner/b3.jpg" alt="Acuña 1334 · Villa Tesei"/>'+
+      '</div><div class="bn-dots" id="bnd"></div></div>'+
+      '<div class="infostrip">🚚 Envío sin cargo desde $75.000 · 🕒 Lun a Sáb 8–14 hs</div>'+
+      '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>';
     render(cats);
+    startBanner();
     $('#q').oninput=function(){
       var t=this.value.trim().toLowerCase();
       if(!t){ render(cats); return; }
       var f=(window.MIN_DATA||[]).filter(function(it){ return (it.nombre+' '+it.sub+' '+it.cat+' '+it.variedad).toLowerCase().indexOf(t)>=0 });
       render(group(f), true);
     };
+  }
+
+  // carrusel del banner (rotación automática + puntitos para tocar)
+  function startBanner(){
+    var track=$('#bnt'), dots=$('#bnd'); if(!track||!dots) return;
+    var n=track.children.length, i=0;
+    function go(x){ i=(x+n)%n; track.style.transform='translateX(-'+(i*100)+'%)';
+      Array.prototype.forEach.call(dots.children,function(c,ci){ c.className=ci===i?'on':'' }); }
+    for(var k=0;k<n;k++){ var d=document.createElement('i'); (function(idx){ d.onclick=function(){ go(idx) } })(k); dots.appendChild(d); }
+    go(0);
+    setInterval(function(){ go(i+1) }, 4500);
   }
 
   function render(cats, openAll){

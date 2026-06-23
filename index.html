@@ -317,10 +317,13 @@ var $n = function(n) { if (n === null || n === undefined) return ""; return "$ "
 var OPTIONS = [];
 var cart = [];
 if(location.search.indexOf('tztest')>=0){ window.addEventListener('DOMContentLoaded', function(){
+  console.log('TZTEST-START');
   var _gc=document.getElementById('gdoChooser'); if(_gc)_gc.style.display='none';
-  var _iv=setInterval(function(){ if(!OPTIONS.length) return; clearInterval(_iv);
+  var n=0, _iv=setInterval(function(){ n++;
+    if(!OPTIONS.length){ if(n===10) console.log('TZTEST-wait opt=0'); if(n>50){ clearInterval(_iv); console.log('TZTEST-timeout'); } return; }
+    clearInterval(_iv);
     var idx=-1; for(var i=0;i<OPTIONS.length;i++){ if(OPTIONS[i].min===5){ idx=i; break; } }
-    if(idx<0){ console.log('TZTEST sin-trozado'); return; }
+    if(idx<0){ console.log('TZTEST sin-trozado opt='+OPTIONS.length); return; }
     rowStep(idx,1); console.log('TZTEST mas1='+(document.getElementById('q_'+idx)||{}).value+' ('+OPTIONS[idx].name+')');
     rowSet(idx,3); console.log('TZTEST escribo3='+(document.getElementById('q_'+idx)||{}).value);
     rowStep(idx,-1); console.log('TZTEST menos1desde5='+(document.getElementById('q_'+idx)||{}).value);

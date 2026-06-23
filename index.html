@@ -1359,13 +1359,16 @@ window.GDO = window.GDO || {};
     var fmt = function (n) { return Number(n || 0).toLocaleString('es-AR'); };
     var safe = function (s) { return String(s == null ? '' : s).replace(/[<>&]/g, ''); };
     if (user) {
-      var nom = safe(user.displayName || (user.email || '').split('@')[0] || 'socio');
-      if (cta) cta.innerHTML = 'Hola <b>' + nom + '</b> · sos socio del <span style="color:#F58220">GDO CLUB</span>';
+      // Saludo neutro al toque; apenas leemos el perfil mostramos el PRIMER NOMBRE
+      // del registro (no el email) + sus puntos.
+      if (cta) cta.innerHTML = 'Hola 👋 · sos socio del <span style="color:#F58220">GDO CLUB</span>';
       if (note) { note.style.display = 'block'; note.style.background = '#0f1a12'; note.style.border = '1px solid #1e3a26'; note.style.borderLeft = '4px solid #1e8449'; note.style.color = '#bfe9cd'; note.innerHTML = '✅ Estás logueado como socio: este pedido te va a <b>sumar Puntos GDO</b> cuando se entregue.'; }
       try {
         if (GDO.FB && GDO.FB.db && user.uid) {
           GDO.FB.db.collection('clientes').doc(user.uid).get().then(function (d) {
-            if (d.exists && cta) cta.innerHTML = 'Hola <b>' + nom + '</b> · <span style="color:#F58220">' + fmt(d.data().puntos) + ' Puntos GDO</span>';
+            if (!d.exists || !cta) return;
+            var primer = safe(((d.data().nombre || '').trim().split(' ')[0]) || 'socio');
+            cta.innerHTML = 'Hola <b>' + primer + '</b> · <span style="color:#F58220">' + fmt(d.data().puntos) + ' Puntos GDO</span>';
           }).catch(function () {});
         }
       } catch (e) {}

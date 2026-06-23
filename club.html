@@ -210,9 +210,13 @@
     } else {
       box.innerHTML =
         '<div id="msg"></div>'+
-        '<label>Nombre y apellido</label><input id="nombre" type="text" autocomplete="name" placeholder="Tu nombre"/>'+
-        '<label>Email</label><input id="email" type="email" autocomplete="email" placeholder="tucorreo@ejemplo.com"/>'+
-        '<label>Contraseña (mín. 6)</label><input id="pass" type="password" autocomplete="new-password" placeholder="Creá una contraseña"/>'+
+        '<label>Nombre y apellido *</label><input id="nombre" type="text" autocomplete="name" placeholder="Ej: Matías Pérez"/>'+
+        '<label>DNI *</label><input id="dni" type="text" inputmode="numeric" autocomplete="off" placeholder="Ej: 30123456"/>'+
+        '<label>Dirección *</label><input id="direccion" type="text" autocomplete="street-address" placeholder="Calle, número, localidad"/>'+
+        '<label>Teléfono / WhatsApp *</label><input id="telefono" type="tel" inputmode="tel" autocomplete="tel" placeholder="Ej: 11 1234-5678"/>'+
+        '<label>Email *</label><input id="email" type="email" autocomplete="email" placeholder="tucorreo@ejemplo.com"/>'+
+        '<label>Contraseña (mín. 6) *</label><input id="pass" type="password" autocomplete="new-password" placeholder="Creá una contraseña"/>'+
+        '<div class="small muted" style="margin-top:8px">* Todos los datos son obligatorios.</div>'+
         '<div style="height:12px"></div><button class="btn" id="goReg" type="button">Crear mi cuenta de socio</button>';
       document.getElementById('goReg').onclick = doRegistro;
     }
@@ -237,7 +241,8 @@
   // simultáneas en el primer ingreso), NO lo vuelve a crear ni le cambia el N°
   // (eso evita el "permission-denied" por intentar pisar el nroSocio). Si dos
   // corren a la vez, la transacción reintenta sola y la 2ª ve el doc ya creado.
-  function crearSocio(uid, nombre, email){
+  function crearSocio(uid, datos){
+    datos = datos || {};
     var cref = db.collection('club_config').doc('contador');
     var uref = db.collection('clientes').doc(uid);
     return db.runTransaction(function(tx){
@@ -246,7 +251,11 @@
         return tx.get(cref).then(function(c){
           var n = (c.exists ? (c.data().n||0) : 0) + 1;
           if (c.exists) tx.update(cref, {n:n}); else tx.set(cref, {n:n});
-          tx.set(uref, { nombre:nombre, email:email, puntos:0, nroSocio:n, creado: firebase.firestore.FieldValue.serverTimestamp() });
+          tx.set(uref, {
+            nombre: datos.nombre||'', email: datos.email||'',
+            dni: datos.dni||'', direccion: datos.direccion||'', telefono: datos.telefono||'',
+            puntos:0, nroSocio:n, creado: firebase.firestore.FieldValue.serverTimestamp()
+          });
           return n;
         });
       });
@@ -254,13 +263,19 @@
   }
 
   function doRegistro(){
-    var nombre=(document.getElementById('nombre').value||'').trim();
-    var email=(document.getElementById('email').value||'').trim();
-    var pass=document.getElementById('pass').value||'';
-    if(!nombre){ setMsg('Poné tu nombre.'); return; }
+    var g=function(id){ var el=document.getElementById(id); return el?(el.value||'').trim():''; };
+    var nombre=g('nombre'), dni=g('dni'), direccion=g('direccion'), telefono=g('telefono'), email=g('email');
+    var pass=(document.getElementById('pass')||{}).value||'';
+    var dniNum=dni.replace(/\D/g,''), telNum=telefono.replace(/\D/g,'');
+    if(!nombre || nombre.indexOf(' ')<1){ setMsg('Poné tu nombre y apellido completos.'); return; }
+    if(!/^\d{7,8}$/.test(dniNum)){ setMsg('Poné un DNI válido (7 u 8 números, sin puntos).'); return; }
+    if(!direccion){ setMsg('Poné tu dirección.'); return; }
+    if(telNum.length<8){ setMsg('Poné un teléfono válido.'); return; }
+    if(!email){ setMsg('Poné tu email.'); return; }
+    if(pass.length<6){ setMsg('La contraseña debe tener al menos 6 caracteres.'); return; }
     var b=document.getElementById('goReg'); b.disabled=true; b.textContent='Creando…';
     auth.createUserWithEmailAndPassword(email, pass).then(function(cred){
-      return crearSocio(cred.user.uid, nombre, email);
+      return crearSocio(cred.user.uid, { nombre:nombre, email:email, dni:dniNum, direccion:direccion, telefono:telefono });
     }).catch(function(e){ setMsg(errTxt(e)); b.disabled=false; b.textContent='Crear mi cuenta de socio'; });
   }
 
@@ -292,7 +307,7 @@
     };
     ref.get().then(function(doc){
       if(!doc.exists){
-        return crearSocio(user.uid, user.displayName || (user.email||'').split('@')[0], user.email||'');
+        return crearSocio(user.uid, { nombre: user.displayName || (user.email||'').split('@')[0], email: user.email||'' });
       }
     }).then(function(){
       _entrando = false; escuchar();
@@ -314,7 +329,7 @@
     var ref = db.collection('clientes').doc(user.uid);
     ref.get().then(function(doc){
       if(!doc.exists){
-        return crearSocio(user.uid, user.displayName || (user.email||'').split('@')[0], user.email||'')
+        return crearSocio(user.uid, { nombre: user.displayName || (user.email||'').split('@')[0], email: user.email||'' })
           .then(function(){ return ref.get(); });
       }
       return doc;

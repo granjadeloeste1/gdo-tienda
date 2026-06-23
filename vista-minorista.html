@@ -187,6 +187,9 @@ window.GDO = window.GDO || {};
 })();
 </script>
 
+<!-- Geo compartido: mismo motor de Google Maps + Georef que la mayorista -->
+<script src="geo.js"></script>
+
 <script>
   var $=function(s){return document.querySelector(s)}, app=$('#app');
   function money(n){ return '$ '+Number(n||0).toLocaleString('es-AR') }
@@ -282,6 +285,7 @@ window.GDO = window.GDO || {};
   }
   function val(id){ var e=document.getElementById(id); return e?e.value:''; }
   function mapsUrl(){ return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(CFG.sucursal); }
+  var geoSel=null; // {direccion,lat,lng,localidad} de la sugerencia elegida (Google/Georef)
 
   // ====== Registrar pedido de ENVÍO en el panel de Rutas (Firestore) ======
   // Las reglas exigen origen=='tienda', estado=='pendiente', rutaId/creadoPor null,
@@ -298,11 +302,16 @@ window.GDO = window.GDO || {};
       else items.push({ producto: it.nombre+' ('+it.variedad+')', cantidad: it.cant, unidad:'u', nota:'' });
     }
     if(!items.length) return;
+    // Coordenadas de la dirección elegida en el autocompletado (si no la editó después)
+    var lat=null, lng=null;
+    if(geoSel && geoSel.lat!=null && geoSel.direccion && d.addr && geoSel.direccion.toLowerCase()===d.addr.toLowerCase()){
+      lat=geoSel.lat; lng=(geoSel.lng!=null?geoSel.lng:(geoSel.lon!=null?geoSel.lon:null));
+    }
     var esp=['MINORISTA','Zona: '+d.zona,'Día de entrega: '+d.dia,'Envío: '+(d.env===0?'sin cargo':money(d.env)),'TOTAL a cobrar: '+money(d.sub+d.env)];
     if(d.notas) esp.push('Notas: '+d.notas);
     var pedido={
       id:nid(), origen:'tienda', lista:'minorista', cliente:d.nom, telefono:d.tel,
-      direccion:d.addr, localidad:d.loc||'', entrecalles:d.entre||'', lat:null, lng:null,
+      direccion:d.addr, localidad:d.loc||'', entrecalles:d.entre||'', lat:lat, lng:lng,
       items:items, fechaEntrega:'', especificaciones:esp.join(' · '),
       formaPago:d.pago||'', prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
       clienteUid:null, totalEstimado: Math.round(d.sub),
@@ -350,6 +359,16 @@ window.GDO = window.GDO || {};
     document.body.appendChild(ov);
     ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
     document.getElementById('ckx').onclick=function(){ ov.remove(); };
+    // Autocompletado de dirección (mismo motor Google/Georef que la mayorista)
+    geoSel=null;
+    try{
+      if(window.GDO && GDO.Geo && GDO.Geo.attachAutocomplete){
+        GDO.Geo.attachAutocomplete(document.getElementById('ckDir'), function(it){
+          geoSel = it || null;
+          if(it && it.localidad){ var lc=document.getElementById('ckLoc'); if(lc && !lc.value.trim()) lc.value=it.localidad; }
+        }, { provincia:'Buenos Aires', departamento:'Hurlingham' });
+      }
+    }catch(e){}
     function envioCosto(){ if(modo!=='envio'||zona==null) return 0; if(CFG.envioGratis && cartTotal()>=CFG.envioGratisDesde) return 0; return CFG.zonas[zona].costo||0; }
     function recalc(){
       var sub=cartTotal(), env=envioCosto();
@@ -587,6 +606,7 @@ window.GDO = window.GDO || {};
     $('#cbBtn').onclick=verCart;
     $('#back').onclick=function(){ location.href='index.html'; };
     lista();
+    if(location.search.indexOf('actest')>=0){ setTimeout(function(){ checkout(); var inp=document.getElementById('ckDir'); inp.value='Bombero Celiz'; inp.dispatchEvent(new Event('input')); }, 1800); }
   }
   // Datos EN VIVO desde la hoja (mismo Apps Script que la mayorista, ?lista=minorista):
   // devuelve { productos:[...], config:{...} }. Sin internet NO se muestran precios.

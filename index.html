@@ -1403,7 +1403,10 @@ window.GDO = window.GDO || {};
         _enviando=true;
         var btn=document.getElementById('sendBtn');
         if(btn) btn.disabled=true;
-        try{ registrarPedidoReparto(); }catch(e){}
+        // MAYORISTA = SOLO RETIRO (2026-06-23): ya NO se registra en el panel de
+        // Rutas (no hay envío que rutear). El registro de pedidos de ENVÍO volverá
+        // con la lista MINORISTA, al integrarla. Ver memoria project_gdo-lista-unificada.
+        // try{ registrarPedidoReparto(); }catch(e){}
         // se rehabilita a los 4 s para permitir un reenvío deliberado más tarde
         setTimeout(function(){ _enviando=false; if(btn) btn.disabled=false; }, 4000);
       }

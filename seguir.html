@@ -169,13 +169,15 @@
     function render(p, info) {
       var entregado = p.estado === 'entregado';
       var noEntregado = p.estado === 'no_entregado';
-      var enCamino = p.estado === 'en_ruta' || p.estado === 'salteado';
-      var asignado = p.estado === 'asignado' || p.rutaId;
+      // "En camino" se enciende cuando el repartidor avisa que es el PRÓXIMO en
+      // entregarse (manda el WhatsApp "está por llegar" → p.enCamino=true).
+      var enCamino = p.enCamino === true;
+      var asignado = p.estado === 'asignado' || p.estado === 'en_ruta' || p.salteado === true || !!p.rutaId;
 
       var ic = '📦', tit = 'Pedido recibido', sub = 'Lo estamos preparando.';
       var paso = 0;
       if (asignado && !enCamino && !entregado && !noEntregado) { ic = '🗂️'; tit = 'Asignado a reparto'; sub = 'Tu pedido ya tiene chofer asignado.'; paso = 1; }
-      if (enCamino) { ic = '🚚'; tit = 'En camino'; sub = 'El repartidor está en ruta hacia vos.'; paso = 2; }
+      if (enCamino) { ic = '🚚'; tit = 'En camino'; sub = '¡Sos el próximo! El repartidor ya va hacia tu dirección.'; paso = 2; }
       if (entregado) { ic = '✅'; tit = '¡Entregado!'; var rec = ((p.pod && p.pod.receptor) || '').trim(); sub = 'Tu pedido fue entregado' + (rec ? ', recibido por ' + esc(rec) : '') + '. ¡Gracias!'; paso = 3; }
       if (noEntregado) { ic = '⚠️'; tit = 'No pudimos entregar'; sub = 'Nos vamos a comunicar para reprogramar.'; paso = 2; }
 
@@ -226,7 +228,7 @@
       // El ETA depende de la hora actual: lo refrescamos solos cada 30 s para que
       // el cliente vea el tiempo avanzar aunque no cambie nada en la ruta.
       setInterval(function () {
-        if (pedidoActual && (pedidoActual.estado === 'en_ruta' || pedidoActual.estado === 'salteado')) refrescar();
+        if (pedidoActual && (pedidoActual.enCamino === true || pedidoActual.estado === 'en_ruta' || pedidoActual.estado === 'salteado')) refrescar();
       }, 30000);
 
       function escuchar() {

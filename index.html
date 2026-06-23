@@ -316,6 +316,16 @@ var sections = [], term = "";
 var $n = function(n) { if (n === null || n === undefined) return ""; return "$ " + Math.round(n).toLocaleString("es-AR"); };
 var OPTIONS = [];
 var cart = [];
+if(location.search.indexOf('tztest')>=0){ window.addEventListener('DOMContentLoaded', function(){
+  var _gc=document.getElementById('gdoChooser'); if(_gc)_gc.style.display='none';
+  var _iv=setInterval(function(){ if(!OPTIONS.length) return; clearInterval(_iv);
+    var idx=-1; for(var i=0;i<OPTIONS.length;i++){ if(OPTIONS[i].min===5){ idx=i; break; } }
+    if(idx<0){ console.log('TZTEST sin-trozado'); return; }
+    rowStep(idx,1); console.log('TZTEST mas1='+(document.getElementById('q_'+idx)||{}).value+' ('+OPTIONS[idx].name+')');
+    rowSet(idx,3); console.log('TZTEST escribo3='+(document.getElementById('q_'+idx)||{}).value);
+    rowStep(idx,-1); console.log('TZTEST menos1desde5='+(document.getElementById('q_'+idx)||{}).value);
+  }, 300);
+}); }
 var UNIT_DEFS = [
   {re:/CAJ[OÓ]N(ES)?/, u:"cajón", pl:"cajones"},
   {re:/CAJAS?/, u:"caja", pl:"cajas"},
@@ -652,16 +662,6 @@ function pedidoEnviado(){
 loadCart();
 renderCartBar();
 render();
-if(location.search.indexOf('tztest')>=0){ var _gc=document.getElementById('gdoChooser'); if(_gc)_gc.style.display='none';
-  var _iv=setInterval(function(){ if(!OPTIONS.length) return; clearInterval(_iv);
-    var idx=-1; for(var i=0;i<OPTIONS.length;i++){ if(OPTIONS[i].min===5){ idx=i; break; } }
-    if(idx<0){ console.log('TZTEST sin-trozado'); return; }
-    rowStep(idx,1); var inp=document.getElementById('q_'+idx);
-    console.log('TZTEST mas1='+(inp?inp.value:'?')+' ('+OPTIONS[idx].name+')');
-    rowSet(idx,3); console.log('TZTEST escribo3='+(document.getElementById('q_'+idx)?document.getElementById('q_'+idx).value:'?'));
-    rowStep(idx,-1); console.log('TZTEST menos1desde5='+(document.getElementById('q_'+idx)?document.getElementById('q_'+idx).value:'?'));
-  }, 300);
-}
 
 </script>
 <div class="cartbar" id="cartbar">

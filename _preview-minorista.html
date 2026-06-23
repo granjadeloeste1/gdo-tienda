@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Prototipo lista minorista</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{ --naranja:#F58220; --tinta:#1a1a1a; --gris:#5b6470; --linea:#e6e8eb; }
+  body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; background:#f4f5f7; color:var(--tinta); padding-bottom:80px; overflow-x:hidden; }
+  .hdr{ background:#111; color:#fff; padding:13px 16px; position:sticky; top:0; z-index:20; border-bottom:3px solid var(--naranja); display:flex; align-items:center; gap:10px; }
+  .hdr b{ font-size:17px; letter-spacing:.4px } .hdr .sub{ font-size:11px; color:#bdbdbd }
+  .hdr .back{ background:none; border:0; color:#fff; font-size:20px; cursor:pointer; display:none }
+  .wrap{ max-width:680px; margin:0 auto; padding:16px }
+  /* chooser */
+  .choose{ display:grid; gap:14px; margin-top:8px }
+  .ch{ display:flex; align-items:center; gap:16px; background:#fff; border:1px solid var(--linea); border-left:5px solid var(--naranja); border-radius:16px; padding:20px; cursor:pointer; text-align:left; box-shadow:0 2px 8px rgba(0,0,0,.05); transition:transform .12s, box-shadow .15s }
+  .ch:active{ transform:scale(.99) } .ch:hover{ box-shadow:0 8px 22px rgba(245,130,32,.15) }
+  .ch .ico{ font-size:40px } .ch h3{ font-size:19px; margin-bottom:3px } .ch p{ font-size:13px; color:var(--gris); line-height:1.4 }
+  .ch .arr{ margin-left:auto; color:var(--naranja); font-size:24px }
+  .lead{ text-align:center; color:var(--gris); font-size:14px; margin:6px 0 16px }
+  /* search */
+  .search{ width:100%; padding:12px 14px; border:1px solid #cfd4da; border-radius:12px; font-size:15px; margin-bottom:14px }
+  .search:focus{ outline:0; border-color:var(--naranja) }
+  /* acordeon */
+  .cat{ margin-bottom:10px; border-radius:14px; overflow:hidden; border:1px solid var(--linea); background:#fff }
+  .cat-h{ display:flex; align-items:center; gap:10px; width:100%; background:#fff; border:0; border-left:5px solid var(--naranja); padding:15px 14px; font-family:inherit; font-size:15px; font-weight:800; color:var(--tinta); cursor:pointer; text-align:left; letter-spacing:.3px }
+  .cat-h .n{ margin-left:auto; font-size:11px; color:#9aa1aa; font-weight:600 }
+  .cat-h .chev{ transition:transform .2s; color:var(--naranja) }
+  .cat.open .cat-h .chev{ transform:rotate(90deg) }
+  .cat-body{ display:none; padding:4px 10px 10px } .cat.open .cat-body{ display:block }
+  .sub-h{ font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--naranja); padding:12px 6px 6px }
+  .prod{ border:1px solid var(--linea); border-radius:12px; margin-bottom:8px; overflow:hidden }
+  .prod-h{ display:flex; align-items:center; gap:12px; width:100%; background:#fff; border:0; padding:12px; cursor:pointer; text-align:left; font-family:inherit }
+  .prod-h .pi{ flex:1; min-width:0 } .prod-h .pi b{ display:block; font-size:14.5px; line-height:1.25 }
+  .prod-h .pi span{ font-size:12px; color:var(--gris) }
+  .prod-h .desde{ text-align:right; white-space:nowrap } .prod-h .desde small{ display:block; font-size:9px; color:#9aa1aa; letter-spacing:.5px } .prod-h .desde b{ color:var(--naranja); font-size:14px }
+  .prod-h .chev{ color:#c3c8ce; transition:transform .2s; margin-left:4px } .prod.open .prod-h .chev{ transform:rotate(90deg); color:var(--naranja) }
+  .vars{ display:none; background:#faf7f3; padding:4px 12px 10px; border-top:1px solid var(--linea) } .prod.open .vars{ display:block }
+  .var{ display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px dashed #e6ddd2 } .var:last-child{ border-bottom:0 }
+  .var .vn{ flex:1; font-size:13.5px; font-weight:600 }
+  .var .vp{ font-weight:800; color:var(--naranja); font-size:14px; white-space:nowrap }
+  .var .vp .ant{ display:block; font-size:10px; color:#b0b6bd; text-decoration:line-through; font-weight:600 }
+  .var .add{ background:var(--naranja); color:#fff; border:0; border-radius:9px; width:34px; height:34px; font-size:20px; font-weight:700; cursor:pointer; flex-shrink:0; box-shadow:0 2px 7px rgba(245,130,32,.35) }
+  /* barra carrito */
+  .cartbar{ position:fixed; left:0; right:0; bottom:0; background:#111; border-top:2px solid var(--naranja); padding:12px 16px; display:none }
+  .cartbar.show{ display:block } .cartbar .in{ max-width:680px; margin:0 auto; display:flex; align-items:center; gap:12px }
+  .cartbar button{ flex:1; background:var(--naranja); color:#111; border:0; border-radius:10px; padding:13px; font-weight:800; font-size:15px; cursor:pointer }
+  .cartbar .cnt{ background:#fff; color:var(--naranja); border-radius:20px; padding:2px 10px; font-weight:800; font-size:13px }
+  .toast{ position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:#1e8449; color:#fff; padding:10px 16px; border-radius:10px; font-size:14px; opacity:0; transition:opacity .25s; z-index:50; pointer-events:none }
+  .toast.show{ opacity:1 }
+</style></head>
+<body>
+<header class="hdr"><button class="back" id="back">←</button><div><b id="htitle">Granja del Oeste</b><div class="sub" id="hsub">Lista de precios</div></div></header>
+<div class="wrap" id="app"></div>
+<div class="cartbar" id="cartbar"><div class="in"><span class="cnt" id="cnt">0</span><button>Ver mi pedido</button></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="_min_data.js"></script>
+<script>
+  var $=function(s){return document.querySelector(s)}, app=$('#app');
+  var cart=0;
+  function money(n){ return '$ '+Number(n||0).toLocaleString('es-AR') }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}) }
+  function toast(t){ var e=$('#toast'); e.textContent=t; e.classList.add('show'); setTimeout(function(){e.classList.remove('show')},1400) }
+  function addCart(){ cart++; $('#cnt').textContent=cart; $('#cartbar').classList.add('show'); toast('✓ Agregado al pedido') }
+
+  // ---------- chooser ----------
+  function chooser(){
+    $('#back').style.display='none'; $('#htitle').textContent='Granja del Oeste'; $('#hsub').textContent='Lista de precios';
+    $('#cartbar').classList.remove('show');
+    app.innerHTML =
+      '<p class="lead">¿Cómo querés ver los precios?</p>'+
+      '<div class="choose">'+
+        '<button class="ch" data-go="may"><span class="ico">🏪</span><div><h3>Mayorista</h3><p>Precios por mayor · retiro o envío</p></div><span class="arr">›</span></button>'+
+        '<button class="ch" data-go="min"><span class="ico">🏠</span><div><h3>Minorista</h3><p>Precios al público · retiro o envío a domicilio</p></div><span class="arr">›</span></button>'+
+      '</div>';
+    app.querySelector('[data-go="min"]').onclick=lista;
+    app.querySelector('[data-go="may"]').onclick=function(){ toast('La mayorista es la lista actual (MOSTRADOR)'); };
+  }
+
+  // ---------- agrupar ----------
+  function group(items){
+    var cats=[], cm={};
+    items.forEach(function(it){
+      var c=cm[it.cat]; if(!c){c={name:it.cat,subs:[],sm:{}};cm[it.cat]=c;cats.push(c)}
+      var s=c.sm[it.sub]; if(!s){s={name:it.sub,prods:[],pm:{}};c.sm[it.sub]=s;c.subs.push(s)}
+      var p=s.pm[it.nombre]; if(!p){p={nombre:it.nombre,desc:it.desc,vars:[]};s.pm[it.nombre]=p;s.prods.push(p)}
+      p.vars.push(it);
+    });
+    return cats;
+  }
+
+  // ---------- lista minorista ----------
+  function lista(){
+    $('#back').style.display='block'; $('#htitle').textContent='Lista Minorista'; $('#hsub').textContent='Precios al público';
+    var cats=group(window.MIN_DATA||[]);
+    app.innerHTML='<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>';
+    render(cats);
+    $('#q').oninput=function(){
+      var t=this.value.trim().toLowerCase();
+      if(!t){ render(cats); return; }
+      var f=(window.MIN_DATA||[]).filter(function(it){ return (it.nombre+' '+it.sub+' '+it.cat+' '+it.variedad).toLowerCase().indexOf(t)>=0 });
+      render(group(f), true);
+    };
+  }
+
+  function render(cats, openAll){
+    var acc=$('#acc');
+    acc.innerHTML = cats.map(function(c,ci){
+      var inner = c.subs.map(function(s){
+        var prods = s.prods.map(function(p){
+          var min = Math.min.apply(null, p.vars.map(function(v){return v.precio}));
+          var multi = p.vars.length>1;
+          var vars = p.vars.map(function(v){
+            return '<div class="var"><span class="vn">'+esc(v.variedad||'Unidad')+'</span>'+
+              '<span class="vp">'+(v.precioAnt?'<span class="ant">'+money(v.precioAnt)+'</span>':'')+money(v.precio)+'</span>'+
+              '<button class="add" title="Agregar">+</button></div>';
+          }).join('');
+          return '<div class="prod"><button class="prod-h"><div class="pi"><b>'+esc(p.nombre)+'</b>'+(p.desc?'<span>'+esc(p.desc)+'</span>':'')+'</div>'+
+            '<div class="desde"><small>'+(multi?'DESDE':'PRECIO')+'</small><b>'+money(min)+'</b></div><span class="chev">›</span></button>'+
+            '<div class="vars">'+vars+'</div></div>';
+        }).join('');
+        return '<div class="sub-h">'+esc(s.name)+'</div>'+prods;
+      }).join('');
+      return '<div class="cat'+(openAll?' open':'')+'"><button class="cat-h">'+esc(c.name)+'<span class="n">'+c.subs.reduce(function(a,s){return a+s.prods.length},0)+'</span><span class="chev">›</span></button><div class="cat-body">'+inner+'</div></div>';
+    }).join('');
+    // interacciones
+    acc.querySelectorAll('.cat-h').forEach(function(b){ b.onclick=function(){ b.parentElement.classList.toggle('open') } });
+    acc.querySelectorAll('.prod-h').forEach(function(b){ b.onclick=function(){ b.parentElement.classList.toggle('open') } });
+    acc.querySelectorAll('.add').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); addCart() } });
+  }
+
+  $('#back').onclick=chooser;
+  if(location.search.indexOf('lista')>=0){ lista(); var _c=document.querySelectorAll('.cat'); if(_c[3]){ _c[3].classList.add('open'); var _p=_c[3].querySelectorAll('.prod'); if(_p[0])_p[0].classList.add('open'); } }
+  else chooser();
+</script>
+</body></html>

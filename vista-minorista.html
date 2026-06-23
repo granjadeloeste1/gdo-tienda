@@ -158,6 +158,35 @@
   <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
 </a>
 
+<!-- Firebase: registrar pedidos de ENVÍO en el panel de Rutas (mismo proyecto ruteogdo que la mayorista) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js"></script>
+<script>
+window.GDO = window.GDO || {};
+(function(){
+  var cfg={ apiKey:'AIzaSyDljWSSEDrZylMxgYCPaqaqU2x-3QYvZaM', authDomain:'ruteogdo.firebaseapp.com', projectId:'ruteogdo', storageBucket:'ruteogdo.firebasestorage.app', messagingSenderId:'507253098011', appId:'1:507253098011:web:785699004cd41dfe1f9abe' };
+  var FB={ enabled:false, app:null, db:null, auth:null, uid:null }; GDO.FB=FB;
+  var _res; FB.ready=new Promise(function(r){ _res=r; });
+  function finish(en){ FB.enabled=en; if(_res){ _res(en); _res=null; } }
+  if(typeof firebase==='undefined' || !firebase.initializeApp){ finish(false); return; }
+  try{
+    FB.app=firebase.initializeApp(cfg);
+    try{ if(firebase.appCheck) firebase.appCheck().activate('6LcFdCctAAAAAELE8bLAVjrYLFgVFHH_JO0oKOxw', true); }catch(e){}
+    FB.db=firebase.firestore(); FB.auth=firebase.auth();
+    try{ FB.db.enablePersistence({ synchronizeTabs:true }).catch(function(){}); }catch(e){}
+  }catch(e){ finish(false); return; }
+  var settled=false; function settle(en){ if(settled) return; settled=true; finish(en); }
+  var tried=false;
+  FB.auth.onAuthStateChanged(function(user){
+    if(user){ FB.uid=user.uid; settle(true); }
+    else if(!tried){ tried=true; FB.auth.signInAnonymously().catch(function(){ settle(true); }); }
+  });
+  setTimeout(function(){ settle(true); }, 3500);
+})();
+</script>
+
 <script>
   var $=function(s){return document.querySelector(s)}, app=$('#app');
   function money(n){ return '$ '+Number(n||0).toLocaleString('es-AR') }
@@ -253,6 +282,39 @@
   }
   function val(id){ var e=document.getElementById(id); return e?e.value:''; }
   function mapsUrl(){ return 'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(CFG.sucursal); }
+
+  // ====== Registrar pedido de ENVÍO en el panel de Rutas (Firestore) ======
+  // Las reglas exigen origen=='tienda', estado=='pendiente', rutaId/creadoPor null,
+  // cliente/telefono/direccion/especificaciones strings, items lista 1-100, historia
+  // vacía. Campos extra (zona, diaEntrega, etc.) están permitidos. La tienda entra
+  // anónima (puede CREAR, no editar). Escribimos YA (persistencia offline) por si el
+  // cliente salta a WhatsApp y la página se descarga.
+  function nid(){ try{ if(window.crypto&&crypto.getRandomValues){ var a=new Uint8Array(16); crypto.getRandomValues(a); var s=''; for(var i=0;i<a.length;i++){ s+=('0'+a[i].toString(36)).slice(-2); } return 'p_'+s; } }catch(e){} return 'p_'+Date.now().toString(36)+Math.random().toString(36).slice(2,12); }
+  var MIN_INBOX='gdo_reparto_inbox';
+  function registrarPedidoEnvio(d){
+    var items=[];
+    for(var k in CART){ var it=CART[k];
+      if(it.tipo==='peso') items.push({ producto: it.nombre, cantidad: it.kg, unidad:'kg', nota:'' });
+      else items.push({ producto: it.nombre+' ('+it.variedad+')', cantidad: it.cant, unidad:'u', nota:'' });
+    }
+    if(!items.length) return;
+    var esp=['MINORISTA','Zona: '+d.zona,'Día de entrega: '+d.dia,'Envío: '+(d.env===0?'sin cargo':money(d.env)),'TOTAL a cobrar: '+money(d.sub+d.env)];
+    if(d.notas) esp.push('Notas: '+d.notas);
+    var pedido={
+      id:nid(), origen:'tienda', lista:'minorista', cliente:d.nom, telefono:d.tel,
+      direccion:d.addr, localidad:d.loc||'', entrecalles:d.entre||'', lat:null, lng:null,
+      items:items, fechaEntrega:'', especificaciones:esp.join(' · '),
+      formaPago:d.pago||'', prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
+      clienteUid:null, totalEstimado: Math.round(d.sub),
+      zona:d.zona, diaEntrega:d.dia, envio:Math.round(d.env),
+      ventana:'', historia:[], ts:Date.now()
+    };
+    try{ var inb=JSON.parse(localStorage.getItem(MIN_INBOX)||'[]'); if(!Array.isArray(inb)) inb=[]; inb.push(pedido); localStorage.setItem(MIN_INBOX, JSON.stringify(inb)); }catch(e){}
+    function drop(){ try{ var inb=JSON.parse(localStorage.getItem(MIN_INBOX)||'[]'); if(Array.isArray(inb)) localStorage.setItem(MIN_INBOX, JSON.stringify(inb.filter(function(x){return x&&x.id!==pedido.id;}))); }catch(e){} }
+    function write(){ try{ return GDO.FB.db.collection('pedidos').doc(pedido.id).set(pedido); }catch(e){ return Promise.reject(e); } }
+    if(window.GDO&&GDO.FB&&GDO.FB.enabled&&GDO.FB.db){ write().then(drop).catch(function(){}); }
+    else if(window.GDO&&GDO.FB&&GDO.FB.ready){ GDO.FB.ready.then(function(en){ if(en&&GDO.FB.db) return write().then(drop); }).catch(function(){}); }
+  }
 
   // ====== Checkout: modalidad + zona/día + datos (como mayorista) ======
   function checkout(){
@@ -358,6 +420,8 @@
       L.push('━━━━━━━━━━━━━━');
       L.push('');
       L.push('_El pedido será confirmado por un miembro del equipo en horario comercial para acordar la entrega o retiro según corresponda._');
+      // ENVÍO → entra al panel de Rutas (ANTES de abrir WhatsApp, para no perderlo al navegar)
+      if(modo==='envio'){ try{ registrarPedidoEnvio({ nom:nom, tel:tel, addr:addr, loc:loc, entre:entre, zona:CFG.zonas[zona].nombre, dia:dia, pago:pago, notas:notas, sub:sub, env:env }); }catch(e){} }
       window.open('https://wa.me/5491135800164?text='+encodeURIComponent(L.join('\n')),'_blank');
       ov.remove();
       pedidoEnviado();
@@ -523,6 +587,24 @@
     $('#cbBtn').onclick=verCart;
     $('#back').onclick=function(){ location.href='index.html'; };
     lista();
+    if(location.search.indexOf('e2e')>=0){ setTimeout(e2eRun,1500); }
+  }
+  function e2eRun(){
+    window.open=function(){};
+    setPeso('PRUEBA (borrar)',[{min:1,perkg:7500}],8);
+    checkout();
+    var z=document.getElementById('ckZona'); var idx=-1;
+    for(var i=0;i<CFG.zonas.length;i++){ if(CFG.zonas[i].dias&&CFG.zonas[i].dias.length){ idx=i; break; } }
+    z.value=String(idx); z.onchange();
+    var dd=document.querySelector('.diab'); if(dd) dd.click();
+    document.getElementById('ckDir').value='PRUEBA Bombero Celiz 1200';
+    document.getElementById('ckNom').value='PRUEBA (borrar)';
+    document.getElementById('ckTel').value='11 0000-0000';
+    document.getElementById('ckSend').click();
+    setTimeout(function(){
+      var inb=[]; try{ inb=JSON.parse(localStorage.getItem('gdo_reparto_inbox')||'[]'); }catch(e){}
+      console.log('E2E_RESULT fb='+(window.GDO&&GDO.FB&&GDO.FB.enabled)+' inboxPend='+inb.length);
+    },6000);
   }
   // Datos EN VIVO desde la hoja (mismo Apps Script que la mayorista, ?lista=minorista):
   // devuelve { productos:[...], config:{...} }. Sin internet NO se muestran precios.

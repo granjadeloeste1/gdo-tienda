@@ -143,6 +143,7 @@
   @keyframes waBob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-6px) } }
   @media(prefers-reduced-motion:reduce){ .wa{ animation:none } }
   /* pie: version + propiedad */
+  .kgmin{ display:inline-block; background:#fff7ef; border:1px solid #f3cda0; color:#a85f1a; border-radius:8px; padding:3px 9px; font-size:11.5px; font-weight:800; margin:2px 0 8px }
   .gdofoot{ text-align:center; color:#9a9a9a; font-size:12px; line-height:1.5; margin:22px 0 90px }
   .gdofoot b{ color:#777 }
 </style></head>
@@ -230,9 +231,16 @@ window.GDO = window.GDO || {};
   function cartCount(){ return Object.keys(CART).length; }
   function pesoKg(n){ var it=CART[pkey(n)]; return it?it.kg:0; }
   function qtyOf(n,v){ var it=CART[vkey(n,v)]; return it?it.cant:0; }
+  // Mínimo de kg por producto: las MILANESAS (cualquier tipo) van por mínimo 2 kg.
+  function minKgDe(nombre){
+    var it=(window.MIN_DATA||[]).filter(function(x){ return x.nombre===nombre; })[0];
+    return (it && /MILANES/i.test(it.cat||'')) ? 2 : 1;
+  }
   function setPeso(nombre, tiers, delta){
     var k=pkey(nombre), it=CART[k]||{tipo:'peso',nombre:nombre,tiers:tiers,kg:0};
-    it.kg=Math.max(0,it.kg+delta); it.tiers=tiers;
+    var min=minKgDe(nombre), nv=it.kg+delta;
+    if(nv>0 && nv<min) nv=(delta<0?0:min);   // al subir salta al mínimo; al bajar, a 0
+    it.kg=Math.max(0,nv); it.tiers=tiers;
     if(it.kg===0) delete CART[k]; else CART[k]=it;
     sync(); drawCart();
   }
@@ -551,6 +559,7 @@ window.GDO = window.GDO || {};
       var inner = c.subs.map(function(s){
         var prods = s.prods.map(function(p){
           var multi = p.vars.length>1, body, etq, val;
+          var minK = /MILANES/i.test(c.name||'') ? 2 : 1;
           if(esPorPeso(p)){
             var tiers=tiersDe(p); TIERMAP[p.nombre]=tiers; var nA=esc(p.nombre);
             var nt=tiers.length, orden=tiers.slice().sort(function(a,b){return a.perkg-b.perkg;}), rank={};
@@ -561,6 +570,7 @@ window.GDO = window.GDO || {};
               return '<div class="tr'+cls+'">'+bdg+'<span class="tk">'+t.min+' kg</span><b>'+money(t.min*t.perkg)+'</b><small>'+money(t.perkg)+'/kg</small></div>';
             }).join('')+'</div>';
             body='<div class="kgsel" data-pk="'+nA+'">'+tabla+
+              (minK>1?'<div class="kgmin">📦 Mínimo '+minK+' kg por pedido</div>':'')+
               '<div class="kgrow"><span class="lbl">¿Cuántos kg?</span>'+
                 '<span class="stp"><button class="pdec" data-n="'+nA+'">−</button>'+
                   '<span class="qn" data-qk="'+nA+'">'+pesoKg(p.nombre)+'</span>'+

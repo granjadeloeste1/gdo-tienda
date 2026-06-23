@@ -39,6 +39,8 @@ summary{padding:13px 16px;font-size:13px;font-weight:700;color:#F58220;letter-sp
 summary::after{content:"^";color:#444;font-size:16px}
 details:not([open]) summary::after{content:"v"}
 .sb{padding:0 12px 12px}
+.secnote{background:#fff7ef;border:1px solid #f3cda0;color:#a85f1a;border-radius:9px;padding:8px 11px;font-size:12px;line-height:1.4;margin:10px 0 4px}
+.secnote b{color:#8a4f15}
 .br{font-size:12px;color:#F58220;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:12px 0 6px;border-top:1px solid #2a2a2a;display:flex;align-items:center;gap:8px}
 .br::before{content:"";display:inline-block;width:3px;height:16px;background:#F58220;border-radius:2px;flex-shrink:0}
 .tw{overflow-x:auto}
@@ -386,7 +388,7 @@ function render() {
         keys.forEach(function(u, gi) {
           var isMain = (gi === 0);
           var tiers = groups[u].slice().sort(function(a,b){ return a.min - b.min; }).map(function(x){ return {min:x.min, price:x.price}; });
-          var opt = {name:row.p, brand:(tbl.brand||""), unit:u, tiers:tiers, main:isMain};
+          var opt = {name:row.p, brand:(tbl.brand||""), unit:u, tiers:tiers, main:isMain, min:(/TROZADO/i.test(sec.title||"")?5:0)};
           var oi = OPTIONS.push(opt) - 1;
           var q = cartQtyFor(row.p, (tbl.brand||""), u);
           var sub = "";
@@ -409,7 +411,8 @@ function render() {
       tbH += "</tbody></table></div>";
     });
     if (!vis) return;
-    html += "<details" + (t ? " open" : "") + "><summary>" + sec.title + "</summary><div class=\"sb\">" + tbH + "</div></details>";
+    var nota = /TROZADO/i.test(sec.title||"") ? "<div class=\"secnote\">📦 El trozado se vende por <b>mínimo 5 kg</b> por producto (compra mayorista en el local).</div>" : "";
+    html += "<details" + (t ? " open" : "") + "><summary>" + sec.title + "</summary><div class=\"sb\">" + nota + tbH + "</div></details>";
   });
   root.innerHTML = html || vistaVacia();
 }
@@ -476,19 +479,30 @@ function lineTotal(l){ return lineUnitPrice(l)*l.qty; }
 function cartTotal(){ var s=0; cart.forEach(function(l){ s+=lineTotal(l); }); return s; }
 function cartCount(){ return cart.length; }
 
+function mayToast(msg){
+  var t=document.getElementById("mayToast");
+  if(!t){ t=document.createElement("div"); t.id="mayToast"; t.style.cssText="position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#111;color:#fff;padding:11px 16px;border-radius:10px;font-size:13.5px;font-weight:600;z-index:9998;box-shadow:0 6px 20px rgba(0,0,0,.4);opacity:0;transition:opacity .2s;border-left:4px solid #F58220;max-width:90%;text-align:center"; document.body.appendChild(t); }
+  t.textContent=msg; t.style.opacity="1";
+  clearTimeout(t._h); t._h=setTimeout(function(){ t.style.opacity="0"; }, 2600);
+}
 function rowSet(oi, val){
   var opt=OPTIONS[oi]; if(!opt) return;
   var q=parseInt(val,10); if(isNaN(q)||q<0) q=0;
+  // Mínimo por producto (trozado mayorista = 5 kg): no se permite menos.
+  if(q>0 && opt.min && q<opt.min){ q=opt.min; var _i=document.getElementById("q_"+oi); if(_i) _i.value=q; mayToast("El trozado es por mínimo "+opt.min+" kg."); }
   var l=findLine(opt);
   if(q===0){ if(l) cart.splice(cart.indexOf(l),1); }
   else if(l){ l.qty=q; }
-  else { cart.push({name:opt.name, brand:opt.brand, unit:opt.unit, tiers:opt.tiers, qty:q, main:opt.main}); }
+  else { cart.push({name:opt.name, brand:opt.brand, unit:opt.unit, tiers:opt.tiers, qty:q, main:opt.main, min:opt.min}); }
   persistCart(); updateRowSub(oi, q); renderCartBar();
 }
 function rowStep(oi, d){
+  var opt=OPTIONS[oi];
   var inp=document.getElementById("q_"+oi);
   var cur=inp?parseInt(inp.value,10):0; if(isNaN(cur)) cur=0;
   var nv=cur+d; if(nv<0) nv=0;
+  // trozado: al subir desde 0 salta al mínimo (5); al bajar por debajo del mínimo, a 0.
+  if(opt && opt.min && nv>0 && nv<opt.min){ nv=(d<0?0:opt.min); if(d>0) mayToast("El trozado es por mínimo "+opt.min+" kg."); }
   if(inp) inp.value=nv;
   rowSet(oi, nv);
 }
@@ -507,10 +521,11 @@ function renderCartBar(){
 function setQty(i, q){
   var l=cart[i]; if(!l) return;
   q=parseInt(q,10); if(isNaN(q)||q<0) q=0;
+  if(q>0 && l.min && q<l.min){ q=l.min; mayToast("El trozado es por mínimo "+l.min+" kg."); }
   if(q===0){ cart.splice(i,1); } else { l.qty=q; }
   persistCart(); renderCart(); renderCartBar();
 }
-function incQty(i, d){ var l=cart[i]; if(!l) return; setQty(i, l.qty + d); }
+function incQty(i, d){ var l=cart[i]; if(!l) return; var nv=l.qty+d; if(l.min && nv>0 && nv<l.min){ nv=(d<0?0:l.min); } setQty(i, nv); }
 function setNote(i, val, el){ var l=cart[i]; if(!l) return; l.note=val; persistCart(); if(el){ if(val&&val.trim()) el.classList.add("has"); else el.classList.remove("has"); } }
 function escAttr(s){ return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function removeLine(i){ cart.splice(i,1); persistCart(); renderCart(); renderCartBar(); }
@@ -637,6 +652,16 @@ function pedidoEnviado(){
 loadCart();
 renderCartBar();
 render();
+if(location.search.indexOf('tztest')>=0){ var _gc=document.getElementById('gdoChooser'); if(_gc)_gc.style.display='none';
+  var _iv=setInterval(function(){ if(!OPTIONS.length) return; clearInterval(_iv);
+    var idx=-1; for(var i=0;i<OPTIONS.length;i++){ if(OPTIONS[i].min===5){ idx=i; break; } }
+    if(idx<0){ console.log('TZTEST sin-trozado'); return; }
+    rowStep(idx,1); var inp=document.getElementById('q_'+idx);
+    console.log('TZTEST mas1='+(inp?inp.value:'?')+' ('+OPTIONS[idx].name+')');
+    rowSet(idx,3); console.log('TZTEST escribo3='+(document.getElementById('q_'+idx)?document.getElementById('q_'+idx).value:'?'));
+    rowStep(idx,-1); console.log('TZTEST menos1desde5='+(document.getElementById('q_'+idx)?document.getElementById('q_'+idx).value:'?'));
+  }, 300);
+}
 
 </script>
 <div class="cartbar" id="cartbar">

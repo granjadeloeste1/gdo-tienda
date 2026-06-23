@@ -102,6 +102,8 @@
   .cartsheet .cfoot{ border-top:1px solid var(--linea); padding:14px 16px }
   .cartsheet .tot{ display:flex; justify-content:space-between; font-size:19px; font-weight:900; margin-bottom:8px }
   .minwarn{ font-size:12.5px; color:#c0392b; text-align:center; margin-bottom:10px; font-weight:700 }
+  .envio{ border-radius:10px; padding:10px; text-align:center; font-weight:800; font-size:13px; margin-bottom:10px; background:#fff7ef; color:#a85f1a; border:1px solid #f3cda0 }
+  .envio.ok{ background:#eafaf1; color:#1e8449; border-color:#b6e3c6 }
   .btn-conf{ width:100%; background:#25D366; color:#fff; border:0; border-radius:11px; padding:14px; font-size:15px; font-weight:800; cursor:pointer }
   .btn-conf:disabled{ background:#cfd4da; cursor:default }
   /* barra carrito */
@@ -128,7 +130,7 @@
   function toast(t){ var e=$('#toast'); e.textContent=t; e.classList.add('show'); setTimeout(function(){e.classList.remove('show')},1400) }
 
   // ====== CONFIGURACION (vendrá de la hoja CONFIGURACION del Sheet) ======
-  var CFG = { minPedido: 75000 };   // pedido mínimo minorista
+  var CFG = { minPedido: 75000, envioGratis: true, envioGratisDesde: 75000 };
 
   // ====== Escala por kg (igual que la mayorista) ======
   // En la hoja, las filas "N kg" guardan el PRECIO POR KG de ese escalón.
@@ -170,8 +172,14 @@
   }
   function sync(){
     var tot=cartTotal(), n=cartCount(), falta=Math.max(0,CFG.minPedido-tot);
+    var faltaEnvio = CFG.envioGratis ? Math.max(0, CFG.envioGratisDesde-tot) : 0;
+    var sub;
+    if(falta>0) sub='faltan '+money(falta)+' (mínimo '+money(CFG.minPedido)+')';
+    else if(CFG.envioGratis && tot>=CFG.envioGratisDesde) sub='🎉 ¡Envío SIN CARGO!';
+    else if(CFG.envioGratis && faltaEnvio>0) sub='✓ podés pedir · faltan '+money(faltaEnvio)+' para envío gratis';
+    else sub='✓ podés hacer el pedido';
     $('#cbTot').textContent=money(tot);
-    $('#cbMin').textContent = n+' producto'+(n===1?'':'s')+(falta>0 ? (' · faltan '+money(falta)+' (mínimo '+money(CFG.minPedido)+')') : ' · ✓ podés hacer el pedido');
+    $('#cbMin').textContent = n+' producto'+(n===1?'':'s')+' · '+sub;
     if(n) $('#cartbar').classList.add('show'); else { $('#cartbar').classList.remove('show'); cerrarCart(); }
     refreshSteppers();
   }
@@ -184,6 +192,7 @@
       '<div class="csh"><img src="assets/isotipo-blanco.svg" alt="GDO"/><b>Mi pedido</b><button class="x" id="cx">&times;</button></div>'+
       '<div class="cbody" id="cbody"></div>'+
       '<div class="cfoot">'+
+        '<div class="envio" id="cfEnvio" style="display:none"></div>'+
         '<div class="tot"><span>Total</span><span id="cfTot">$ 0</span></div>'+
         '<div class="minwarn" id="cfWarn"></div>'+
         '<button class="btn-conf" id="cfBtn">📲 Hacer pedido por WhatsApp</button>'+
@@ -215,6 +224,12 @@
     var warn=document.getElementById('cfWarn'), btn=document.getElementById('cfBtn');
     if(falta>0){ warn.textContent='Pedido mínimo '+money(CFG.minPedido)+' · te faltan '+money(falta); btn.disabled=true; }
     else { warn.textContent=''; btn.disabled=false; }
+    var env=document.getElementById('cfEnvio');
+    if(env){
+      if(CFG.envioGratis && tot>=CFG.envioGratisDesde && tot>0){ env.style.display='block'; env.className='envio ok'; env.innerHTML='🎉 ¡A partir de ahora tu envío es <b>SIN CARGO</b>!'; }
+      else if(CFG.envioGratis && tot>0){ env.style.display='block'; env.className='envio'; env.innerHTML='🚚 Te faltan <b>'+money(CFG.envioGratisDesde-tot)+'</b> para el envío sin cargo'; }
+      else { env.style.display='none'; }
+    }
     body.querySelectorAll('[data-pdec]').forEach(function(b){ var it=CART[pkey(b.dataset.pdec)]; b.onclick=function(){ if(it) setPeso(it.nombre,it.tiers,-1) } });
     body.querySelectorAll('[data-pinc]').forEach(function(b){ var it=CART[pkey(b.dataset.pinc)]; b.onclick=function(){ if(it) setPeso(it.nombre,it.tiers, 1) } });
     body.querySelectorAll('[data-cdec]').forEach(function(b){ var it=CART[b.dataset.cdec]; b.onclick=function(){ if(it) setVar(it.nombre,it.variedad,it.precio,-1) } });

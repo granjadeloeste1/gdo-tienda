@@ -104,6 +104,18 @@
   .minwarn{ font-size:12.5px; color:#c0392b; text-align:center; margin-bottom:10px; font-weight:700 }
   .envio{ border-radius:10px; padding:10px; text-align:center; font-weight:800; font-size:13px; margin-bottom:10px; background:#fff7ef; color:#a85f1a; border:1px solid #f3cda0 }
   .envio.ok{ background:#eafaf1; color:#1e8449; border-color:#b6e3c6 }
+  /* checkout */
+  .fl{ display:block; font-size:13px; color:var(--gris); font-weight:700; margin:12px 0 5px }
+  .fin{ width:100%; padding:11px; border:1px solid #cfd4da; border-radius:10px; font-size:15px; font-family:inherit; background:#fff }
+  .fin:focus{ outline:0; border-color:var(--naranja) }
+  .seg{ display:flex; gap:8px }
+  .seg button{ flex:1; padding:11px 6px; border:1px solid #cfd4da; background:#fff; border-radius:10px; font-weight:700; font-size:13px; cursor:pointer; color:var(--gris) }
+  .seg button.on{ background:var(--naranja); color:#fff; border-color:var(--naranja) }
+  .dias{ display:flex; flex-wrap:wrap; gap:8px }
+  .diab{ padding:9px 14px; border:1px solid #cfd4da; background:#fff; border-radius:20px; font-weight:700; font-size:13px; cursor:pointer }
+  .diab.on{ background:#111; color:#fff; border-color:#111 }
+  .note2{ background:#fff7ef; border:1px solid #f3cda0; color:#a85f1a; border-radius:10px; padding:10px; font-size:13px; margin-top:6px }
+  .ckline{ display:flex; justify-content:space-between; font-size:14px; color:var(--gris); margin-bottom:5px }
   .btn-conf{ width:100%; background:#25D366; color:#fff; border:0; border-radius:11px; padding:14px; font-size:15px; font-weight:800; cursor:pointer }
   .btn-conf:disabled{ background:#cfd4da; cursor:default }
   /* barra carrito */
@@ -130,7 +142,18 @@
   function toast(t){ var e=$('#toast'); e.textContent=t; e.classList.add('show'); setTimeout(function(){e.classList.remove('show')},1400) }
 
   // ====== CONFIGURACION (vendrá de la hoja CONFIGURACION del Sheet) ======
-  var CFG = { minPedido: 75000, envioGratis: true, envioGratisDesde: 75000 };
+  var CFG = {
+    minPedido: 75000, envioGratis: true, envioGratisDesde: 75000,
+    horario: '8 a 14 hs',
+    formasPago: ['Efectivo','Transferencia','QR'],
+    sucursal: 'Acuña 1334, Villa Tesei',
+    zonas: [
+      { nombre:'Castelar',    costo:7000, dias:['Lunes','Martes'] },
+      { nombre:'Hurlingham',  costo:0,    dias:['Lunes','Miércoles','Viernes'] },
+      { nombre:'Villa Tesei', costo:0,    dias:['Lunes a Sábado'] },
+      { nombre:'Morón',       costo:3000, dias:['Martes','Jueves'] }
+    ]
+  };
 
   // ====== Escala por kg (igual que la mayorista) ======
   // En la hoja, las filas "N kg" guardan el PRECIO POR KG de ese escalón.
@@ -200,8 +223,77 @@
     document.body.appendChild(ov);
     ov.onclick=function(e){ if(e.target===ov) cerrarCart(); };
     document.getElementById('cx').onclick=cerrarCart;
-    document.getElementById('cfBtn').onclick=function(){ toast('(demo) Acá se arma el pedido por WhatsApp'); };
+    document.getElementById('cfBtn').onclick=function(){ if(cartTotal()>=CFG.minPedido){ cerrarCart(); checkout(); } };
     drawCart();
+  }
+  function val(id){ var e=document.getElementById(id); return e?e.value:''; }
+
+  // ====== Checkout: modalidad + zona/día + datos (como mayorista) ======
+  function checkout(){
+    var modo='envio', zona=null, dia=null;
+    var ov=document.createElement('div'); ov.id='ckov'; ov.className='cartov';
+    var zonaOpts=CFG.zonas.map(function(z,i){ return '<option value="'+i+'">'+esc(z.nombre)+'</option>'; }).join('');
+    ov.innerHTML='<div class="cartsheet"><div class="csh"><img src="assets/isotipo-blanco.svg" alt="GDO"/><b>Finalizar pedido</b><button class="x" id="ckx">&times;</button></div>'+
+      '<div class="cbody">'+
+        '<label class="fl">¿Cómo lo recibís?</label>'+
+        '<div class="seg"><button type="button" data-mod="envio" class="on">🚚 Envío a domicilio</button><button type="button" data-mod="retiro">🏪 Retiro en sucursal</button></div>'+
+        '<div id="ckEnvio"><label class="fl">Zona de entrega *</label>'+
+          '<select id="ckZona" class="fin"><option value="">Elegí tu zona…</option>'+zonaOpts+'</select>'+
+          '<div id="ckDias"></div>'+
+          '<label class="fl">Dirección *</label><input id="ckDir" class="fin" placeholder="Calle, número, entre calles"/></div>'+
+        '<div id="ckRetiro" style="display:none"><div class="note2">🏪 Retirás en <b>'+esc(CFG.sucursal)+'</b> · '+esc(CFG.horario)+'</div>'+
+          '<label class="fl">¿Qué día venís? (opcional)</label><input id="ckDiaR" class="fin" placeholder="Ej: jueves"/></div>'+
+        '<label class="fl">Nombre y apellido *</label><input id="ckNom" class="fin"/>'+
+        '<label class="fl">Teléfono / WhatsApp *</label><input id="ckTel" class="fin" inputmode="tel"/>'+
+        '<label class="fl">Forma de pago</label><select id="ckPago" class="fin">'+CFG.formasPago.map(function(f){return '<option>'+esc(f)+'</option>';}).join('')+'</select>'+
+        '<label class="fl">Notas (opcional)</label><textarea id="ckNotas" class="fin" rows="2"></textarea>'+
+      '</div>'+
+      '<div class="cfoot">'+
+        '<div class="ckline"><span>Productos</span><span id="ckSub"></span></div>'+
+        '<div class="ckline" id="ckEnvL"><span>Envío</span><span id="ckEnv"></span></div>'+
+        '<div class="tot"><span>Total</span><span id="ckTot"></span></div>'+
+        '<div class="minwarn" id="ckMsg"></div>'+
+        '<button class="btn-conf" id="ckSend">📲 Enviar pedido por WhatsApp</button>'+
+      '</div></div>';
+    document.body.appendChild(ov);
+    ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
+    document.getElementById('ckx').onclick=function(){ ov.remove(); };
+    function envioCosto(){ if(modo!=='envio'||zona==null) return 0; if(CFG.envioGratis && cartTotal()>=CFG.envioGratisDesde) return 0; return CFG.zonas[zona].costo||0; }
+    function recalc(){
+      var sub=cartTotal(), env=envioCosto();
+      document.getElementById('ckSub').textContent=money(sub);
+      var envL=document.getElementById('ckEnvL');
+      if(modo==='envio'){ envL.style.display='flex'; document.getElementById('ckEnv').textContent=(zona==null?'—':(env===0?'sin cargo':money(env))); }
+      else envL.style.display='none';
+      document.getElementById('ckTot').textContent=money(sub+env);
+    }
+    ov.querySelectorAll('[data-mod]').forEach(function(b){ b.onclick=function(){ modo=b.dataset.mod; ov.querySelectorAll('[data-mod]').forEach(function(x){x.classList.toggle('on',x===b)}); document.getElementById('ckEnvio').style.display=modo==='envio'?'block':'none'; document.getElementById('ckRetiro').style.display=modo==='retiro'?'block':'none'; recalc(); }; });
+    document.getElementById('ckZona').onchange=function(){
+      zona=this.value===''?null:+this.value; dia=null;
+      var cd=document.getElementById('ckDias');
+      if(zona==null){ cd.innerHTML=''; recalc(); return; }
+      cd.innerHTML='<label class="fl">Día de entrega *</label><div class="dias">'+CFG.zonas[zona].dias.map(function(d){ return '<button type="button" class="diab" data-d="'+esc(d)+'">'+esc(d)+'</button>'; }).join('')+'</div>';
+      cd.querySelectorAll('.diab').forEach(function(b){ b.onclick=function(){ dia=b.dataset.d; cd.querySelectorAll('.diab').forEach(function(x){x.classList.toggle('on',x===b)}); }; });
+      recalc();
+    };
+    document.getElementById('ckSend').onclick=function(){
+      var nom=(val('ckNom')||'').trim(), tel=(val('ckTel')||'').trim(), msg=document.getElementById('ckMsg');
+      if(!nom||!tel){ msg.textContent='Completá tu nombre y teléfono.'; return; }
+      if(modo==='envio'){ if(zona==null){ msg.textContent='Elegí tu zona de entrega.'; return; } if(!dia){ msg.textContent='Elegí el día de entrega.'; return; } if(!(val('ckDir')||'').trim()){ msg.textContent='Completá tu dirección.'; return; } }
+      var L=['*Pedido GDO — Lista Minorista*',''];
+      for(var k in CART){ var it=CART[k]; L.push(it.tipo==='peso' ? ('• '+it.nombre+' — '+it.kg+' kg = '+money(lineTotal(it))) : ('• '+it.nombre+' ('+it.variedad+') x'+it.cant+' = '+money(lineTotal(it)))); }
+      var sub=cartTotal(), env=envioCosto();
+      L.push(''); L.push('Subtotal: '+money(sub));
+      if(modo==='envio') L.push('Envío: '+(env===0?'sin cargo':money(env)));
+      L.push('TOTAL: '+money(sub+env)); L.push('');
+      if(modo==='envio'){ L.push('Entrega a domicilio'); L.push('Zona: '+CFG.zonas[zona].nombre+' — Día: '+dia); L.push('Dirección: '+(val('ckDir')||'').trim()); }
+      else { L.push('Retiro en sucursal ('+CFG.sucursal+')'+((val('ckDiaR')||'').trim()?' — '+(val('ckDiaR')).trim():'')); }
+      L.push('Pago: '+(val('ckPago')||''));
+      if((val('ckNotas')||'').trim()) L.push('Notas: '+(val('ckNotas')).trim());
+      L.push(''); L.push('Cliente: '+nom+' — '+tel);
+      window.open('https://wa.me/5491135800164?text='+encodeURIComponent(L.join('\n')),'_blank');
+    };
+    recalc();
   }
   function cerrarCart(){ var o=document.getElementById('cartov'); if(o) o.remove(); }
   function drawCart(){

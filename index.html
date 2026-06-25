@@ -1471,25 +1471,28 @@ window.GDO = window.GDO || {};
       if (!activo) { var n = document.getElementById('clubNote'); if (n) n.style.display = 'none'; }
       try { if (GDO.FB && GDO.FB.user !== undefined) GDO.clubUI(GDO.FB.user && !GDO.FB.user.isAnonymous ? GDO.FB.user : null); } catch (e) {}
     }
-    // Estado optimista desde caché: evita que el botón parpadee o DESAPAREZCA al
-    // recargar (p. ej. al volver desde club.html) si la lectura tarda o el setup de
-    // Firebase todavía no cargó cuando corre este código.
+    // Estado optimista desde caché: muestra el botón al instante al recargar (p. ej.
+    // al volver desde club.html) sin parpadeo.
     try { if (localStorage.getItem('gdo_club_activo') === '1') aplicar(true); } catch (e) {}
-    (function leerFlag(intentos) {
+    // Listener EN VIVO del flag. Clave: con persistencia offline, un .get() podía
+    // devolver el doc desde el caché LOCAL vacío (existe=false) y esconder el botón.
+    // Acá ignoramos el caché vacío inicial y solo hacemos caso al dato del SERVIDOR;
+    // un error de red/permiso tampoco esconde (queda el estado optimista).
+    (function esperarFB(intentos) {
       if (window.GDO && GDO.FB && GDO.FB.ready) {
         GDO.FB.ready.then(function () {
           if (!GDO.FB.db) return;
-          GDO.FB.db.collection('club_config').doc('flags').get()
-            .then(function (d) {
+          try {
+            GDO.FB.db.collection('club_config').doc('flags').onSnapshot(function (d) {
+              if (d.metadata && d.metadata.fromCache && !d.exists) return; // caché local vacío: no esconder
               var on = d.exists && d.data().activo === true;
               aplicar(on);
               try { localStorage.setItem('gdo_club_activo', on ? '1' : '0'); } catch (e) {}
-            })
-            // un error puntual NO esconde el club: reintenta un par de veces
-            .catch(function () { if (intentos < 3) setTimeout(function () { leerFlag(intentos + 1); }, 500); });
+            }, function () { /* error: no esconder, queda el optimista */ });
+          } catch (e) {}
         });
       } else if (intentos < 40) {
-        setTimeout(function () { leerFlag(intentos + 1); }, 150);   // Firebase aún no cargó: reintentar
+        setTimeout(function () { esperarFB(intentos + 1); }, 150);   // Firebase aún no cargó: reintentar
       }
     })(0);
   })();

@@ -275,7 +275,7 @@ td.l{color:#3a4048}
       <span class="gc-txt"><b>Minorista</b><small>Precios al p&uacute;blico &middot; retiro o env&iacute;o a domicilio</small></span>
       <span class="gc-arr">&rsaquo;</span>
     </a>
-    <div id="clubChooserBox" style="display:none;margin-top:4px">
+    <div id="clubChooserBox" style="display:block;margin-top:4px">
       <a class="gc-opt" href="club.html" style="background:#0a0a0b;border-color:#F58220">
         <span class="gc-ico">&#x2B50;</span>
         <span class="gc-txt"><b style="color:#fff">GDO CLUB</b><small style="color:#bdbdbd">Asociate gratis y sum&aacute; puntos con tus compras</small></span>
@@ -1471,24 +1471,20 @@ window.GDO = window.GDO || {};
       if (!activo) { var n = document.getElementById('clubNote'); if (n) n.style.display = 'none'; }
       try { if (GDO.FB && GDO.FB.user !== undefined) GDO.clubUI(GDO.FB.user && !GDO.FB.user.isAnonymous ? GDO.FB.user : null); } catch (e) {}
     }
-    // Estado optimista desde caché: muestra el botón al instante al recargar (p. ej.
-    // al volver desde club.html) sin parpadeo.
-    try { if (localStorage.getItem('gdo_club_activo') === '1') aplicar(true); } catch (e) {}
-    // Listener EN VIVO del flag. Clave: con persistencia offline, un .get() podía
-    // devolver el doc desde el caché LOCAL vacío (existe=false) y esconder el botón.
-    // Acá ignoramos el caché vacío inicial y solo hacemos caso al dato del SERVIDOR;
-    // un error de red/permiso tampoco esconde (queda el estado optimista).
+    // El botón del Club arranca VISIBLE (#clubChooserBox = display:block). Solo lo
+    // ESCONDEMOS si el SERVIDOR confirma que el club está apagado. Así, aunque la
+    // lectura de Firestore falle o tarde (App Check / caché offline / sesión socio),
+    // el botón nunca desaparece estando el club activo. Si lo apagás desde el panel,
+    // el listener en vivo lo esconde solo.
     (function esperarFB(intentos) {
       if (window.GDO && GDO.FB && GDO.FB.ready) {
         GDO.FB.ready.then(function () {
           if (!GDO.FB.db) return;
           try {
             GDO.FB.db.collection('club_config').doc('flags').onSnapshot(function (d) {
-              if (d.metadata && d.metadata.fromCache && !d.exists) return; // caché local vacío: no esconder
-              var on = d.exists && d.data().activo === true;
-              aplicar(on);
-              try { localStorage.setItem('gdo_club_activo', on ? '1' : '0'); } catch (e) {}
-            }, function () { /* error: no esconder, queda el optimista */ });
+              if (d.metadata && d.metadata.fromCache) return;   // SOLO datos del servidor
+              aplicar(d.exists && d.data().activo === true);
+            }, function () { /* error: no tocamos nada → el botón queda visible */ });
           } catch (e) {}
         });
       } else if (intentos < 40) {

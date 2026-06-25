@@ -1471,14 +1471,27 @@ window.GDO = window.GDO || {};
       if (!activo) { var n = document.getElementById('clubNote'); if (n) n.style.display = 'none'; }
       try { if (GDO.FB && GDO.FB.user !== undefined) GDO.clubUI(GDO.FB.user && !GDO.FB.user.isAnonymous ? GDO.FB.user : null); } catch (e) {}
     }
-    if (window.GDO && GDO.FB && GDO.FB.ready) {
-      GDO.FB.ready.then(function () {
-        if (!GDO.FB.db) { aplicar(false); return; }
-        GDO.FB.db.collection('club_config').doc('flags').get()
-          .then(function (d) { aplicar(d.exists && d.data().activo === true); })
-          .catch(function () { aplicar(false); });
-      });
-    } else { aplicar(false); }
+    // Estado optimista desde caché: evita que el botón parpadee o DESAPAREZCA al
+    // recargar (p. ej. al volver desde club.html) si la lectura tarda o el setup de
+    // Firebase todavía no cargó cuando corre este código.
+    try { if (localStorage.getItem('gdo_club_activo') === '1') aplicar(true); } catch (e) {}
+    (function leerFlag(intentos) {
+      if (window.GDO && GDO.FB && GDO.FB.ready) {
+        GDO.FB.ready.then(function () {
+          if (!GDO.FB.db) return;
+          GDO.FB.db.collection('club_config').doc('flags').get()
+            .then(function (d) {
+              var on = d.exists && d.data().activo === true;
+              aplicar(on);
+              try { localStorage.setItem('gdo_club_activo', on ? '1' : '0'); } catch (e) {}
+            })
+            // un error puntual NO esconde el club: reintenta un par de veces
+            .catch(function () { if (intentos < 3) setTimeout(function () { leerFlag(intentos + 1); }, 500); });
+        });
+      } else if (intentos < 40) {
+        setTimeout(function () { leerFlag(intentos + 1); }, 150);   // Firebase aún no cargó: reintentar
+      }
+    })(0);
   })();
 
   var _send=window.sendWhatsApp;

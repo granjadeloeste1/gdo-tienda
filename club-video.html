@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>GDO CLUB — Explicador</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,"Segoe UI",Arial,sans-serif}
+  :root{--naranja:#F58220}
+  html,body{height:100%;overflow:hidden;background:#0a0a0b}
+  /* Lienzo 16:9 que llena el recuadro del video. */
+  .stage{position:relative;width:100%;height:100%;overflow:hidden}
+  .scene{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+         gap:6%;padding:0 7%;text-align:center;opacity:0;transform:translateY(2%);
+         transition:opacity .5s ease, transform .5s ease}
+  .scene.on{opacity:1;transform:none}
+  .col{display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .brandbar{position:absolute;bottom:0;left:0;right:0;height:1.2%;background:var(--naranja)}
+  .glow{filter:drop-shadow(0 0 1.5vw rgba(245,130,32,.85)) drop-shadow(0 0 3vw rgba(245,130,32,.5))}
+  .iso{height:66%;width:auto}
+  .club{font-weight:900;letter-spacing:.5vw;font-size:6.6vw;color:#fff;white-space:nowrap;line-height:1;
+        text-shadow:0 0 1.6vw rgba(245,130,32,.85),0 0 3.4vw rgba(245,130,32,.5)}
+  .club .o{color:var(--naranja)}
+  .sub{color:#d6d9dd;font-size:3vw;line-height:1.45;margin-top:2.2vh;max-width:42vw}
+  h2{color:#fff;font-size:5.6vw;line-height:1.1;white-space:nowrap}
+  h2.wrap{white-space:normal;max-width:46vw}
+  h2 .o{color:var(--naranja)}
+  .nb{white-space:nowrap}
+  .big{font-weight:900;color:var(--naranja);font-size:11vw;line-height:1;text-shadow:0 0 2vw rgba(245,130,32,.5)}
+  .pill{display:inline-flex;align-items:center;gap:1vw;background:rgba(245,130,32,.14);color:var(--naranja);
+        font-weight:800;border-radius:30px;padding:1.2vh 2.4vw;font-size:3.2vw;margin-top:2vh}
+  .chips{display:flex;gap:2vw;margin-top:3vh;justify-content:center}
+  .chip{display:flex;align-items:center;gap:1.4vw;background:#161619;border:1px solid #26262b;border-radius:1.4vw;
+        padding:1.6vh 1.6vw;text-align:left;max-width:30vw}
+  .chip .ic{font-size:4.4vw;flex:none} .chip b{color:#fff;font-size:2.5vw;display:block;line-height:1.15}
+  .chip span{color:#9aa1aa;font-size:1.9vw}
+  /* Credencial (look real) */
+  .carnet{position:relative;width:46%;aspect-ratio:1.62/1;background:linear-gradient(135deg,#26262b,#0a0a0b 60%);
+          border:1px solid #2c2c31;border-radius:1.6vw;padding:2.4%;display:flex;overflow:hidden;flex:none}
+  .carnet::before{content:'';position:absolute;left:0;top:0;bottom:0;width:1.2%;background:var(--naranja)}
+  .carnet .l{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .carnet .cc{font-weight:900;letter-spacing:.3vw;font-size:2.3vw;color:#fff;white-space:nowrap;text-shadow:0 0 1vw rgba(245,130,32,.7)}
+  .carnet .cc .o{color:var(--naranja)}
+  .carnet img{height:34%;margin-top:4%;filter:drop-shadow(0 0 1vw rgba(245,130,32,.8))}
+  .carnet .r{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between}
+  .carnet .tag{font-size:1.4vw;letter-spacing:.2vw;color:var(--naranja);border:1px solid var(--naranja);border-radius:20px;padding:.4vh 1vw}
+  .carnet .pts b{color:var(--naranja);font-weight:900;font-size:3.4vw;display:block;text-align:right;line-height:1}
+  .carnet .pts span{font-size:1.2vw;color:#9aa1aa;letter-spacing:.1vw}
+  .site{margin-top:3vh;color:#9aa1aa;font-size:3vw;letter-spacing:.3vw} .site b{color:#fff}
+  @keyframes pop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.07)}100%{transform:scale(1);opacity:1}}
+  .pop{animation:pop .6s ease both}
+</style>
+</head>
+<body>
+<div class="stage">
+  <!-- 1 INTRO (gallo | texto) -->
+  <div class="scene" data-s="0">
+    <img class="iso glow pop" src="assets/isotipo-blanco.svg" alt="GDO"/>
+    <div class="col" style="align-items:flex-start;text-align:left">
+      <div class="club">GDO <span class="o">CLUB</span></div>
+      <div class="sub" style="text-align:left">Tus compras ahora <b style="color:#fff">te rinden más</b>.</div>
+    </div>
+  </div>
+  <!-- 2 COMPRA -->
+  <div class="scene" data-s="1"><div class="col">
+    <h2>Comprá como <span class="o">siempre</span></h2>
+    <div class="chips">
+      <div class="chip"><span class="ic">🍗</span><div><b>Pollo y milanesas</b><span>toda la mercadería</span></div></div>
+      <div class="chip"><span class="ic">🥚</span><div><b>Huevos y más</b><span>retiro o envío</span></div></div>
+      <div class="chip"><span class="ic">🛒</span><div><b>Tu pedido</b><span>como siempre</span></div></div>
+    </div>
+  </div></div>
+  <!-- 3 PUNTOS -->
+  <div class="scene" data-s="2"><div class="col">
+    <h2>Y <span class="o">sumás puntos</span></h2>
+    <div style="display:flex;align-items:center;gap:2vw;margin-top:2vh">
+      <div class="big pop"><span id="cnt">$100</span></div>
+      <div class="pill pop" style="margin-top:0">= 1 Punto GDO ⭐</div>
+    </div>
+    <div class="sub">Cada <b style="color:#fff">$100</b> que gastás, <b style="color:#fff">1 punto</b>. Así de fácil.</div>
+  </div></div>
+  <!-- 4 ASOCIATE (texto | credencial) -->
+  <div class="scene" data-s="3">
+    <div class="col" style="align-items:flex-start;text-align:left">
+      <h2 class="wrap" style="text-align:left">Asociate <span class="o">gratis</span></h2>
+      <div class="sub" style="text-align:left">Tus puntos quedan en tu credencial digital.</div>
+    </div>
+    <div class="carnet pop">
+      <div class="l"><div class="cc">GDO <span class="o">CLUB</span></div><img src="assets/isotipo-blanco.svg" alt="GDO"/></div>
+      <div class="r"><span class="tag">MIEMBRO</span><div class="pts"><b>1.250</b><span>PUNTOS GDO</span></div></div>
+    </div>
+  </div>
+  <!-- 5 BENEFICIOS -->
+  <div class="scene" data-s="4"><div class="col">
+    <h2>Grandes <span class="o">beneficios</span></h2>
+    <div class="chips">
+      <div class="chip"><span class="ic">🎁</span><div><b>Productos de regalo</b><span>de nuestra mercadería</span></div></div>
+      <div class="chip"><span class="ic">🏷️</span><div><b>Descuentos</b><span>en tus próximas compras</span></div></div>
+    </div>
+  </div></div>
+  <!-- 6 CTA (gallo | texto) -->
+  <div class="scene" data-s="5">
+    <img class="iso glow pop" src="assets/isotipo-blanco.svg" alt="GDO" style="height:56%"/>
+    <div class="col" style="align-items:flex-start;text-align:left">
+      <h2 class="wrap" style="text-align:left">Hacete socio del <span class="o nb">GDO CLUB</span></h2>
+      <div class="site">📲 <b>lista.granjadeloeste.com</b></div>
+    </div>
+  </div>
+  <div class="brandbar"></div>
+</div>
+<script>
+  var scenes=[].slice.call(document.querySelectorAll('.scene'));
+  var DUR=[3200,3600,3600,3600,3400,3600];
+  var i=-1;
+  function show(n){
+    scenes.forEach(function(s){ s.classList.remove('on'); });
+    var sc=scenes[n]; sc.classList.add('on');
+    sc.querySelectorAll('.pop').forEach(function(el){ el.style.animation='none'; void el.offsetWidth; el.style.animation=''; });
+    if(n===2) animaCount();
+  }
+  function next(){ i=(i+1)%scenes.length; show(i); setTimeout(next, DUR[i]); }
+  function animaCount(){ var el=document.getElementById('cnt'); if(!el) return; var v=0;
+    var t=setInterval(function(){ v+=20; if(v>=100){v=100;clearInterval(t);} el.textContent='$'+v; }, 18); }
+  var _qs=(location.search+location.hash).match(/s=(\d)/);
+  if(_qs){ show(parseInt(_qs[1],10)); } else { next(); }
+</script>
+</body>
+</html>

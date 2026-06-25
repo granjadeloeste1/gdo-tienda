@@ -10,23 +10,26 @@
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin/>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-  :root{ --naranja:#F58220; --tinta:#1a1a1a; --gris:#5b6470; --linea:#e6e8eb; --ok:#1e8449; }
+  :root{ --naranja:#F58220; --tinta:#ffffff; --gris:#9aa1aa; --linea:#2c2c31; --ok:#2bbd6e;
+         --surf:#161619; --surf2:#1f1f24; }
   body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-        background:#f4f5f7; color:var(--tinta); -webkit-font-smoothing:antialiased; }
-  .hdr{ background:#111; color:#fff; padding:14px 16px; position:sticky; top:0; z-index:10; border-bottom:3px solid var(--naranja); }
+        background:#0a0a0b; color:var(--tinta); -webkit-font-smoothing:antialiased; }
+  .hdr{ background:#0a0a0b; color:#fff; padding:14px 16px; position:sticky; top:0; z-index:10; border-bottom:3px solid var(--naranja); }
   .hn{ max-width:680px; margin:0 auto; display:flex; align-items:center; gap:12px; }
-  .hn .logo{ height:32px; width:auto; display:block; }
+  /* Isotipo del gallo dentro de un círculo (mismo header que las listas de precio) */
+  .hn .lg{ width:38px; height:38px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 0 0 2px rgba(245,130,32,.6); }
+  .hn .lg img{ width:26px; height:26px; display:block; }
   .hn b{ font-size:18px; letter-spacing:.5px; }
   .hn .pts{ margin-left:auto; font-size:13px; background:var(--naranja); color:#111; padding:5px 11px; border-radius:20px; font-weight:800; }
   .wrap{ max-width:680px; margin:0 auto; padding:16px; }
-  .card{ background:#fff; border:1px solid var(--linea); border-radius:14px; padding:18px; margin:14px 0; box-shadow:0 1px 3px rgba(0,0,0,.04); }
-  h1{ font-size:23px; line-height:1.25; margin-bottom:6px; }
-  h2{ font-size:16px; margin:0 0 10px; }
+  .card{ background:var(--surf); border:1px solid var(--linea); border-radius:14px; padding:18px; margin:14px 0; box-shadow:0 6px 20px rgba(0,0,0,.4); }
+  h1{ font-size:23px; line-height:1.25; margin-bottom:6px; color:#fff; }
+  h2{ font-size:16px; margin:0 0 10px; color:#fff; }
   p{ line-height:1.5; }
   .muted{ color:var(--gris); } .small{ font-size:13px; }
-  .hero{ background:#111; color:#fff; border:0; border-top:4px solid var(--naranja); }
+  .hero{ background:linear-gradient(135deg,#26262b 0%,#0a0a0b 70%); color:#fff; border:1px solid #2c2c31; border-top:4px solid var(--naranja); }
   .hero h1{ font-size:26px; } .hero p{ color:#d6d9dd; margin-top:6px; }
-  .hero .marca{ color:var(--naranja); }
+  .hero .marca{ color:var(--naranja); text-shadow:0 0 12px rgba(245,130,32,.7); }
   /* Tarjeta de socio virtual — logo grande centrado entre GDO CLUB y SOCIO N° */
   .carnet{ position:relative; overflow:hidden; aspect-ratio:1.58/1; max-width:400px; margin:0 auto;
            background:linear-gradient(135deg,#26262b 0%,#0a0a0b 60%); color:#fff; border:1px solid #2c2c31;
@@ -52,52 +55,54 @@
   .btn{ display:inline-block; width:100%; background:var(--naranja); color:#fff; border:0; border-radius:10px;
         padding:13px; font-size:15px; font-weight:700; cursor:pointer; text-align:center; }
   .btn:disabled{ opacity:.5; cursor:default; }
-  .btn-2{ background:#fff; color:var(--naranja); border:2px solid var(--naranja); }
+  .btn-2{ background:transparent; color:var(--naranja); border:2px solid var(--naranja); }
   .btn-g{ background:none; color:var(--gris); border:0; font-weight:600; cursor:pointer; padding:8px; width:auto; }
   label{ display:block; font-size:13px; color:var(--gris); margin:10px 0 4px; font-weight:600; }
-  input{ width:100%; padding:12px; border:1px solid #cfd4da; border-radius:10px; font-size:15px; }
-  input:focus{ outline:0; border-color:var(--naranja); }
+  input{ width:100%; padding:12px; border:1px solid #3a3a42; border-radius:10px; font-size:15px; background:#101013; color:#fff; }
+  input::placeholder{ color:#6b7280; }
+  input:focus{ outline:0; border-color:var(--naranja); box-shadow:0 0 0 3px rgba(245,130,32,.15); }
   .pts-big{ font-size:42px; font-weight:900; color:var(--naranja); line-height:1; }
   .premio{ display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--linea); }
   .premio:last-child{ border-bottom:0; }
   .premio .ico{ font-size:26px; }
-  .premio .info{ flex:1; } .premio .info b{ display:block; }
-  .premio .costo{ font-size:12px; color:var(--gris); }
+  .premio .info{ flex:1; } .premio .info b{ display:block; color:#fff; }
+  .premio .costo{ font-size:12px; color:var(--naranja); font-weight:700; }
   .premio button{ background:var(--naranja); color:#fff; border:0; border-radius:8px; padding:8px 14px; font-weight:700; cursor:pointer; font-size:13px; white-space:nowrap; }
   .premio button:disabled{ background:#cfd4da; cursor:default; }
   /* ── Premios estilo tarjeta + barra de progreso (look fidelización premium) ── */
   .sec-t{ display:flex; align-items:center; gap:8px; font-size:16px; margin:0 0 12px; font-weight:800; }
   .sec-t::before{ content:''; width:4px; height:18px; background:var(--naranja); border-radius:3px; }
-  .prm{ background:#fff; border:1px solid var(--linea); border-radius:14px; padding:13px; margin-bottom:10px; transition:transform .12s, box-shadow .15s; }
+  .prm{ background:var(--surf2); border:1px solid var(--linea); border-radius:14px; padding:13px; margin-bottom:10px; transition:transform .12s, box-shadow .15s; }
   .prm:last-child{ margin-bottom:0; }
-  .prm.on{ border-color:#f3cda0; box-shadow:0 5px 16px rgba(245,130,32,.13); }
+  .prm.on{ border-color:var(--naranja); box-shadow:0 5px 18px rgba(245,130,32,.25); }
+  .prm.locked{ opacity:.55; filter:grayscale(.7); }
   .prm:active{ transform:scale(.99); }
   .prm-top{ display:flex; align-items:center; gap:12px; }
-  .prm-ico{ font-size:28px; width:50px; height:50px; display:flex; align-items:center; justify-content:center; background:#faf2e9; border-radius:12px; flex-shrink:0; }
+  .prm-ico{ font-size:28px; width:50px; height:50px; display:flex; align-items:center; justify-content:center; background:rgba(245,130,32,.16); border-radius:12px; flex-shrink:0; }
   .prm-info{ flex:1; min-width:0; }
-  .prm-info b{ display:block; font-size:15px; line-height:1.25; }
+  .prm-info b{ display:block; font-size:15px; line-height:1.25; color:#fff; }
   .prm-cost{ font-size:12px; color:var(--naranja); font-weight:800; letter-spacing:.2px; }
   .prm-btn{ background:var(--naranja); color:#fff; border:0; border-radius:10px; padding:10px 16px; font-weight:800; cursor:pointer; font-size:13px; white-space:nowrap; box-shadow:0 2px 8px rgba(245,130,32,.35); }
   .prm-falta{ font-size:11px; color:var(--gris); white-space:nowrap; text-align:right; font-weight:700; line-height:1.3; }
-  .pbar{ height:6px; background:#eef0f2; border-radius:6px; margin-top:11px; overflow:hidden; }
+  .pbar{ height:6px; background:#2c2c31; border-radius:6px; margin-top:11px; overflow:hidden; }
   .pbar i{ display:block; height:100%; width:0; background:linear-gradient(90deg,#F9A24A,#F58220); border-radius:6px; transition:width .5s ease; }
   .prm.on .pbar i{ background:linear-gradient(90deg,#2bbd6e,#1e8449); }
   .vid{ position:relative; padding-top:56.25%; border-radius:12px; overflow:hidden; margin:10px 0; background:#000; }
   .vid iframe{ position:absolute; inset:0; width:100%; height:100%; border:0; }
   .err{ background:#fdecea; color:#b93a2b; border-radius:8px; padding:10px; font-size:13px; margin:8px 0; }
   .ok{ background:#eafaf1; color:var(--ok); border-radius:8px; padding:10px; font-size:13px; margin:8px 0; }
-  .chip{ display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px; background:#eef0f2; color:var(--gris); }
-  .foot{ text-align:center; font-size:11px; color:#9aa1aa; padding:18px 10px 28px; }
+  .chip{ display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px; background:#2c2c31; color:#cfd2d6; }
+  .foot{ text-align:center; font-size:11px; color:#777; padding:18px 10px 28px; }
   .tabs{ display:flex; gap:8px; margin-bottom:10px; }
-  .tabs button{ flex:1; background:#eef0f2; border:0; border-radius:8px; padding:9px; font-weight:700; color:var(--gris); cursor:pointer; }
-  .tabs button.on{ background:var(--naranja); color:#fff; }
+  .tabs button{ flex:1; background:#26262b; border:0; border-radius:8px; padding:9px; font-weight:700; color:#cfd2d6; cursor:pointer; }
+  .tabs button.on{ background:var(--naranja); color:#111; }
   a.volver{ color:var(--naranja); font-weight:700; text-decoration:none; }
 </style>
 </head>
 <body>
 <header class="hdr">
   <div class="hn">
-    <img class="logo" src="assets/isotipo-blanco.svg" alt="Granja del Oeste"/>
+    <span class="lg"><img src="assets/isotipo-color.svg" alt="GDO"/></span>
     <b>GDO CLUB</b>
     <span class="pts" id="hdrPts" style="display:none"></span>
   </div>
@@ -137,12 +142,52 @@
     // 'https://www.youtube.com/embed/XXXXXXXXXXX'
   ];
 
-  // Premios de EJEMPLO para la vista pública (incentivo). El catálogo real sale
-  // de Firestore cuando el socio entra.
-  var EJEMPLOS = [
-    { ico:'🍔', nombre:'1 kg de hamburguesas de pollo', costo:500000 },
-    { ico:'🥩', nombre:'2 kg de milanesa', costo:750000 },
+  // Versión de los Términos aceptados (subir si cambian, para saber qué aceptó cada socio).
+  var TYC_VERSION = '2026-06';
+  // Términos y Condiciones del GDO CLUB (esquema: $100 = 1 Punto; ~2% de devolución).
+  var TYC_HTML =
+    '<ol style="margin:8px 0 0 18px;padding:0;font-size:12.5px;line-height:1.6;color:#cdd0d5">'+
+      '<li><b>Qué es.</b> GDO CLUB es un programa de fidelización gratuito y voluntario para clientes de Granja del Oeste.</li>'+
+      '<li><b>Puntos.</b> Se acreditan únicamente sobre compras efectivas, cargados por el personal. Razón vigente: <b>$100 = 1 Punto GDO</b> (puede cambiar). No se acreditan compras anteriores al alta.</li>'+
+      '<li><b>Sin valor monetario.</b> Los puntos no son dinero, no se canjean por efectivo, no se transfieren entre socios ni se acumulan con otras promociones salvo aviso.</li>'+
+      '<li><b>Productos sin puntos.</b> Algunos productos no acumulan puntos (por ahora: <b>cajón de pollo</b> y <b>cajón de huevos</b>). GDO puede modificar esta lista cuando lo necesite.</li>'+
+      '<li><b>Un premio por mes.</b> Cada premio se puede canjear <b>una vez por mes calendario</b> por socio (mientras tengas los puntos). Tras canjearlo, ese premio queda deshabilitado hasta el mes siguiente.</li>'+
+      '<li><b>Premios.</b> Sujetos a disponibilidad/stock. GDO puede agregar, modificar, discontinuar o cambiar el costo en puntos de cualquier premio sin aviso previo.</li>'+
+      '<li><b>El programa puede cambiar.</b> GDO puede modificar el sistema de puntos, suspender o dar de baja el programa en cualquier momento. Ante la baja se dará un plazo razonable para canjear los puntos vigentes.</li>'+
+      '<li><b>Vencimiento.</b> Los puntos vencen a los <b>12 meses</b> de acreditados si no se usan.</li>'+
+      '<li><b>Canje y entrega.</b> Cada canje genera un voucher de un solo uso que <b>vence a los 30 días</b> de emitido; una vez usado o vencido no se reintegra. Las copias no tienen validez (el primero en escanearse anula al resto). El premio se retira en el local; si se solicita con envío a domicilio, se entrega junto con la próxima compra y como adicional al pedido, y aplican las condiciones de envío vigentes (monto mínimo de compra y costo de envío según la zona, si corresponde).</li>'+
+      '<li><b>Uso indebido.</b> GDO puede anular puntos o la cuenta ante datos falsos, fraude, multicuentas o intentos de manipular el sistema.</li>'+
+      '<li><b>Datos personales.</b> Se guardan tu nombre y datos de contacto para operar el club (Ley 25.326). Podés pedir la baja y eliminación de tus datos cuando quieras.</li>'+
+      '<li><b>Elegibilidad.</b> Mayores de 18 años. Una cuenta por persona.</li>'+
+      '<li><b>Aceptación.</b> Asociarte implica aceptar estos Términos y Condiciones.</li>'+
+    '</ol>';
+
+  // PREGUNTAS FRECUENTES — embebidas (offline, no salen de la base). Se ven antes de
+  // asociarse (vista pública) y después (cuenta del socio). Acordeón <details> nativo.
+  var FAQ = [
+    ['¿Cuánto cuesta asociarse al GDO CLUB?', 'Nada, es <b>totalmente gratis</b>. Te asociás en un minuto y empezás a sumar puntos con tus compras.'],
+    ['¿Cómo sumo Puntos GDO?', 'Por cada <b>$100</b> de compra sumás <b>1 Punto GDO</b>. Los carga el personal cuando comprás (en el local o por envío): mostrá tu credencial o escaneá el código del mostrador.'],
+    ['¿Todos los productos suman puntos?', 'Casi todos. Por ahora <b>NO suman puntos</b> el <b>cajón de pollo</b> ni el <b>cajón de huevos</b>; el resto de tu compra sí. Esta lista puede cambiar.'],
+    ['¿Cómo canjeo un premio?', 'En <b>“Premios para canjear”</b> tocás <b>Canjear</b>: se descuentan tus puntos y te generamos un <b>voucher con código</b>. Lo mostrás en el local y te lo entregamos. Queda guardado en <b>“Mis canjes”</b>.'],
+    ['¿El premio me lo pueden llevar a domicilio?', 'El premio se canjea y se retira en el <b>local</b>. Si lo querés con <b>envío a domicilio</b>, se entrega junto con tu <b>próxima compra</b> y como un <b>adicional</b> al pedido (no reemplaza la compra). Para tener envío rigen las reglas de siempre: <b>monto mínimo</b> de compra y <b>costo de envío</b> según la zona, si corresponde.'],
+    ['¿Puedo canjear el mismo premio varias veces?', 'Cada premio se puede canjear <b>una vez por mes calendario</b>. Después de canjearlo queda en gris hasta que empiece el mes siguiente. Igual podés canjear <b>otros</b> premios distintos en el mismo mes.'],
+    ['¿El voucher de un premio vence?', 'Sí: una vez que canjeás un premio, tenés <b>30 días</b> para usar el voucher en el local. Pasado ese plazo vence y no se reintegra (los puntos ya descontados no vuelven).'],
+    ['¿Los puntos vencen?', 'Sí: vencen a los <b>12 meses</b> de acreditados si no los usás. Conviene canjearlos antes.'],
+    ['¿Puedo pasarle mis puntos a otra persona o cambiarlos por plata?', 'No. Los puntos son <b>personales e intransferibles</b> y no se cambian por dinero ni se acumulan con otras promociones.'],
+    ['¿Dónde veo mis puntos?', 'En tu cuenta del Club, arriba en tu credencial. Se actualizan solos cada vez que el local te carga una compra.'],
+    ['¿Sumo puntos en pedidos por envío?', 'Sí, sumás en compras en el <b>local</b> y en <b>pedidos a domicilio</b> por igual.'],
+    ['¿Los premios y los puntos pueden cambiar?', 'Sí. Los premios dependen del <b>stock</b> y GDO puede agregar, sacar o cambiar su costo en puntos. El sistema de puntos también puede ajustarse. Siempre te mostramos los valores vigentes.'],
+    ['¿Qué necesito para asociarme?', 'Nombre y apellido, DNI, dirección, teléfono y email. Tenés que ser <b>mayor de 18 años</b> y se permite <b>una cuenta por persona</b>.'],
+    ['Olvidé mi contraseña, ¿qué hago?', 'En la pestaña <b>“Ya soy socio”</b> tocá <b>“Olvidé mi contraseña”</b> y te llega un mail para recuperarla.'],
+    ['¿Cómo doy de baja mi cuenta o mis datos?', 'Escribinos por WhatsApp y damos de baja tu cuenta y tus datos cuando quieras.'],
   ];
+  var FAQ_HTML = FAQ.map(function(f){
+    return '<details style="border-bottom:1px solid var(--linea,#eee);padding:11px 2px">'+
+             '<summary style="cursor:pointer;font-weight:700;font-size:14px;color:#fff">'+f[0]+'</summary>'+
+             '<div style="margin-top:7px;font-size:13px;color:#b9bdc4;line-height:1.55">'+f[1]+'</div>'+
+           '</details>';
+  }).join('');
+  function faqCard(){ return '<div class="card"><h2 class="sec-t">❓ Preguntas frecuentes</h2>'+FAQ_HTML+'</div>'; }
 
   var esc = function (s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
   var fmt = function (n){ return Number(n||0).toLocaleString('es-AR'); };
@@ -165,16 +210,20 @@
 
   // ¿El club está activo? (doc club_config/flags {activo}, lo prende el personal)
   // Si no hay doc o falla la lectura → tratamos como DESACTIVADO (no publicar a medias).
+  var clubCanjeActivo = false;   // ¿el canje está habilitado? (modo intriga = false → "muy pronto")
   function checkClubActivo(cb) {
     db.collection('club_config').doc('flags').get()
-      .then(function (d) { cb(d.exists && d.data().activo === true); })
-      .catch(function () { cb(false); });
+      .then(function (d) {
+        clubCanjeActivo = !!(d.exists && d.data().canjeActivo === true);
+        cb(d.exists && d.data().activo === true);
+      })
+      .catch(function () { clubCanjeActivo = false; cb(false); });
   }
   function vistaProximamente() {
     app.innerHTML = '<div class="card" style="text-align:center;padding:34px 22px">' +
       '<div style="font-size:48px">🐔</div>' +
       '<h2 style="margin:12px 0 8px">GDO CLUB</h2>' +
-      '<p style="color:#555;line-height:1.5;margin:0">¡Muy pronto! Estamos terminando de preparar nuestro programa de socios. Volvé en unos días.</p>' +
+      '<p style="color:#c9ccd1;line-height:1.5;margin:0">¡Muy pronto! Estamos terminando de preparar nuestro programa de socios. Volvé en unos días.</p>' +
       '</div>';
   }
 
@@ -195,23 +244,25 @@
     var vids = VIDEOS.length
       ? VIDEOS.map(function(u){ return '<div class="vid"><iframe src="'+esc(u)+'" allowfullscreen></iframe></div>'; }).join('')
       : '<p class="muted small">📹 Acá van a ir los videos del Club (los cargás vos desde el panel).</p>';
-    var ej = EJEMPLOS.map(function(p){
-      return '<div class="premio"><span class="ico">'+p.ico+'</span><div class="info"><b>'+esc(p.nombre)+'</b><span class="costo">'+fmt(p.costo)+' Puntos GDO</span></div></div>';
-    }).join('');
     var avisoLocal = enLocal
       ? '<div class="card ok" style="text-align:center;margin-top:14px">📍 <b>Estás en el local.</b> Iniciá sesión o asociate para sumar los Puntos GDO de tu compra.</div>'
       : '';
     app.innerHTML =
       '<div class="card hero"><h1>Hacete socio de <span class="marca">GDO CLUB</span></h1>'+
-        '<p>Obtené beneficios y descuentos con tus compras. Por cada <b>$1</b> que gastás sumás <b>1 Punto GDO</b>, y los canjeás por premios. 🎁</p></div>'+
+        '<p>Obtené beneficios y descuentos con tus compras. Por cada <b>$100</b> que gastás sumás <b>1 Punto GDO</b>, y los canjeás por premios. 🎁</p></div>'+
       avisoLocal+
       '<div class="card">'+
         '<div class="tabs"><button id="tLogin" class="on" type="button">Ya soy socio</button><button id="tReg" type="button">Quiero asociarme</button></div>'+
         '<div id="formBox"></div>'+
       '</div>'+
       '<div class="card"><h2>📹 Mirá de qué se trata</h2>'+vids+'</div>'+
-      '<div class="card"><h2>🎁 Ejemplos de premios</h2>'+ej+
-        '<p class="muted small" style="margin-top:8px">* Los premios y los puntos se actualizan desde el panel. Asociate para ver el catálogo completo.</p></div>'+
+      '<div class="card"><h2 class="sec-t">🎁 ¿Por qué hacerte socio?</h2>'+
+        '<p style="line-height:1.65;color:#e6e8eb;margin-bottom:12px">Con el <b style="color:#F58220">GDO CLUB</b> hacés que cada compra <b>te rinda más</b>: elegí Granja del Oeste, sumá <b>Puntos GDO</b> y, muy pronto, vas a poder canjearlos por <b>productos</b> y <b>descuentos</b> en tus próximas compras. 🐔</p>'+
+        '<div class="premio"><span class="ico">⭐</span><div class="info"><b>Sumás puntos en cada compra</b><span class="costo">eligiendo Granja del Oeste</span></div></div>'+
+        '<div class="premio"><span class="ico">🎁</span><div class="info"><b>Canjeás por productos</b><span class="costo">de nuestra mercadería</span></div></div>'+
+        '<div class="premio"><span class="ico">🏷️</span><div class="info"><b>O por descuentos</b><span class="costo">en tus próximas compras</span></div></div>'+
+      '</div>'+
+      faqCard()+
       '<div class="card" style="text-align:center"><a class="volver" href="index.html">← Volver a la lista de precios</a></div>';
     document.getElementById('tLogin').onclick = function(){ setTab('login'); };
     document.getElementById('tReg').onclick = function(){ setTab('reg'); };
@@ -241,6 +292,12 @@
         '<label>Email *</label><input id="email" type="email" autocomplete="email" placeholder="tucorreo@ejemplo.com"/>'+
         '<label>Contraseña (mín. 6) *</label><input id="pass" type="password" autocomplete="new-password" placeholder="Creá una contraseña"/>'+
         '<div class="small muted" style="margin-top:8px">* Todos los datos son obligatorios.</div>'+
+        '<details class="tyc" style="margin-top:12px;border:1px solid var(--linea,#e6e8eb);border-radius:9px;padding:10px 12px">'+
+          '<summary style="cursor:pointer;font-weight:700;font-size:13px">📄 Términos y Condiciones del GDO CLUB</summary>'+TYC_HTML+'</details>'+
+        '<p class="small muted" style="margin-top:8px;font-size:11.5px;line-height:1.5">🔒 Usamos tus datos <b>solo</b> para administrar el Club: identificarte, contactarte y validar tus canjes. <b>No los compartimos ni vendemos.</b> Podés pedir la baja y la eliminación cuando quieras (Ley 25.326).</p>'+
+        '<label style="display:flex;align-items:flex-start;gap:9px;margin-top:10px;font-size:13px;cursor:pointer">'+
+          '<input id="acepto" type="checkbox" style="margin-top:3px;width:18px;height:18px;flex:none"/>'+
+          '<span>Leí y acepto los <b>Términos y Condiciones</b> del GDO CLUB.</span></label>'+
         '<div style="height:12px"></div><button class="btn" id="goReg" type="button">Crear mi cuenta de socio</button>';
       document.getElementById('goReg').onclick = doRegistro;
     }
@@ -275,11 +332,17 @@
         return tx.get(cref).then(function(c){
           var n = (c.exists ? (c.data().n||0) : 0) + 1;
           if (c.exists) tx.update(cref, {n:n}); else tx.set(cref, {n:n});
-          tx.set(uref, {
+          var perfil = {
             nombre: datos.nombre||'', email: datos.email||'',
             dni: datos.dni||'', direccion: datos.direccion||'', telefono: datos.telefono||'',
             puntos:0, nroSocio:n, creado: firebase.firestore.FieldValue.serverTimestamp()
-          });
+          };
+          if (datos.aceptoTerminos) {            // queda registrado qué versión de los T&C aceptó y cuándo
+            perfil.terminosAceptados = true;
+            perfil.terminosVersion = TYC_VERSION;
+            perfil.terminosFecha = firebase.firestore.FieldValue.serverTimestamp();
+          }
+          tx.set(uref, perfil);
           return n;
         });
       });
@@ -297,9 +360,11 @@
     if(telNum.length<8){ setMsg('Poné un teléfono válido.'); return; }
     if(!email){ setMsg('Poné tu email.'); return; }
     if(pass.length<6){ setMsg('La contraseña debe tener al menos 6 caracteres.'); return; }
+    var acepto=document.getElementById('acepto');
+    if(!acepto || !acepto.checked){ setMsg('Para asociarte tenés que aceptar los Términos y Condiciones.'); return; }
     var b=document.getElementById('goReg'); b.disabled=true; b.textContent='Creando…';
     auth.createUserWithEmailAndPassword(email, pass).then(function(cred){
-      return crearSocio(cred.user.uid, { nombre:nombre, email:email, dni:dniNum, direccion:direccion, telefono:telefono });
+      return crearSocio(cred.user.uid, { nombre:nombre, email:email, dni:dniNum, direccion:direccion, telefono:telefono, aceptoTerminos:true });
     }).catch(function(e){ setMsg(errTxt(e)); b.disabled=false; b.textContent='Crear mi cuenta de socio'; });
   }
 
@@ -434,6 +499,7 @@
       carnetHTML(socio)+'<div style="height:14px"></div>'+
       '<div class="card"><h2 class="sec-t">🎁 Premios para canjear</h2><div id="premios"><p class="muted small">Cargando premios…</p></div></div>'+
       '<div class="card"><h2 class="sec-t">🎟️ Mis canjes</h2><div id="canjes"><p class="muted small">—</p></div></div>'+
+      faqCard()+
       '<div class="card" style="text-align:center"><a class="volver" href="index.html">← Ir a la lista de precios</a>'+
         '<div style="height:12px"></div><button class="btn-g" id="out" type="button">Cerrar sesión</button></div>';
     document.getElementById('out').onclick = function(){ auth.signOut(); };
@@ -443,21 +509,43 @@
 
   function cargarPremios(user, pts){
     var cont = document.getElementById('premios');
-    db.collection('premios').where('activo','==',true).get().then(function(snap){
+    // MODO INTRIGA: el club está activo (se asocian y suman puntos) pero el canje
+    // todavía no. Mostramos "muy pronto" en vez del catálogo.
+    if(!clubCanjeActivo){
+      cont.innerHTML = '<div style="text-align:center;padding:16px 6px">'+
+        '<div style="font-size:42px">🚧</div>'+
+        '<p style="color:#fff;font-weight:800;margin:10px 0 4px;font-size:16px">¡Estamos trabajando en este sector!</p>'+
+        '<p class="muted small" style="margin:0;line-height:1.55">Muy pronto vas a poder <b style="color:#F58220">canjear tus Puntos GDO</b> por premios. Mientras tanto, seguí sumando con cada compra. 🐔<br>Te vamos a avisar las novedades del Club.</p></div>';
+      return;
+    }
+    var locksRef = db.collection('clientes').doc(user.uid).collection('canje_meses');
+    Promise.all([
+      db.collection('premios').where('activo','==',true).get(),
+      locksRef.get().catch(function(){ return null; })   // si falla, seguimos sin candados
+    ]).then(function(res){
+      var snap = res[0];
       if(snap.empty){ cont.innerHTML='<p class="muted small">Todavía no hay premios cargados. ¡Pronto!</p>'; return; }
+      // Premios ya canjeados ESTE mes → gris hasta el mes que viene. El que MANDA es
+      // el servidor (reglas Firestore con request.time); esto es solo para mostrarlo.
+      var now=new Date(), yN=now.getFullYear(), mN=now.getMonth(), locked={};
+      if(res[1]){ res[1].forEach(function(d){ var t=(d.data()||{}).ts; if(t&&t.toDate){ var dt=t.toDate(); if(dt.getFullYear()===yN&&dt.getMonth()===mN) locked[d.id]=true; } }); }
       var arr=[]; snap.forEach(function(d){ var p=d.data(); p._id=d.id; arr.push(p); });
       arr.sort(function(a,b){ return (a.costo||0)-(b.costo||0); });
       cont.innerHTML = arr.map(function(p){
         var costo = p.costo||0;
+        var lock = !!locked[p._id];
         var alcanza = pts >= costo;
         var pct = costo>0 ? Math.min(100, Math.round(pts/costo*100)) : 100;
-        return '<div class="prm'+(alcanza?' on':'')+'">'+
+        var accion = lock
+          ? '<span class="prm-falta" style="color:#8a93a0">Disponible<br>el próximo mes</span>'
+          : (alcanza
+              ? '<button class="prm-btn" data-id="'+esc(p._id)+'" data-c="'+costo+'" data-n="'+esc(p.nombre)+'" data-i="'+esc(p.ico||'🎁')+'">Canjear</button>'
+              : '<span class="prm-falta">Te faltan<br>'+fmt(costo-pts)+'</span>');
+        return '<div class="prm'+((alcanza&&!lock)?' on':'')+(lock?' locked':'')+'">'+
           '<div class="prm-top">'+
             '<span class="prm-ico">'+(p.ico||'🎁')+'</span>'+
-            '<div class="prm-info"><b>'+esc(p.nombre)+'</b><span class="prm-cost">'+fmt(costo)+' Puntos GDO</span></div>'+
-            (alcanza
-              ? '<button class="prm-btn" data-id="'+esc(p._id)+'" data-c="'+costo+'" data-n="'+esc(p.nombre)+'" data-i="'+esc(p.ico||'🎁')+'">Canjear</button>'
-              : '<span class="prm-falta">Te faltan<br>'+fmt(costo-pts)+'</span>')+
+            '<div class="prm-info"><b>'+esc(p.nombre)+'</b><span class="prm-cost">'+fmt(costo)+' Puntos GDO'+(lock?' · ✓ ya canjeado este mes':'')+'</span></div>'+
+            accion+
           '</div>'+
           '<div class="pbar"><i style="width:'+pct+'%"></i></div>'+
         '</div>';
@@ -484,20 +572,37 @@
     if(!confirm('¿Canjear '+fmt(costo)+' Puntos GDO por "'+nombre+'"?\n\nSe descuentan al instante y te generamos un VOUCHER para presentar en el local.')) return;
     btn.disabled=true; btn.textContent='Generando…';
     var cref = db.collection('clientes').doc(user.uid);
+    var lref = cref.collection('canje_meses').doc(premioId);   // candado: 1 canje de este premio por mes (mes = SERVIDOR)
     var vref = db.collection('canjes').doc();
     var codigo = nuevoCodigo();
     var venceMs = Date.now() + 30*24*60*60*1000;   // 30 días
-    db.runTransaction(function(tx){
-      return tx.get(cref).then(function(c){
-        if(!c.exists) throw new Error('sin-perfil');
-        var saldo = (c.data().puntos||0);
-        if(saldo < costo) throw new Error('saldo');
-        tx.update(cref, { puntos: saldo - costo });
-        tx.set(vref, {
-          clienteUid: user.uid, premioId: premioId, premioNombre: nombre, premioIco: ico||'🎁',
-          costo: costo, estado: 'emitido', usado: false, codigo: codigo,
-          socioNombre: (lastSocio.nombre||''), socioNro: (lastSocio.nroSocio||0),
-          venceMs: venceMs, ts: firebase.firestore.FieldValue.serverTimestamp()
+    // Pre-chequeo solo para el aviso (la regla del servidor es la que realmente manda).
+    lref.get().then(function(ld){
+      var now=new Date();
+      if(ld.exists && ld.data().ts && ld.data().ts.toDate){
+        var dt=ld.data().ts.toDate();
+        if(dt.getFullYear()===now.getFullYear() && dt.getMonth()===now.getMonth()){
+          alert('Ya canjeaste este premio este mes. 🗓️ Va a estar disponible de nuevo el mes que viene.');
+          btn.disabled=false; btn.textContent='Canjear';
+          return Promise.reject('mes');
+        }
+      }
+      return db.runTransaction(function(tx){
+        return tx.get(cref).then(function(c){
+          if(!c.exists) throw new Error('sin-perfil');
+          var saldo = (c.data().puntos||0);
+          if(saldo < costo) throw new Error('saldo');
+          tx.update(cref, { puntos: saldo - costo });
+          // Candado mensual: ts = hora del SERVIDOR. La regla rechaza si ya hay un
+          // canje de este premio en el mismo mes calendario (cambiar la fecha de la
+          // PC no sirve: el mes lo decide request.time en las reglas).
+          tx.set(lref, { ts: firebase.firestore.FieldValue.serverTimestamp(), premioId: premioId });
+          tx.set(vref, {
+            clienteUid: user.uid, premioId: premioId, premioNombre: nombre, premioIco: ico||'🎁',
+            costo: costo, estado: 'emitido', usado: false, codigo: codigo,
+            socioNombre: (lastSocio.nombre||''), socioNro: (lastSocio.nroSocio||0),
+            venceMs: venceMs, ts: firebase.firestore.FieldValue.serverTimestamp()
+          });
         });
       });
     }).then(function(){
@@ -505,9 +610,10 @@
         usado:false, venceMs:venceMs, socioNombre:lastSocio.nombre, socioNro:lastSocio.nroSocio });
       cargarCanjes(user);  // refresca el historial del socio al instante (antes solo se leía al entrar)
     }).catch(function(e){
+      if(e==='mes') return;
       var m = (e&&e.message)||'';
       alert(m==='saldo' ? 'No te alcanzan los puntos para este premio.'
-           : 'No se pudo generar el canje. Probá de nuevo en un momento.');
+           : 'No se pudo generar el canje. Puede que ya lo hayas canjeado este mes, o probá de nuevo.');
       btn.disabled=false; btn.textContent='Canjear';
     });
   }

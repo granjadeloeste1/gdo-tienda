@@ -275,6 +275,16 @@ td.l{color:#3a4048}
       <span class="gc-txt"><b>Minorista</b><small>Precios al p&uacute;blico &middot; retiro o env&iacute;o a domicilio</small></span>
       <span class="gc-arr">&rsaquo;</span>
     </a>
+    <div id="clubChooserBox" style="display:none;margin-top:4px">
+      <a class="gc-opt" href="club.html" style="background:#0a0a0b;border-color:#F58220">
+        <span class="gc-ico">&#x2B50;</span>
+        <span class="gc-txt"><b style="color:#fff">GDO CLUB</b><small style="color:#bdbdbd">Asociate gratis y sum&aacute; puntos con tus compras</small></span>
+        <span class="gc-arr">&rsaquo;</span>
+      </a>
+      <p style="margin:8px 4px 0;font:11.5px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5;text-align:left">
+        &#8505;&#65039; Algunos productos <b style="color:#777">no suman puntos</b>: caj&oacute;n de pollo &middot; caj&oacute;n de huevos.
+      </p>
+    </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
       Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v1.0<br>Todos los derechos reservados
     </p>
@@ -297,11 +307,8 @@ td.l{color:#3a4048}
   <div class="infostrip">🏪 <b>Retiro en sucursal</b> &middot; 📍 Acuña 1334, Villa Tesei &middot; 🕒 Lun a Sáb 6 a 13:30 hs</div>
   <a class="envnote" href="https://wa.me/5491135800164" target="_blank" rel="noopener">🚚 ¿Necesitás <b>envío</b>? Consultá por privado — el <b>monto mínimo depende de la zona</b>.</a>
   <div class="upddate" id="fecha">Precios sujetos a modificaciones</div>
-  <a id="clubCta" href="club.html" style="display:none;align-items:center;gap:9px;text-decoration:none;background:#111;color:#fff;border:1px solid #2a2a2a;border-left:4px solid #F58220;border-radius:12px;padding:11px 14px;margin:0 0 12px;font-size:13.5px;font-weight:700;line-height:1.3">
-    <span style="font-size:18px">⭐</span>
-    <span id="clubCtaTxt">Hacete socio del <span style="color:#F58220">GDO CLUB</span> y sumá puntos con tus compras</span>
-    <span style="margin-left:auto;color:#F58220;font-size:18px">›</span>
-  </a>
+  <!-- El CTA del club ahora vive SOLO en la pantalla de elección de listas (#clubChooserBox), no dentro de cada lista. -->
+
   <input class="search" id="s" type="text" placeholder="Buscar producto..." oninput="filt()">
   <button type="button" class="expand-all" id="toggleAll" onclick="toggleAllCats()">📂 Abrir todo</button>
   <div id="root"></div>
@@ -1459,6 +1466,8 @@ window.GDO = window.GDO || {};
       GDO.clubActivo = !!activo;
       var cta = document.getElementById('clubCta');
       if (cta) cta.style.display = activo ? 'flex' : 'none';
+      var ccb = document.getElementById('clubChooserBox');
+      if (ccb) ccb.style.display = activo ? 'block' : 'none';
       if (!activo) { var n = document.getElementById('clubNote'); if (n) n.style.display = 'none'; }
       try { if (GDO.FB && GDO.FB.user !== undefined) GDO.clubUI(GDO.FB.user && !GDO.FB.user.isAnonymous ? GDO.FB.user : null); } catch (e) {}
     }

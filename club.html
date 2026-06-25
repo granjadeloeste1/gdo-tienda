@@ -72,6 +72,12 @@
   /* ── Premios estilo tarjeta + barra de progreso (look fidelización premium) ── */
   .sec-t{ display:flex; align-items:center; gap:8px; font-size:16px; margin:0 0 12px; font-weight:800; }
   .sec-t::before{ content:''; width:4px; height:18px; background:var(--naranja); border-radius:3px; }
+  /* FAQ desplegable: la tarjeta muestra solo el título y al tocarlo se abre */
+  .faqwrap > summary.faq-head{ list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; font-size:16px; font-weight:800; color:#fff; }
+  .faqwrap > summary.faq-head::-webkit-details-marker{ display:none; }
+  .faq-bar{ width:4px; height:18px; background:var(--naranja); border-radius:3px; flex:none; }
+  .faq-chev{ margin-left:auto; color:var(--gris); font-size:13px; transition:transform .2s; }
+  .faqwrap[open] .faq-chev{ transform:rotate(180deg); }
   .prm{ background:var(--surf2); border:1px solid var(--linea); border-radius:14px; padding:13px; margin-bottom:10px; transition:transform .12s, box-shadow .15s; }
   .prm:last-child{ margin-bottom:0; }
   .prm.on{ border-color:var(--naranja); box-shadow:0 5px 18px rgba(245,130,32,.25); }
@@ -187,7 +193,12 @@
              '<div style="margin-top:7px;font-size:13px;color:#b9bdc4;line-height:1.55">'+f[1]+'</div>'+
            '</details>';
   }).join('');
-  function faqCard(){ return '<div class="card"><h2 class="sec-t">❓ Preguntas frecuentes</h2>'+FAQ_HTML+'</div>'; }
+  function faqCard(){
+    return '<div class="card"><details class="faqwrap">'+
+      '<summary class="faq-head"><span class="faq-bar"></span>❓ Preguntas frecuentes<span class="faq-chev">▾</span></summary>'+
+      '<div style="margin-top:12px">'+FAQ_HTML+'</div>'+
+    '</details></div>';
+  }
 
   var esc = function (s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
   var fmt = function (n){ return Number(n||0).toLocaleString('es-AR'); };

@@ -388,9 +388,15 @@
   }
 
   function doReset(){
-    var email=(document.getElementById('email').value||'').trim();
-    if(!email){ setMsg('Escribí tu email arriba y toca de nuevo "Olvidé mi contraseña".'); return; }
-    auth.sendPasswordResetEmail(email).then(function(){ setMsg('Te enviamos un mail para recuperar la contraseña.', 'ok'); }).catch(function(e){ setMsg(errTxt(e)); });
+    var el=document.getElementById('email');
+    var email=((el && el.value) || '').trim();
+    // Si no escribió el email arriba, se lo pedimos directo (antes no se veía el aviso → "no hacía nada").
+    if(!email){ email=(prompt('Escribí tu email para recuperar la contraseña:') || '').trim(); if(!email) return; }
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ setMsg('Ese email no parece válido. Revisalo.'); return; }
+    setMsg('Enviando el mail de recuperación…', 'ok');
+    auth.sendPasswordResetEmail(email)
+      .then(function(){ setMsg('✅ Listo: te enviamos un mail a <b>'+esc(email)+'</b> para recuperar la contraseña. Revisá tu casilla (y la carpeta de <b>spam</b>).', 'ok'); })
+      .catch(function(e){ setMsg(errTxt(e)); });
   }
 
   // ───────────────── VISTA SOCIO (logueado) ─────────────────

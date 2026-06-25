@@ -47,6 +47,8 @@
   .carnet .pts b{color:var(--naranja);font-weight:900;font-size:3.4vw;display:block;text-align:right;line-height:1}
   .carnet .pts span{font-size:1.2vw;color:#9aa1aa;letter-spacing:.1vw}
   .site{margin-top:3vh;color:#9aa1aa;font-size:3vw;letter-spacing:.3vw} .site b{color:#fff}
+  .snd{position:absolute;right:2.4%;bottom:5%;z-index:6;background:rgba(0,0,0,.55);border:1px solid #3a3a42;
+       color:#fff;border-radius:30px;padding:.9vh 2.2vw;font-size:2.5vw;font-weight:700;cursor:pointer}
   @keyframes pop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.07)}100%{transform:scale(1);opacity:1}}
   .pop{animation:pop .6s ease both}
 </style>
@@ -106,6 +108,7 @@
       <div class="site">📲 <b>lista.granjadeloeste.com</b></div>
     </div>
   </div>
+  <button id="snd" class="snd" type="button">🔊 Escuchar</button>
   <div class="brandbar"></div>
 </div>
 <script>
@@ -118,9 +121,37 @@
     sc.querySelectorAll('.pop').forEach(function(el){ el.style.animation='none'; void el.offsetWidth; el.style.animation=''; });
     if(n===2) animaCount();
   }
-  function next(){ i=(i+1)%scenes.length; show(i); setTimeout(next, DUR[i]); }
+  var loopT=null, audioOn=false;
+  var NARR=[
+    "Bienvenido a G D O Club. Tus compras, ahora te rinden más.",
+    "Comprá como siempre: elegís tus productos y hacés tu pedido.",
+    "Y sumás puntos. Por cada cien pesos que gastás, un punto G D O.",
+    "Asociate gratis. Tus puntos quedan en tu credencial digital.",
+    "Y los canjeás por grandes beneficios: descuentos, y productos de regalo.",
+    "Hacete socio del G D O Club. En lista punto granja del oeste punto com."
+  ];
+  function clearLoop(){ if(loopT){ clearTimeout(loopT); loopT=null; } }
+  function next(){ i=(i+1)%scenes.length; show(i); loopT=setTimeout(next, DUR[i]); }
+  function nextVoice(){ i=(i+1)%scenes.length; show(i); speak(NARR[i], function(){ if(audioOn) loopT=setTimeout(nextVoice, 350); }); }
+  function speak(txt, cb){
+    try{
+      window.speechSynthesis.cancel();
+      var u=new SpeechSynthesisUtterance(txt); u.lang='es-AR'; u.rate=1.0; u.pitch=1;
+      var vs=window.speechSynthesis.getVoices(); for(var k=0;k<vs.length;k++){ if(/^es/i.test(vs[k].lang)){ u.voice=vs[k]; break; } }
+      u.onend=function(){ if(cb) cb(); }; u.onerror=function(){ if(cb) setTimeout(cb, 2200); };
+      window.speechSynthesis.speak(u);
+    }catch(e){ if(cb) setTimeout(cb, 2500); }
+  }
   function animaCount(){ var el=document.getElementById('cnt'); if(!el) return; var v=0;
     var t=setInterval(function(){ v+=20; if(v>=100){v=100;clearInterval(t);} el.textContent='$'+v; }, 18); }
+  var snd=document.getElementById('snd');
+  if(snd){ snd.onclick=function(){
+    audioOn=!audioOn; clearLoop();
+    if(audioOn){ snd.textContent='🔇 Silenciar'; i=-1; nextVoice(); }
+    else { try{ window.speechSynthesis.cancel(); }catch(e){} snd.textContent='🔊 Escuchar'; next(); }
+  }; }
+  try{ window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged=function(){}; }catch(e){}
+  // Arranca en silencio (loop visual). Con voz al tocar 🔊 (política de autoplay del navegador).
   var _qs=(location.search+location.hash).match(/s=(\d)/);
   if(_qs){ show(parseInt(_qs[1],10)); } else { next(); }
 </script>

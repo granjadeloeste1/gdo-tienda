@@ -185,7 +185,7 @@
     ['¿Los premios y los puntos pueden cambiar?', 'Sí. Los premios dependen del <b>stock</b> y GDO puede agregar, sacar o cambiar su costo en puntos. El sistema de puntos también puede ajustarse. Siempre te mostramos los valores vigentes.'],
     ['¿Qué necesito para asociarme?', 'Nombre y apellido, DNI, dirección, teléfono y email. Tenés que ser <b>mayor de 18 años</b> y se permite <b>una cuenta por persona</b>.'],
     ['Olvidé mi contraseña, ¿qué hago?', 'En la pestaña <b>“Ya soy socio”</b> tocá <b>“Olvidé mi contraseña”</b> y te llega un mail para recuperarla.'],
-    ['¿Cómo doy de baja mi cuenta o mis datos?', 'Escribinos por WhatsApp y damos de baja tu cuenta y tus datos cuando quieras.'],
+    ['¿Cómo doy de baja mi cuenta o mis datos?', 'Desde tu cuenta, al final de la pantalla, tocá <b>"Eliminar mi cuenta"</b>: se borran tus datos y tus puntos al instante (te pedimos la contraseña para confirmar). También podés escribirnos por WhatsApp.'],
   ];
   var FAQ_HTML = FAQ.map(function(f){
     return '<details style="border-bottom:1px solid var(--linea,#eee);padding:11px 2px">'+
@@ -512,10 +512,40 @@
       '<div class="card"><h2 class="sec-t">🎟️ Mis canjes</h2><div id="canjes"><p class="muted small">—</p></div></div>'+
       faqCard()+
       '<div class="card" style="text-align:center"><a class="volver" href="index.html">← Ir a la lista de precios</a>'+
-        '<div style="height:12px"></div><button class="btn-g" id="out" type="button">Cerrar sesión</button></div>';
+        '<div style="height:12px"></div><button class="btn-g" id="out" type="button">Cerrar sesión</button>'+
+        '<div style="height:6px"></div><button class="btn-g" id="delAcc" type="button" style="color:#e06a5b;font-size:12px">Eliminar mi cuenta</button></div>';
     document.getElementById('out').onclick = function(){ auth.signOut(); };
+    var _da = document.getElementById('delAcc'); if(_da) _da.onclick = function(){ eliminarMiCuenta(user); };
     cargarPremios(user, pts);
     cargarCanjes(user);
+  }
+
+  // Baja de cuenta por el PROPIO socio (Ley 25.326). Borra su perfil/puntos y su
+  // login. Pide la contraseña para reautenticar (Firebase exige login reciente).
+  function eliminarMiCuenta(user){
+    if(!confirm('¿Eliminar tu cuenta del GDO CLUB?\n\nSe borran tus datos y tus puntos. Esta acción NO se puede deshacer.')) return;
+    var pass = prompt('Por seguridad, ingresá tu contraseña para confirmar la baja:');
+    if(pass==null || pass==='') return;
+    var cred = firebase.auth.EmailAuthProvider.credential(user.email||'', pass);
+    app.innerHTML = '<div class="card" style="text-align:center;padding:28px">Eliminando tu cuenta…</div>';
+    user.reauthenticateWithCredential(cred)
+      .then(function(){ return db.collection('clientes').doc(user.uid).delete().catch(function(){}); })
+      .then(function(){ return user.delete(); })
+      .then(function(){
+        if(unsub){ try{ unsub(); }catch(e){} unsub=null; }
+        app.innerHTML = '<div class="card" style="text-align:center;padding:30px 22px">'+
+          '<div style="font-size:44px">👋</div>'+
+          '<h2 style="margin:10px 0 6px">Tu cuenta fue eliminada</h2>'+
+          '<p class="muted small" style="line-height:1.5">Borramos tus datos y tus puntos. ¡Gracias por haber sido parte! 🐔</p>'+
+          '<div style="height:16px"></div><a class="btn" href="index.html">Ir a la lista de precios</a></div>';
+      })
+      .catch(function(e){
+        var c=(e&&e.code)||'';
+        alert((c.indexOf('wrong-password')>=0 || c.indexOf('invalid-credential')>=0 || c.indexOf('invalid-login')>=0)
+          ? 'Contraseña incorrecta. No se eliminó nada.'
+          : 'No se pudo eliminar la cuenta. Probá de nuevo en un momento.');
+        renderSocio(user, lastSocio);
+      });
   }
 
   function cargarPremios(user, pts){

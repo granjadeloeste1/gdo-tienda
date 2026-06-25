@@ -109,6 +109,7 @@
     </div>
   </div>
   <button id="snd" class="snd" type="button">🔊 Escuchar</button>
+  <audio id="narr" src="assets/narr-club.mp3" preload="auto"></audio>
   <div class="brandbar"></div>
 </div>
 <script>
@@ -121,37 +122,26 @@
     sc.querySelectorAll('.pop').forEach(function(el){ el.style.animation='none'; void el.offsetWidth; el.style.animation=''; });
     if(n===2) animaCount();
   }
-  var loopT=null, audioOn=false;
-  var NARR=[
-    "Bienvenido a G D O Club. Tus compras, ahora te rinden más.",
-    "Comprá como siempre: elegís tus productos y hacés tu pedido.",
-    "Y sumás puntos. Por cada cien pesos que gastás, un punto G D O.",
-    "Asociate gratis. Tus puntos quedan en tu credencial digital.",
-    "Y los canjeás por grandes beneficios: descuentos, y productos de regalo.",
-    "Hacete socio del G D O Club. En lista punto granja del oeste punto com."
-  ];
+  var loopT=null;
   function clearLoop(){ if(loopT){ clearTimeout(loopT); loopT=null; } }
   function next(){ i=(i+1)%scenes.length; show(i); loopT=setTimeout(next, DUR[i]); }
-  function nextVoice(){ i=(i+1)%scenes.length; show(i); speak(NARR[i], function(){ if(audioOn) loopT=setTimeout(nextVoice, 350); }); }
-  function speak(txt, cb){
-    try{
-      window.speechSynthesis.cancel();
-      var u=new SpeechSynthesisUtterance(txt); u.lang='es-AR'; u.rate=1.0; u.pitch=1;
-      var vs=window.speechSynthesis.getVoices(); for(var k=0;k<vs.length;k++){ if(/^es/i.test(vs[k].lang)){ u.voice=vs[k]; break; } }
-      u.onend=function(){ if(cb) cb(); }; u.onerror=function(){ if(cb) setTimeout(cb, 2200); };
-      window.speechSynthesis.speak(u);
-    }catch(e){ if(cb) setTimeout(cb, 2500); }
-  }
   function animaCount(){ var el=document.getElementById('cnt'); if(!el) return; var v=0;
     var t=setInterval(function(){ v+=20; if(v>=100){v=100;clearInterval(t);} el.textContent='$'+v; }, 18); }
-  var snd=document.getElementById('snd');
-  if(snd){ snd.onclick=function(){
-    audioOn=!audioOn; clearLoop();
-    if(audioOn){ snd.textContent='🔇 Silenciar'; i=-1; nextVoice(); }
-    else { try{ window.speechSynthesis.cancel(); }catch(e){} snd.textContent='🔊 Escuchar'; next(); }
-  }; }
-  try{ window.speechSynthesis.getVoices(); window.speechSynthesis.onvoiceschanged=function(){}; }catch(e){}
-  // Arranca en silencio (loop visual). Con voz al tocar 🔊 (política de autoplay del navegador).
+  // VOZ: locución PREGRABADA (assets/narr-club.mp3). El botón aparece SOLO si el audio
+  // existe (si no, nada de voz robótica). Al tocarlo reinicia el visual y reproduce.
+  var narr=document.getElementById('narr'), snd=document.getElementById('snd'), playing=false;
+  if(snd) snd.style.display='none';
+  if(narr && snd){
+    narr.addEventListener('canplaythrough', function(){ snd.style.display=''; }, { once:true });
+    narr.addEventListener('error', function(){ snd.style.display='none'; });
+    narr.addEventListener('ended', function(){ playing=false; snd.textContent='🔊 Escuchar'; });
+    snd.onclick=function(){
+      if(!playing){ playing=true; snd.textContent='🔇 Silenciar'; clearLoop(); i=-1; next();
+        try{ narr.currentTime=0; narr.play(); }catch(e){} }
+      else { playing=false; snd.textContent='🔊 Escuchar'; try{ narr.pause(); }catch(e){} }
+    };
+  }
+  // Arranca en silencio (loop visual). Con voz al tocar 🔊 (cuando haya locución pregrabada).
   var _qs=(location.search+location.hash).match(/s=(\d)/);
   if(_qs){ show(parseInt(_qs[1],10)); } else { next(); }
 </script>

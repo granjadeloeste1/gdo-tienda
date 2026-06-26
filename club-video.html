@@ -109,7 +109,7 @@
     </div>
   </div>
   <button id="snd" class="snd" type="button">🔊 Escuchar</button>
-  <audio id="narr" src="assets/narr0.mp3" preload="auto"></audio>
+  <audio id="narr" src="assets/narr-club.mp3" preload="auto"></audio>
   <div class="brandbar"></div>
 </div>
 <script>
@@ -130,13 +130,23 @@
   // VOZ: locución por ESCENA (assets/narr0..5.mp3, generada con IA ElevenLabs).
   // Al tocar 🔊 reinicia y reproduce la voz de cada escena; al terminar cada clip
   // avanza a la siguiente (sincronía perfecta). Volver a tocar = silenciar y seguir el loop visual.
+  // VOZ: locución única (assets/narr-club.mp3, voz Valeria — argentina). Sincroniza las 6
+  // escenas por fracción de tiempo; se autoajusta a la duración real del audio. Al tocar 🔊
+  // arranca la voz sincronizada; al terminar vuelve al loop visual en silencio.
   var narr=document.getElementById('narr'), snd=document.getElementById('snd'), playing=false;
-  if(snd) snd.style.display='none'; // voz en pausa: elegimos una voz latina nativa antes de activarla
-  function nextVoice(){ i=(i+1)%scenes.length; show(i); try{ narr.src='assets/narr'+i+'.mp3'; narr.play(); }catch(e){} }
-  if(narr) narr.addEventListener('ended', function(){ if(playing) nextVoice(); });
+  var CUES=[0.156,0.318,0.482,0.647,0.852,1.0]; // fin de cada escena como fracción del audio
+  function sceneAt(frac){ var k=0; while(k<CUES.length-1 && frac>=CUES[k]) k++; return k; }
+  if(narr){
+    narr.addEventListener('timeupdate', function(){
+      if(!playing || !narr.duration) return;
+      var k=sceneAt(narr.currentTime/narr.duration);
+      if(k!==i){ i=k; show(i); }
+    });
+    narr.addEventListener('ended', function(){ playing=false; if(snd) snd.textContent='🔊 Escuchar'; i=-1; next(); });
+  }
   if(snd){ snd.onclick=function(){
-    if(!playing){ playing=true; snd.textContent='🔇 Silenciar'; clearLoop(); i=-1; nextVoice(); }
-    else { playing=false; snd.textContent='🔊 Escuchar'; try{ narr.pause(); }catch(e){} next(); }
+    if(!playing){ playing=true; snd.textContent='🔇 Silenciar'; clearLoop(); i=0; show(0); try{ narr.currentTime=0; narr.play(); }catch(e){} }
+    else { playing=false; snd.textContent='🔊 Escuchar'; try{ narr.pause(); }catch(e){} i=-1; next(); }
   }; }
   // Arranca en silencio (loop visual). Con voz al tocar 🔊 (cuando haya locución pregrabada).
   var _qs=(location.search+location.hash).match(/s=(\d)/);

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Calculadora de Puntos · GDO CLUB</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,"Segoe UI",Arial,sans-serif}
+  :root{--naranja:#F58220;--surf:#161619;--surf2:#1f1f24;--linea:#2c2c31;--gris:#9aa1aa}
+  body{background:#0a0a0b;color:#fff;padding:18px;display:flex;justify-content:center}
+  .wrap{width:100%;max-width:560px}
+  h1{font-size:21px;text-align:center;margin-bottom:2px}
+  h1 .o{color:var(--naranja);text-shadow:0 0 12px rgba(245,130,32,.6)}
+  .sub{text-align:center;color:var(--gris);font-size:13px;margin-bottom:18px}
+  .card{background:var(--surf);border:1px solid var(--linea);border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+  .sec-t{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:800;margin-bottom:14px}
+  .sec-t::before{content:'';width:4px;height:17px;background:var(--naranja);border-radius:3px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .row:last-child{margin-bottom:0}
+  .row label{font-size:14px;color:#e6e8eb;flex:1}
+  .row label small{display:block;color:var(--gris);font-size:11px;margin-top:2px}
+  .ig{display:flex;align-items:center;background:#101013;border:1px solid #3a3a42;border-radius:10px;overflow:hidden}
+  .ig span{padding:0 9px;color:var(--gris);font-size:14px;background:#191a1d}
+  .ig input{width:96px;padding:11px 10px;border:0;background:transparent;color:#fff;font-size:16px;font-weight:700;text-align:right;outline:none}
+  .ig input:focus{box-shadow:inset 0 0 0 2px rgba(245,130,32,.4)}
+  .out{background:var(--surf2);border:1px solid var(--linea);border-radius:12px;padding:14px;margin-top:6px}
+  .out .line{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px dashed #2c2c31}
+  .out .line:last-child{border-bottom:0}
+  .out .k{color:var(--gris);font-size:13px}
+  .out .v{font-weight:800;font-size:18px}
+  .v.naranja{color:var(--naranja);font-size:22px;text-shadow:0 0 10px rgba(245,130,32,.4)}
+  .pill{display:inline-block;background:rgba(245,130,32,.15);color:var(--naranja);border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;margin-top:4px}
+  .montobig input{width:140px;font-size:20px}
+  .foot{text-align:center;color:#666;font-size:11px;margin-top:6px}
+  .presets{display:flex;gap:6px;margin-top:6px}
+  .presets button{flex:1;background:#26262b;border:1px solid var(--linea);color:#cfd2d6;border-radius:8px;padding:7px;font-weight:700;font-size:12px;cursor:pointer}
+  .presets button:hover{border-color:var(--naranja);color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Calculadora de Puntos · <span class="o">GDO CLUB</span></h1>
+  <div class="sub">Probá distintos valores y mirá cuánto ganan los clientes y cuánto te cuesta a vos.</div>
+
+  <div class="card">
+    <div class="sec-t">⚙️ Configuración</div>
+    <div class="row">
+      <label>Devolución al cliente <small>qué % del gasto le devolvés en premios</small></label>
+      <div class="ig"><input id="dev" type="number" step="0.5" value="2"/><span>%</span></div>
+    </div>
+    <div class="presets">
+      <button data-dev="1">1%</button><button data-dev="2">2%</button>
+      <button data-dev="3">3%</button><button data-dev="5">5%</button>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <label>Tasa de ganancia <small>cada cuántos pesos suma 1 punto</small></label>
+      <div class="ig"><span>1 pto c/$</span><input id="tasa" type="number" step="10" value="100"/></div>
+    </div>
+    <div class="row">
+      <label>El premio, ¿cuánto te cuesta? <small>100% = voucher/efectivo · ~65% = producto propio (lo das a tu costo)</small></label>
+      <div class="ig"><input id="costo" type="number" step="5" value="100"/><span>%</span></div>
+    </div>
+    <div class="out" style="margin-top:4px">
+      <div class="line"><span class="k">Cada punto vale, en premios</span><span class="v naranja" id="ptval">$2</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-t">🧮 El cliente gastó…</div>
+    <div class="row montobig">
+      <label>Monto de la compra (o total acumulado)</label>
+      <div class="ig"><span>$</span><input id="monto" type="number" step="1000" value="15000"/></div>
+    </div>
+    <div class="out">
+      <div class="line"><span class="k">Puntos que gana</span><span class="v naranja" id="rPuntos">150</span></div>
+      <div class="line"><span class="k">Equivale para el cliente</span><span class="v" id="rValor">$300</span></div>
+      <div class="line"><span class="k">💸 Te cuesta REALMENTE</span><span class="v naranja" id="rCosto">$300</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-t">🎁 ¿Y un premio puntual?</div>
+    <div class="row">
+      <label>Valor del premio (precio de venta o monto del voucher)</label>
+      <div class="ig"><span>$</span><input id="premio" type="number" step="500" value="7000"/></div>
+    </div>
+    <div class="out">
+      <div class="line"><span class="k">Puntos para canjearlo</span><span class="v naranja" id="rPnec">3.500</span></div>
+      <div class="line"><span class="k">El cliente tuvo que gastar</span><span class="v" id="rGasto">$350.000</span></div>
+      <div class="line"><span class="k">💸 Te cuesta a vos ese premio</span><span class="v naranja" id="rCostoP">$7.000</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="sec-t">📅 Costo del programa por mes</div>
+    <div class="row">
+      <label>Ventas que suman puntos (al mes) <small>solo página y consumidor final (mayorista y cta. cte. NO)</small></label>
+      <div class="ig"><span>$</span><input id="ventas" type="number" step="1000000" value="70000000"/></div>
+    </div>
+    <div class="row">
+      <label>Puntos que nunca se canjean (breakage) <small>real típico 20–40% — bajá a 0 para el peor caso</small></label>
+      <div class="ig"><input id="brk" type="number" step="5" value="25"/><span>%</span></div>
+    </div>
+    <div class="out">
+      <div class="line"><span class="k">Premios que acumulan los clientes</span><span class="v" id="rAccr">$1.400.000</span></div>
+      <div class="line"><span class="k">Se canjea de verdad (con breakage)</span><span class="v" id="rRed">$1.050.000</span></div>
+      <div class="line"><span class="k">💸 Te cuesta por MES</span><span class="v naranja" id="rMes">$1.050.000</span></div>
+      <div class="line"><span class="k">💸 Por AÑO</span><span class="v naranja" id="rAnio">$12.600.000</span></div>
+    </div>
+  </div>
+  <div class="foot">GDO CLUB · calculadora interna · los puntos se redondean hacia abajo</div>
+</div>
+<script>
+  var $=function(id){return document.getElementById(id)};
+  var money=function(n){return '$'+Math.round(n).toLocaleString('es-AR')};
+  function calc(){
+    var dev=(parseFloat($('dev').value)||0)/100;
+    var tasa=parseFloat($('tasa').value)||1; if(tasa<1)tasa=1;
+    var costoPct=(parseFloat($('costo').value)||0)/100;
+    var ptVal=dev*tasa;                 // $ de premio por punto
+    $('ptval').textContent=money(ptVal);
+    // Probador por monto
+    var monto=parseFloat($('monto').value)||0;
+    var puntos=Math.floor(monto/tasa);
+    var valor=puntos*ptVal;
+    $('rPuntos').textContent=puntos.toLocaleString('es-AR');
+    $('rValor').textContent=money(valor);
+    $('rCosto').textContent=money(valor*costoPct);
+    // Premio puntual
+    var premio=parseFloat($('premio').value)||0;
+    var pnec=ptVal>0?Math.ceil(premio/ptVal):0;
+    $('rPnec').textContent=pnec.toLocaleString('es-AR');
+    $('rGasto').textContent=money(pnec*tasa);
+    $('rCostoP').textContent=money(premio*costoPct);
+    // Costo mensual del programa
+    var ventas=parseFloat($('ventas').value)||0;
+    var brk=(parseFloat($('brk').value)||0)/100;
+    var accr=dev*ventas;
+    var red=accr*(1-brk);
+    var mes=red*costoPct;
+    $('rAccr').textContent=money(accr);
+    $('rRed').textContent=money(red);
+    $('rMes').textContent=money(mes);
+    $('rAnio').textContent=money(mes*12);
+  }
+  ['dev','tasa','costo','monto','premio','ventas','brk'].forEach(function(id){ $(id).addEventListener('input',calc); });
+  Array.prototype.forEach.call(document.querySelectorAll('.presets button'),function(b){
+    b.onclick=function(){ $('dev').value=b.getAttribute('data-dev'); calc(); };
+  });
+  calc();
+</script>
+</body>
+</html>

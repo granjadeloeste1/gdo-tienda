@@ -131,6 +131,7 @@
   // Al tocar 🔊 reinicia y reproduce la voz de cada escena; al terminar cada clip
   // avanza a la siguiente (sincronía perfecta). Volver a tocar = silenciar y seguir el loop visual.
   var narr=document.getElementById('narr'), snd=document.getElementById('snd'), playing=false;
+  if(snd) snd.style.display='none'; // voz en pausa: elegimos una voz latina nativa antes de activarla
   function nextVoice(){ i=(i+1)%scenes.length; show(i); try{ narr.src='assets/narr'+i+'.mp3'; narr.play(); }catch(e){} }
   if(narr) narr.addEventListener('ended', function(){ if(playing) nextVoice(); });
   if(snd){ snd.onclick=function(){

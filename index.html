@@ -265,7 +265,7 @@ td.l{color:#3a4048}
   <div class="gc-box">
     <img class="gc-logo" src="assets/logo-original.svg" alt="Granja del Oeste"/>
     <p class="gc-lead">¿Cómo querés ver los precios?</p>
-    <button type="button" class="gc-opt" onclick="document.getElementById('gdoChooser').style.display='none'">
+    <button type="button" class="gc-opt" onclick="try{sessionStorage.setItem('gdoLista','may')}catch(e){};document.getElementById('gdoChooser').style.display='none'">
       <span class="gc-ico">&#x1F3EA;</span>
       <span class="gc-txt"><b>Mayorista</b><small>Precios por mayor &middot; retiro en sucursal</small></span>
       <span class="gc-arr">&rsaquo;</span>
@@ -293,12 +293,13 @@ td.l{color:#3a4048}
     <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
   </a>
 </div>
+<script>/* Si ya se eligió la lista Mayorista, al refrescar (F5) NO volver al chooser. */try{if(sessionStorage.getItem('gdoLista')==='may'){var _gc=document.getElementById('gdoChooser');if(_gc)_gc.style.display='none';}}catch(e){}</script>
 <div class="iabnr" id="iabnr">
   <span class="xclose" onclick="document.getElementById('iabnr').classList.remove('show')">&times;</span>
   Estás viendo esto dentro de <b>TikTok / Instagram</b>. Para ver la <b>lista completa y actualizada</b>, tocá el menú <b>&#8943;</b> (arriba a la derecha) y elegí <b>&laquo;Abrir en el navegador&raquo;</b>.
 </div>
 <header class="hdr">
-  <button class="back" onclick="document.getElementById('gdoChooser').style.display='flex'" aria-label="Volver">←</button>
+  <button class="back" onclick="try{sessionStorage.removeItem('gdoLista')}catch(e){};document.getElementById('gdoChooser').style.display='flex'" aria-label="Volver">←</button>
   <span class="lg"><img src="assets/isotipo-color.svg" alt="GDO"/></span>
   <div><b>Lista Mayorista</b><div class="sub">Precios por mayor · retiro en sucursal</div></div>
 </header>

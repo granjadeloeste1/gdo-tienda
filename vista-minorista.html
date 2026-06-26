@@ -317,10 +317,21 @@ window.GDO = window.GDO || {};
     }
     var esp=['MINORISTA','Zona: '+d.zona,'Día de entrega: '+d.dia,'Envío: '+(d.env===0?'sin cargo':money(d.env)),'TOTAL a cobrar: '+money(d.sub+d.env)];
     if(d.notas) esp.push('Notas: '+d.notas);
+    // Agenda la FECHA real del próximo día elegido. Regla: si hoy ya es ese día,
+    // pasa a la semana que viene (nunca para hoy). El personal puede cambiarla a mano.
+    var proxDia=function(nombre){
+      var map={domingo:0,lunes:1,martes:2,miercoles:3,'miércoles':3,jueves:4,viernes:5,sabado:6,'sábado':6};
+      var n=String(nombre||'').trim().toLowerCase();
+      var di=map[n]; if(di==null) return '';
+      var b=new Date(); b.setHours(0,0,0,0);
+      var diff=(di-b.getDay()+7)%7; if(diff===0) diff=7;
+      b.setDate(b.getDate()+diff);
+      return b.getFullYear()+'-'+String(b.getMonth()+1).padStart(2,'0')+'-'+String(b.getDate()).padStart(2,'0');
+    };
     var pedido={
       id:nid(), origen:'tienda', lista:'minorista', cliente:d.nom, telefono:d.tel,
       direccion:d.addr, localidad:d.loc||'', entrecalles:d.entre||'', lat:lat, lng:lng,
-      items:items, fechaEntrega:'', especificaciones:esp.join(' · '),
+      items:items, fechaEntrega:proxDia(d.dia), especificaciones:esp.join(' · '),
       formaPago:d.pago||'', prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
       clienteUid:null, totalEstimado: Math.round(d.sub),
       zona:d.zona, diaEntrega:d.dia, envio:Math.round(d.env),

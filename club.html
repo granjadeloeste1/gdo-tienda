@@ -121,7 +121,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
 <script>
 (function () {
   // ── Config Firebase (mismo proyecto que la tienda) ──
@@ -535,8 +535,22 @@
     if(pass==null || pass==='') return;
     var cred = firebase.auth.EmailAuthProvider.credential(user.email||'', pass);
     app.innerHTML = '<div class="card" style="text-align:center;padding:28px">Eliminando tu cuenta…</div>';
+    var uref = db.collection('clientes').doc(user.uid);
     user.reauthenticateWithCredential(cred)
-      .then(function(){ return db.collection('clientes').doc(user.uid).delete().catch(function(){}); })
+      // Borrar la subcolección de candados de canje (Firestore NO la borra al
+      // borrar el doc padre). Best-effort: si las reglas no lo permiten, seguimos.
+      .then(function(){ return uref.collection('canje_meses').get()
+        .then(function(s){ if(s.empty) return; var b=db.batch(); s.forEach(function(d){ b.delete(d.ref); }); return b.commit(); })
+        .catch(function(){}); })
+      // Borrar su check-in de /visitas (lleva su nombre y N° de socio).
+      .then(function(){ return db.collection('visitas').doc(user.uid).delete().catch(function(){}); })
+      // Anonimizar sus vouchers: sacan nombre y N° de socio, sin borrar el registro.
+      .then(function(){ return db.collection('canjes').where('clienteUid','==',user.uid).get()
+        .then(function(s){ if(s.empty) return; var b=db.batch(); s.forEach(function(d){ b.update(d.ref,{socioNombre:'',socioNro:0}); }); return b.commit(); })
+        .catch(function(){}); })
+      // El perfil SÍ debe borrarse sí o sí: sin catch, si falla abortamos antes de
+      // tocar el login (no dejamos datos personales huérfanos sin dueño).
+      .then(function(){ return uref.delete(); })
       .then(function(){ return user.delete(); })
       .then(function(){
         if(unsub){ try{ unsub(); }catch(e){} unsub=null; }
@@ -591,7 +605,7 @@
               : '<span class="prm-falta">Te faltan<br>'+fmt(costo-pts)+'</span>');
         return '<div class="prm'+((alcanza&&!lock)?' on':'')+(lock?' locked':'')+'">'+
           '<div class="prm-top">'+
-            '<span class="prm-ico">'+(p.ico||'🎁')+'</span>'+
+            '<span class="prm-ico">'+esc(p.ico||'🎁')+'</span>'+
             '<div class="prm-info"><b>'+esc(p.nombre)+'</b><span class="prm-cost">'+fmt(costo)+' Puntos GDO'+(lock?' · ✓ ya canjeado este mes':'')+'</span></div>'+
             accion+
           '</div>'+
@@ -686,7 +700,7 @@
             '<div style="font-size:52px;line-height:1">🎉</div>'+
             '<div style="display:flex;align-items:center;gap:8px;justify-content:center;margin:12px 0 6px"><img src="assets/isotipo-blanco.svg" style="height:26px"/><b style="letter-spacing:2px;font-size:13px">GDO <span style="color:#F58220">CLUB</span></b></div>'+
             '<h2 style="font-size:22px;margin:8px 0 8px;color:#fff">¡Gracias por elegirnos! 🧡</h2>'+
-            '<p style="color:#d6d9dd;font-size:14px;line-height:1.55">Tu voucher de <b>'+(c.premioIco||'')+' '+esc(c.premioNombre||'')+'</b> ya fue <b style="color:#48c97e">canjeado</b> con éxito.<br>¡Que lo disfrutes! 🐔</p>'+
+            '<p style="color:#d6d9dd;font-size:14px;line-height:1.55">Tu voucher de <b>'+esc(c.premioIco||'')+' '+esc(c.premioNombre||'')+'</b> ya fue <b style="color:#48c97e">canjeado</b> con éxito.<br>¡Que lo disfrutes! 🐔</p>'+
             '<p style="color:#9aa1aa;font-size:11px;margin-top:16px">Tu fidelidad nos hace crecer.<br>— Familia <b>Granja del Oeste</b></p>'+
           '</div>'+
           '<div style="margin-top:12px"><button id="vchClose" class="btn btn-2" style="width:100%">Cerrar</button></div>'+
@@ -699,7 +713,7 @@
         '<div style="max-width:360px;width:100%">'+
           '<div style="position:relative;background:linear-gradient(135deg,#26262b,#0a0a0b 60%);color:#fff;border:1px solid #2c2c31;border-left:6px solid #F58220;border-radius:18px;padding:18px;box-shadow:0 12px 30px rgba(0,0,0,.5)">'+
             '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><img src="assets/isotipo-blanco.svg" style="height:28px"/><b style="letter-spacing:2px;font-size:13px">GDO <span style="color:#F58220">CLUB</span></b><span style="margin-left:auto;font-size:8.5px;color:#9aa1aa;letter-spacing:1px">VOUCHER DE CANJE</span></div>'+
-            '<div style="text-align:center;margin:4px 0 10px"><div style="font-size:34px">'+(c.premioIco||'🎁')+'</div><div style="font-weight:800;font-size:16px;margin-top:2px">'+esc(c.premioNombre||'')+'</div><div style="font-size:11px;color:#9aa1aa">'+fmt(c.costo)+' Puntos GDO</div></div>'+
+            '<div style="text-align:center;margin:4px 0 10px"><div style="font-size:34px">'+esc(c.premioIco||'🎁')+'</div><div style="font-weight:800;font-size:16px;margin-top:2px">'+esc(c.premioNombre||'')+'</div><div style="font-size:11px;color:#9aa1aa">'+fmt(c.costo)+' Puntos GDO</div></div>'+
             '<div id="vchQR" style="background:#fff;width:166px;height:166px;margin:0 auto;border-radius:10px;display:flex;align-items:center;justify-content:center"></div>'+
             '<div style="text-align:center;font-family:monospace;font-size:14px;letter-spacing:1px;margin-top:8px;color:#F58220;font-weight:700">'+esc(c.codigo||'')+'</div>'+
             '<div style="font-size:9.5px;color:#9aa1aa;margin-top:8px">SOCIO '+esc(c.socioNombre||'')+' · N° '+nroFmt+'</div>'+
@@ -738,7 +752,7 @@
       arr.sort(function(a,b){ return ((b.ts&&b.ts.toMillis?b.ts.toMillis():0)-(a.ts&&a.ts.toMillis?a.ts.toMillis():0)); });
       cont.innerHTML = arr.map(function(c){
         var chip = c.usado ? '<span class="chip">✔ Usado</span>' : '<span class="chip" style="background:#eafaf1;color:#1e8449">✅ Vigente · ver</span>';
-        return '<div class="premio" data-v="'+esc(c._id)+'" style="cursor:pointer"><span class="ico">'+(c.premioIco||'🎁')+'</span>'+
+        return '<div class="premio" data-v="'+esc(c._id)+'" style="cursor:pointer"><span class="ico">'+esc(c.premioIco||'🎁')+'</span>'+
           '<div class="info"><b>'+esc(c.premioNombre||'')+'</b><span class="costo">'+esc(c.codigo||'')+'</span></div>'+chip+'</div>';
       }).join('');
       cont.querySelectorAll('[data-v]').forEach(function(el){

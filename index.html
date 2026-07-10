@@ -377,11 +377,11 @@ function render() {
         var hasData = fr.some(function(r) { var v = (r.v || [])[ci - 1]; return v !== null && v !== undefined && v !== ""; });
         if (hasHdr || hasData) valCols.push(ci);
       }
-      if (tbl.brand) tbH += "<div class=\"br\">" + tbl.brand + "</div>";
+      if (tbl.brand) tbH += "<div class=\"br\">" + escAttr(tbl.brand) + "</div>";
       tbH += "<div class=\"tw\"><table>";
       if (tbl.headers && tbl.headers.length) {
-        tbH += "<thead><tr><th class=\"l\">" + (tbl.headers[0] || "") + "</th>";
-        valCols.forEach(function(i) { tbH += "<th class=\"r\">" + (tbl.headers[i] || "") + "</th>"; });
+        tbH += "<thead><tr><th class=\"l\">" + escAttr(tbl.headers[0] || "") + "</th>";
+        valCols.forEach(function(i) { tbH += "<th class=\"r\">" + escAttr(tbl.headers[i] || "") + "</th>"; });
         tbH += "<th class=\"r ordhd\">PEDIR</th></tr></thead>";
       }
       tbH += "<tbody>";
@@ -411,7 +411,7 @@ function render() {
           orderCell += "<div class=\"qg-sub\" id=\"sub_" + oi + "\">" + sub + "</div>";
           orderCell += "</div>";
         });
-        tbH += "<tr><td class=\"l\">" + row.p + "</td>";
+        tbH += "<tr><td class=\"l\">" + escAttr(row.p) + "</td>";
         valCols.forEach(function(i) { tbH += "<td class=\"r\">" + $n((row.v || [])[i - 1]) + "</td>"; });
         tbH += "<td class=\"r ordcell\">" + orderCell + "</td>";
         tbH += "</tr>";
@@ -420,7 +420,7 @@ function render() {
     });
     if (!vis) return;
     var nota = /TROZADO/i.test(sec.title||"") ? "<div class=\"secnote\">📦 El trozado se vende por <b>mínimo 5 kg</b> por producto (compra mayorista en el local).</div>" : "";
-    html += "<details" + (t ? " open" : "") + "><summary>" + sec.title + "</summary><div class=\"sb\">" + nota + tbH + "</div></details>";
+    html += "<details" + (t ? " open" : "") + "><summary>" + escAttr(sec.title) + "</summary><div class=\"sb\">" + nota + tbH + "</div></details>";
   });
   root.innerHTML = html || vistaVacia();
 }
@@ -550,9 +550,9 @@ function renderCart(){
     h+='<div class="ci">'
       +'<div class="ci-top">'
         +'<div class="ci-main">'
-          +(l.brand?'<div class="ci-brand">'+l.brand+'</div>':'')
-          +'<div class="ci-name">'+l.name+'</div>'
-          +'<div class="ci-price">'+$n(up)+' c/u <span class="qg-u '+((l.main===false)?'sub':'main')+'">por '+l.unit+'</span></div>'
+          +(l.brand?'<div class="ci-brand">'+escAttr(l.brand)+'</div>':'')
+          +'<div class="ci-name">'+escAttr(l.name)+'</div>'
+          +'<div class="ci-price">'+$n(up)+' c/u <span class="qg-u '+((l.main===false)?'sub':'main')+'">por '+escAttr(l.unit)+'</span></div>'
           +'<button class="rm" onclick="removeLine('+i+')">Eliminar</button>'
         +'</div>'
         +'<div class="ci-right">'

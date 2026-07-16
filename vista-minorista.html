@@ -112,8 +112,10 @@
   .seg button{ flex:1; padding:11px 6px; border:1px solid #cfd4da; background:#fff; border-radius:10px; font-weight:700; font-size:13px; cursor:pointer; color:var(--gris) }
   .seg button.on{ background:var(--naranja); color:#fff; border-color:var(--naranja) }
   .dias{ display:flex; flex-wrap:wrap; gap:8px }
-  .diab{ padding:9px 14px; border:1px solid #cfd4da; background:#fff; border-radius:20px; font-weight:700; font-size:13px; cursor:pointer }
+  .diab{ padding:8px 14px; border:1px solid #cfd4da; background:#fff; border-radius:16px; font-weight:700; font-size:13px; cursor:pointer; line-height:1.15; text-align:center }
   .diab.on{ background:#111; color:#fff; border-color:#111 }
+  .diab b{ display:block; font-weight:800 }
+  .diab .difec{ display:block; font-size:11px; font-weight:600; opacity:.75; margin-top:1px }
   .note2{ background:#fff7ef; border:1px solid #f3cda0; color:#a85f1a; border-radius:10px; padding:10px; font-size:13px; margin-top:6px }
   .ckline{ display:flex; justify-content:space-between; font-size:14px; color:var(--gris); margin-bottom:5px }
   .okbox{ background:#fff; border-radius:18px; max-width:340px; width:calc(100% - 40px); text-align:center; padding:30px 24px; box-shadow:0 20px 50px rgba(0,0,0,.45); animation:pop .35s ease }
@@ -196,6 +198,21 @@ window.GDO = window.GDO || {};
   function money(n){ return '$ '+Number(n||0).toLocaleString('es-AR') }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}) }
   function toast(t){ var e=$('#toast'); e.textContent=t; e.classList.add('show'); setTimeout(function(){e.classList.remove('show')},1400) }
+
+  // ====== Fechas de entrega (regla: 24 hs de anticipación, NUNCA el mismo día) ======
+  var DIA_IDX={ domingo:0, lunes:1, martes:2, miercoles:3, 'miércoles':3, jueves:4, viernes:5, sabado:6, 'sábado':6 };
+  // Próxima fecha (a las 00:00) de ese día de la semana EXCLUYENDO hoy: si hoy cae
+  // en ese día, salta a la semana que viene. Así "Martes" un martes = el martes próximo.
+  function proxFechaDia(nombre){
+    var n=String(nombre||'').trim().toLowerCase(), di=DIA_IDX[n];
+    if(di==null) return null;
+    var b=new Date(); b.setHours(0,0,0,0);
+    var diff=(di-b.getDay()+7)%7; if(diff===0) diff=7;
+    b.setDate(b.getDate()+diff);
+    return b;
+  }
+  function fmtFechaCorta(d){ return d ? d.getDate()+'/'+(d.getMonth()+1)+'/'+String(d.getFullYear()).slice(-2) : ''; }
+  function isoFecha(d){ return d ? d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0') : ''; }
 
   // ====== CONFIGURACION (vendrá de la hoja CONFIGURACION del Sheet) ======
   var CFG = {
@@ -315,23 +332,15 @@ window.GDO = window.GDO || {};
     if(geoSel && geoSel.lat!=null && geoSel.direccion && d.addr && geoSel.direccion.toLowerCase()===d.addr.toLowerCase()){
       lat=geoSel.lat; lng=(geoSel.lng!=null?geoSel.lng:(geoSel.lon!=null?geoSel.lon:null));
     }
-    var esp=['MINORISTA','Zona: '+d.zona,'Día de entrega: '+d.dia,'Envío: '+(d.env===0?'sin cargo':money(d.env)),'TOTAL a cobrar: '+money(d.sub+d.env)];
+    // FECHA real del próximo día elegido (24 hs de anticipación, nunca hoy).
+    var diaIso=d.diaIso||isoFecha(proxFechaDia(d.dia));
+    var diaTxt=d.dia+(d.diaFecha?' '+d.diaFecha:'');
+    var esp=['MINORISTA','Zona: '+d.zona,'Día de entrega: '+diaTxt,'Envío: '+(d.env===0?'sin cargo':money(d.env)),'TOTAL a cobrar: '+money(d.sub+d.env)];
     if(d.notas) esp.push('Notas: '+d.notas);
-    // Agenda la FECHA real del próximo día elegido. Regla: si hoy ya es ese día,
-    // pasa a la semana que viene (nunca para hoy). El personal puede cambiarla a mano.
-    var proxDia=function(nombre){
-      var map={domingo:0,lunes:1,martes:2,miercoles:3,'miércoles':3,jueves:4,viernes:5,sabado:6,'sábado':6};
-      var n=String(nombre||'').trim().toLowerCase();
-      var di=map[n]; if(di==null) return '';
-      var b=new Date(); b.setHours(0,0,0,0);
-      var diff=(di-b.getDay()+7)%7; if(diff===0) diff=7;
-      b.setDate(b.getDate()+diff);
-      return b.getFullYear()+'-'+String(b.getMonth()+1).padStart(2,'0')+'-'+String(b.getDate()).padStart(2,'0');
-    };
     var pedido={
       id:nid(), origen:'tienda', lista:'minorista', cliente:d.nom, telefono:d.tel,
       direccion:d.addr, localidad:d.loc||'', entrecalles:d.entre||'', lat:lat, lng:lng,
-      items:items, fechaEntrega:proxDia(d.dia), especificaciones:esp.join(' · '),
+      items:items, fechaEntrega:diaIso, especificaciones:esp.join(' · '),
       formaPago:d.pago||'', prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
       clienteUid:null, totalEstimado: Math.round(d.sub),
       zona:d.zona, diaEntrega:d.dia, envio:Math.round(d.env),
@@ -346,7 +355,7 @@ window.GDO = window.GDO || {};
 
   // ====== Checkout: modalidad + zona/día + datos (como mayorista) ======
   function checkout(){
-    var modo='envio', zona=null, dia=null;
+    var modo='envio', zona=null, dia=null, diaFecha=null, diaIso=null;
     var ov=document.createElement('div'); ov.id='ckov'; ov.className='cartov';
     var zonaOpts=CFG.zonas.map(function(z,i){ return '<option value="'+i+'">'+esc(z.nombre)+'</option>'; }).join('');
     ov.innerHTML='<div class="cartsheet"><div class="csh"><img src="assets/isotipo-blanco.svg" alt="GDO"/><b>Finalizar pedido</b><button class="x" id="ckx">&times;</button></div>'+
@@ -399,11 +408,15 @@ window.GDO = window.GDO || {};
     }
     ov.querySelectorAll('[data-mod]').forEach(function(b){ b.onclick=function(){ modo=b.dataset.mod; ov.querySelectorAll('[data-mod]').forEach(function(x){x.classList.toggle('on',x===b)}); document.getElementById('ckEnvio').style.display=modo==='envio'?'block':'none'; document.getElementById('ckRetiro').style.display=modo==='retiro'?'block':'none'; document.getElementById('ckDom').style.display=modo==='envio'?'block':'none'; recalc(); }; });
     document.getElementById('ckZona').onchange=function(){
-      zona=this.value===''?null:+this.value; dia=null;
+      zona=this.value===''?null:+this.value; dia=null; diaFecha=null; diaIso=null;
       var cd=document.getElementById('ckDias');
       if(zona==null){ cd.innerHTML=''; recalc(); return; }
-      cd.innerHTML='<label class="fl">Día de entrega *</label><div class="dias">'+CFG.zonas[zona].dias.map(function(d){ return '<button type="button" class="diab" data-d="'+esc(d)+'">'+esc(d)+'</button>'; }).join('')+'</div>';
-      cd.querySelectorAll('.diab').forEach(function(b){ b.onclick=function(){ dia=b.dataset.d; cd.querySelectorAll('.diab').forEach(function(x){x.classList.toggle('on',x===b)}); }; });
+      cd.innerHTML='<label class="fl">Día de entrega *</label><div class="dias">'+CFG.zonas[zona].dias.map(function(d){
+        var f=proxFechaDia(d), fl=fmtFechaCorta(f);
+        return '<button type="button" class="diab" data-d="'+esc(d)+'" data-fec="'+esc(fl)+'" data-iso="'+esc(isoFecha(f))+'"><b>'+esc(d)+'</b>'+(fl?'<span class="difec">'+fl+'</span>':'')+'</button>';
+      }).join('')+'</div>'+
+        '<div class="note2">🕒 Los pedidos se toman con <b>24 hs de anticipación</b>. Te mostramos la <b>próxima entrega</b> disponible para tu zona (no se entrega el mismo día).</div>';
+      cd.querySelectorAll('.diab').forEach(function(b){ b.onclick=function(){ dia=b.dataset.d; diaFecha=b.dataset.fec; diaIso=b.dataset.iso; cd.querySelectorAll('.diab').forEach(function(x){x.classList.toggle('on',x===b)}); }; });
       recalc();
     };
     document.getElementById('ckSend').onclick=function(){
@@ -424,7 +437,7 @@ window.GDO = window.GDO || {};
       if(modo==='envio'){
         L.push('• *Modalidad:* Envío a domicilio');
         L.push('• *Zona:* '+CFG.zonas[zona].nombre);
-        L.push('• *Día de entrega:* '+dia);
+        L.push('• *Día de entrega:* '+dia+(diaFecha?' '+diaFecha:''));
         L.push('• *Dirección:* '+addr);
         if(loc) L.push('• *Localidad:* '+loc);
         if(entre) L.push('• *Entre calles:* '+entre);
@@ -459,7 +472,7 @@ window.GDO = window.GDO || {};
       L.push('');
       L.push('_El pedido será confirmado por un miembro del equipo en horario comercial para acordar la entrega o retiro según corresponda._');
       // ENVÍO → entra al panel de Rutas (ANTES de abrir WhatsApp, para no perderlo al navegar)
-      if(modo==='envio'){ try{ registrarPedidoEnvio({ nom:nom, tel:tel, addr:addr, loc:loc, entre:entre, zona:CFG.zonas[zona].nombre, dia:dia, pago:pago, notas:notas, sub:sub, env:env }); }catch(e){} }
+      if(modo==='envio'){ try{ registrarPedidoEnvio({ nom:nom, tel:tel, addr:addr, loc:loc, entre:entre, zona:CFG.zonas[zona].nombre, dia:dia, diaFecha:diaFecha, diaIso:diaIso, pago:pago, notas:notas, sub:sub, env:env }); }catch(e){} }
       window.open('https://wa.me/5491135800164?text='+encodeURIComponent(L.join('\n')),'_blank');
       ov.remove();
       pedidoEnviado();
@@ -531,6 +544,22 @@ window.GDO = window.GDO || {};
     return cats;
   }
 
+  // Aviso EMERGENTE de anticipación: aparece al entrar a la lista minorista,
+  // ANTES de ver los productos. Recuerda que los envíos se piden con 24 hs.
+  function avisoAnticipacion(){
+    if(document.getElementById('avomodal')) return;
+    var d=document.createElement('div'); d.id='avomodal'; d.className='cartov'; d.style.alignItems='center';
+    d.innerHTML='<div class="okbox" style="max-width:360px">'+
+      '<div class="okic" style="background:var(--naranja);font-size:38px">🕒</div>'+
+      '<h2>Pedidos con 24 hs de anticipación</h2>'+
+      '<p>Los envíos a domicilio se preparan con un día de anticipación.<br><b>No realizamos entregas el mismo día del pedido.</b><br>Al elegir tu zona vas a ver la próxima fecha de entrega disponible.</p>'+
+      '<button class="btn-conf" id="avook" style="background:var(--naranja)">Entendido</button>'+
+    '</div>';
+    document.body.appendChild(d);
+    document.getElementById('avook').onclick=function(){ d.remove(); };
+    d.onclick=function(e){ if(e.target===d) d.remove(); };
+  }
+
   // ---------- lista minorista ----------
   function lista(){
     $('#back').style.display='block'; $('#htitle').textContent='Lista Minorista'; $('#hsub').textContent='Precios al público';
@@ -545,6 +574,7 @@ window.GDO = window.GDO || {};
       '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v1.0<br>Todos los derechos reservados</p>';
     render(cats);
     startBanner();
+    avisoAnticipacion();
     $('#q').oninput=function(){
       var t=this.value.trim().toLowerCase();
       if(!t){ render(cats); return; }

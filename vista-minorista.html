@@ -137,8 +137,8 @@
   @keyframes pop{ 0%{ transform:scale(.92) } 60%{ transform:scale(1.04) } 100%{ transform:scale(1) } }
   /* barra destacada de ENVIO GRATIS (naranja + negro, identidad GDO) */
   .freebar{ background:var(--naranja); color:#111; border-radius:12px; padding:11px 14px; margin-bottom:8px; text-align:center;
-    font-size:15px; font-weight:700; box-shadow:0 4px 12px rgba(245,130,32,.35); display:flex; align-items:center; justify-content:center; gap:6px }
-  .freebar b{ font-weight:900 } .freebar .big{ font-size:19px; background:#111; color:#fff; padding:2px 9px; border-radius:8px; margin-left:2px }
+    font-size:15px; font-weight:700; box-shadow:0 4px 12px rgba(245,130,32,.35); display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:4px 6px }
+  .freebar b{ font-weight:900 } .freebar .big{ font-size:19px; background:#111; color:#fff; padding:2px 9px; border-radius:8px; margin-left:2px; white-space:nowrap }
   /* boton flotante WhatsApp (con movimiento leve) */
   .wa{ position:fixed; bottom:86px; right:16px; width:54px; height:54px; background:#25D366; border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(37,211,102,.45); text-decoration:none; z-index:150; animation:waBob 2.4s ease-in-out infinite }
   .wa svg{ width:29px; height:29px; fill:#fff }
@@ -571,7 +571,7 @@ window.GDO = window.GDO || {};
       (CFG.envioGratis? '<div class="freebar">🚚 <b>ENVÍO GRATIS</b> en tus compras a partir de <b class="big">'+money(CFG.envioGratisDesde)+'</b></div>':'')+
       '<div class="infostrip">🛒 Pedido mínimo <b>'+money(CFG.minPedido)+'</b> · 🕒 '+CFG.horario+'</div>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+
-      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v1.0<br>Todos los derechos reservados</p>';
+      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v1.1<br>Todos los derechos reservados</p>';
     render(cats);
     startBanner();
     avisoAnticipacion();

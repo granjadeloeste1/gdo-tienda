@@ -361,11 +361,20 @@ function render() {
       if (!fr.length) return;
       vis = true;
       var cols = [];
+      // Unidad de la SECCIÓN (del título, ej. "ELABORADOS X UNIDAD" → "unidad"). Se usa
+      // cuando las columnas de precio son tiers SIN unidad ("X 30","X 15","X 5","X 1"):
+      // así igual se puede PEDIR (la unidad no está en cada columna, sino en el título).
+      var secPc = parseHeader(sec.title || "");
+      var secUnit = secPc ? secPc.unit : null;
       (tbl.headers || []).forEach(function(h, i) {
         if (i === 0) return;
         if (!h || !String(h).trim()) return;
         var pc = parseHeader(h);
-        if (pc) cols.push({idx:i, min:pc.min, unit:pc.unit});
+        if (pc) { cols.push({idx:i, min:pc.min, unit:pc.unit}); return; }
+        if (secUnit) {                              // "X 30" sin unidad → unidad del título + el número como tier
+          var mm = String(h).match(/(\d+)/);
+          cols.push({idx:i, min: mm ? parseInt(mm[1], 10) : 1, unit: secUnit});
+        }
       });
       var nVals = 0;
       fr.forEach(function(r) { var vl = (r.v || []).length; if (vl > nVals) nVals = vl; });

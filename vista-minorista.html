@@ -348,9 +348,27 @@ window.GDO = window.GDO || {};
     };
     try{ var inb=JSON.parse(localStorage.getItem(MIN_INBOX)||'[]'); if(!Array.isArray(inb)) inb=[]; inb.push(pedido); localStorage.setItem(MIN_INBOX, JSON.stringify(inb)); }catch(e){}
     function drop(){ try{ var inb=JSON.parse(localStorage.getItem(MIN_INBOX)||'[]'); if(Array.isArray(inb)) localStorage.setItem(MIN_INBOX, JSON.stringify(inb.filter(function(x){return x&&x.id!==pedido.id;}))); }catch(e){} }
-    function write(){ try{ return GDO.FB.db.collection('pedidos').doc(pedido.id).set(pedido); }catch(e){ return Promise.reject(e); } }
-    if(window.GDO&&GDO.FB&&GDO.FB.enabled&&GDO.FB.db){ write().then(drop).catch(function(){}); }
-    else if(window.GDO&&GDO.FB&&GDO.FB.ready){ GDO.FB.ready.then(function(en){ if(en&&GDO.FB.db) return write().then(drop); }).catch(function(){}); }
+    function write(){ return GDO.FB.db.collection('pedidos').doc(pedido.id).set(pedido); }
+    // Espera a que haya SESIÓN (las reglas exigen auth) y REINTENTA si falla (App Check/red),
+    // así el pedido NO se pierde por escribir antes de la sesión o por un fallo transitorio.
+    function conSesion(){
+      var au = GDO.FB && GDO.FB.auth;
+      if(au && au.currentUser) return Promise.resolve();
+      return new Promise(function(res){
+        var listo=false, un=null;
+        if(au){ un=au.onAuthStateChanged(function(u){ if(u && !listo){ listo=true; try{un();}catch(e){} res(); } }); }
+        try{ if(au && !au.currentUser) au.signInAnonymously(); }catch(e){}
+        setTimeout(function(){ if(!listo){ listo=true; try{un&&un();}catch(e){} res(); } }, 6000);
+      });
+    }
+    function guardar(intentos){
+      return conSesion().then(write).then(drop).catch(function(e){
+        if(intentos>0){ return new Promise(function(r){ setTimeout(r,1500); }).then(function(){ return guardar(intentos-1); }); }
+        throw e;   // agotó reintentos: el pedido queda en MIN_INBOX (respaldo local)
+      });
+    }
+    if(!(window.GDO&&GDO.FB&&GDO.FB.ready)) return Promise.resolve();
+    return GDO.FB.ready.then(function(en){ if(en && GDO.FB.db) return guardar(4); });
   }
 
   // ====== Checkout: modalidad + zona/día + datos (como mayorista) ======
@@ -471,11 +489,23 @@ window.GDO = window.GDO || {};
       L.push('━━━━━━━━━━━━━━');
       L.push('');
       L.push('_El pedido será confirmado por un miembro del equipo en horario comercial para acordar la entrega o retiro según corresponda._');
-      // ENVÍO → entra al panel de Rutas (ANTES de abrir WhatsApp, para no perderlo al navegar)
-      if(modo==='envio'){ try{ registrarPedidoEnvio({ nom:nom, tel:tel, addr:addr, loc:loc, entre:entre, zona:CFG.zonas[zona].nombre, dia:dia, diaFecha:diaFecha, diaIso:diaIso, pago:pago, notas:notas, sub:sub, env:env }); }catch(e){} }
-      window.open('https://wa.me/5491135800164?text='+encodeURIComponent(L.join('\n')),'_blank');
-      ov.remove();
-      pedidoEnviado();
+      var waURL='https://wa.me/5491135800164?text='+encodeURIComponent(L.join('\n'));
+      if(modo==='envio'){
+        // Primero CARGAMOS el pedido en la app y RECIÉN AHÍ abrimos WhatsApp, así nunca sale
+        // por WhatsApp un pedido que no quedó en el panel. Abrimos la pestaña en el mismo clic
+        // (para que el navegador no la bloquee) y la mandamos a WhatsApp cuando termina la carga.
+        var waWin=null;
+        try{ waWin=window.open('about:blank','_blank'); if(waWin&&waWin.document){ waWin.document.write('<meta name=viewport content="width=device-width,initial-scale=1"><div style="font:16px system-ui;padding:48px 24px;text-align:center;color:#333">Registrando tu pedido…<br>te llevamos a WhatsApp 🐔</div>'); } }catch(e){}
+        var pedidoOk;
+        try{ pedidoOk=registrarPedidoEnvio({ nom:nom, tel:tel, addr:addr, loc:loc, entre:entre, zona:CFG.zonas[zona].nombre, dia:dia, diaFecha:diaFecha, diaIso:diaIso, pago:pago, notas:notas, sub:sub, env:env }); }catch(e){ pedidoOk=Promise.reject(e); }
+        (pedidoOk||Promise.resolve()).catch(function(){}).then(function(){
+          ov.remove();
+          if(waWin){ try{ waWin.location.href=waURL; pedidoEnviado(); return; }catch(e){} }
+          location.href=waURL;   // no se pudo abrir pestaña: vamos directo a WhatsApp
+        });
+      } else {
+        window.open(waURL,'_blank'); ov.remove(); pedidoEnviado();
+      }
     };
     recalc();
   }

@@ -491,18 +491,12 @@ window.GDO = window.GDO || {};
       L.push('_El pedido será confirmado por un miembro del equipo en horario comercial para acordar la entrega o retiro según corresponda._');
       var waURL='https://wa.me/5491135800164?text='+encodeURIComponent(L.join('\n'));
       if(modo==='envio'){
-        // Primero CARGAMOS el pedido en la app y RECIÉN AHÍ abrimos WhatsApp, así nunca sale
-        // por WhatsApp un pedido que no quedó en el panel. Abrimos la pestaña en el mismo clic
-        // (para que el navegador no la bloquee) y la mandamos a WhatsApp cuando termina la carga.
-        var waWin=null;
-        try{ waWin=window.open('about:blank','_blank'); if(waWin&&waWin.document){ waWin.document.write('<meta name=viewport content="width=device-width,initial-scale=1"><div style="font:16px system-ui;padding:48px 24px;text-align:center;color:#333">Registrando tu pedido…<br>te llevamos a WhatsApp 🐔</div>'); } }catch(e){}
+        // Guardamos el pedido en la app y RECIÉN AHÍ vamos a WhatsApp. Navegamos con
+        // location.href (SIEMPRE funciona; window.open lo bloquea el celular tras un await).
+        try{ ov.innerHTML='<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px"><div style="background:#fff;border-radius:16px;padding:30px 22px;text-align:center;max-width:340px;box-shadow:0 10px 30px rgba(0,0,0,.25)"><div style="font-size:40px">🐔</div><div style="font-weight:800;font-size:18px;margin:10px 0 4px;color:#222">Registrando tu pedido…</div><div style="color:#666;font-size:14px">Te llevamos a WhatsApp para que lo envíes.</div></div></div>'; }catch(e){}
         var pedidoOk;
         try{ pedidoOk=registrarPedidoEnvio({ nom:nom, tel:tel, addr:addr, loc:loc, entre:entre, zona:CFG.zonas[zona].nombre, dia:dia, diaFecha:diaFecha, diaIso:diaIso, pago:pago, notas:notas, sub:sub, env:env }); }catch(e){ pedidoOk=Promise.reject(e); }
-        (pedidoOk||Promise.resolve()).catch(function(){}).then(function(){
-          ov.remove();
-          if(waWin){ try{ waWin.location.href=waURL; pedidoEnviado(); return; }catch(e){} }
-          location.href=waURL;   // no se pudo abrir pestaña: vamos directo a WhatsApp
-        });
+        (pedidoOk||Promise.resolve()).catch(function(){}).then(function(){ location.href=waURL; });
       } else {
         window.open(waURL,'_blank'); ov.remove(); pedidoEnviado();
       }

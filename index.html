@@ -325,6 +325,7 @@ var $n = function(n) { if (n === null || n === undefined) return ""; return "$ "
 var OPTIONS = [];
 var cart = [];
 var UNIT_DEFS = [
+  {re:/MAPLES?/, u:"maple", pl:"maples"},
   {re:/CAJ[OÓ]N(ES)?/, u:"cajón", pl:"cajones"},
   {re:/CAJAS?/, u:"caja", pl:"cajas"},
   {re:/BOLSAS?/, u:"bolsa", pl:"bolsas"},
@@ -396,10 +397,16 @@ function render() {
       tbH += "<tbody>";
       fr.forEach(function(row) {
         var groups = {};
+        // ANTI-CONFUSIÓN maple/cajón: si el NOMBRE dice la unidad (ej. "MAPLE X UNIDAD" cuyo
+        // precio cae en la columna "1 CAJON"), esa manda — así un maple sale como MAPLE y no
+        // como cajón (un cajón = 12 maples; evita cobrar/entregar de más por error o estafa).
+        var _npc = parseHeader(row.p);
+        var _uNombre = (_npc && (_npc.unit==='maple' || _npc.unit==='cajón')) ? _npc.unit : null;
         cols.forEach(function(c) {
           var price = (row.v || [])[c.idx - 1];
           if (price === null || price === undefined) return;
-          (groups[c.unit] = groups[c.unit] || []).push({min:c.min, price:price});
+          var u = _uNombre || c.unit;
+          (groups[u] = groups[u] || []).push({min:c.min, price:price});
         });
         var keys = Object.keys(groups), multi = keys.length > 1, orderCell = "";
         keys.forEach(function(u, gi) {

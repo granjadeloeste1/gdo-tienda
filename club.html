@@ -204,6 +204,7 @@
   var fmt = function (n){ return Number(n||0).toLocaleString('es-AR'); };
 
   var unsub = null;
+  var unsubCanjes = null;   // listener en vivo de "Mis canjes"
   var lastSocio = {};   // últimos datos del socio (para armar el voucher)
 
   // ¿Entró escaneando el QR del mostrador? (club.html?local) → check-in.
@@ -240,6 +241,7 @@
 
   auth.onAuthStateChanged(function (user) {
     if (unsub) { unsub(); unsub = null; }
+    if (unsubCanjes) { try{ unsubCanjes(); }catch(e){} unsubCanjes = null; }
     if (!user) { auth.signInAnonymously().catch(function () { vistaProximamente(); }); return; } // sin sesión: anónimo para leer el flag
     checkClubActivo(function (activo) {
       if (!activo && !accesoAnticipado) { vistaProximamente(); return; }   // apagado y sin clave → no mostrar
@@ -554,6 +556,7 @@
       .then(function(){ return user.delete(); })
       .then(function(){
         if(unsub){ try{ unsub(); }catch(e){} unsub=null; }
+        if(unsubCanjes){ try{ unsubCanjes(); }catch(e){} unsubCanjes=null; }
         app.innerHTML = '<div class="card" style="text-align:center;padding:30px 22px">'+
           '<div style="font-size:44px">👋</div>'+
           '<h2 style="margin:10px 0 6px">Tu cuenta fue eliminada</h2>'+
@@ -729,7 +732,22 @@
       document.getElementById('vchClose').onclick=cerrar;
     }
 
+    function pintarVencido(){
+      ov.innerHTML =
+        '<div style="max-width:360px;width:100%">'+
+          '<div style="background:linear-gradient(135deg,#26262b,#0a0a0b 60%);color:#fff;border:1px solid #2c2c31;border-left:6px solid #c0392b;border-radius:18px;padding:28px 22px;text-align:center;box-shadow:0 12px 30px rgba(0,0,0,.5)">'+
+            '<div style="font-size:52px;line-height:1">⌛</div>'+
+            '<h2 style="font-size:20px;margin:12px 0 8px;color:#fff">Voucher vencido</h2>'+
+            '<p style="color:#d6d9dd;font-size:14px;line-height:1.55">El voucher de <b>'+esc(c.premioIco||'')+' '+esc(c.premioNombre||'')+'</b> venció el <b>'+venceTxt+'</b> y ya no se puede canjear.</p>'+
+            '<p style="color:#9aa1aa;font-size:11.5px;margin-top:14px">Seguí sumando Puntos GDO con cada compra para canjearlo de nuevo. 🐔</p>'+
+          '</div>'+
+          '<div style="margin-top:12px"><button id="vchClose" class="btn btn-2" style="width:100%">Cerrar</button></div>'+
+        '</div>';
+      document.getElementById('vchClose').onclick=cerrar;
+    }
+
     if(c.usado){ pintarGracias(); }
+    else if(c.venceMs && Date.now() > c.venceMs){ pintarVencido(); }
     else {
       pintarVoucher();
       // En vivo: cuando el cajero escanea y lo marca usado → agradecimiento.
@@ -744,21 +762,40 @@
     ov.onclick=function(e){ if(e.target===ov) cerrar(); };
   }
 
+  // Estado real de un voucher: usado > vencido > vigente. Lo decide el campo
+  // 'usado' que escribe el cajero al escanearlo, NO lo que se cargó al entrar.
+  function estadoCanje(c){
+    if(c.usado) return 'usado';
+    if(c.venceMs && Date.now() > c.venceMs) return 'vencido';
+    return 'vigente';
+  }
+
+  // "Mis canjes" EN VIVO (onSnapshot, no .get()): apenas el cajero escanea el
+  // voucher y lo marca usado, la fila pasa sola a "✔ Usado". Antes se leía una
+  // sola vez al entrar y quedaba diciendo "Vigente" un voucher ya canjeado.
   function cargarCanjes(user){
     var cont = document.getElementById('canjes');
-    db.collection('canjes').where('clienteUid','==',user.uid).get().then(function(snap){
+    // renderSocio() se re-ejecuta con cada cambio de puntos: cortamos el listener
+    // anterior para no acumular uno por render.
+    if(unsubCanjes){ try{ unsubCanjes(); }catch(e){} unsubCanjes=null; }
+    unsubCanjes = db.collection('canjes').where('clienteUid','==',user.uid).onSnapshot(function(snap){
+      // El nodo se vuelve a crear en cada renderSocio(): lo buscamos de nuevo.
+      cont = document.getElementById('canjes'); if(!cont) return;
       if(snap.empty){ cont.innerHTML='<p class="muted small">Todavía no tenés canjes. Canjeá un premio y te damos un voucher. 🎟️</p>'; return; }
       var arr=[]; snap.forEach(function(d){ var x=d.data(); x._id=d.id; arr.push(x); });
       arr.sort(function(a,b){ return ((b.ts&&b.ts.toMillis?b.ts.toMillis():0)-(a.ts&&a.ts.toMillis?a.ts.toMillis():0)); });
       cont.innerHTML = arr.map(function(c){
-        var chip = c.usado ? '<span class="chip">✔ Usado</span>' : '<span class="chip" style="background:#eafaf1;color:#1e8449">✅ Vigente · ver</span>';
-        return '<div class="premio" data-v="'+esc(c._id)+'" style="cursor:pointer"><span class="ico">'+esc(c.premioIco||'🎁')+'</span>'+
+        var st = estadoCanje(c);
+        var chip = st==='usado'   ? '<span class="chip">✔ Usado</span>'
+                 : st==='vencido' ? '<span class="chip" style="background:#f6e7e4;color:#c0392b">⌛ Vencido</span>'
+                 : '<span class="chip" style="background:#eafaf1;color:#1e8449">✅ Vigente · ver</span>';
+        return '<div class="premio" data-v="'+esc(c._id)+'" style="cursor:pointer'+(st==='vigente'?'':';opacity:.6')+'"><span class="ico">'+esc(c.premioIco||'🎁')+'</span>'+
           '<div class="info"><b>'+esc(c.premioNombre||'')+'</b><span class="costo">'+esc(c.codigo||'')+'</span></div>'+chip+'</div>';
       }).join('');
       cont.querySelectorAll('[data-v]').forEach(function(el){
         el.onclick=function(){ var c=null; for(var i=0;i<arr.length;i++){ if(arr[i]._id===el.dataset.v){ c=arr[i]; break; } } if(c) voucherView(c); };
       });
-    }).catch(function(){ cont.innerHTML='<p class="muted small">—</p>'; });
+    }, function(){ cont = document.getElementById('canjes'); if(cont) cont.innerHTML='<p class="muted small">—</p>'; });
   }
 })();
 </script>

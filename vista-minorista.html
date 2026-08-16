@@ -5,8 +5,18 @@
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{ --naranja:#F58220; --tinta:#1a1a1a; --gris:#5b6470; --linea:#e6e8eb; }
   body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; background:#f4f5f7; color:var(--tinta); padding-bottom:80px; overflow-x:hidden; }
-  .hdr{ background:#111; color:#fff; padding:13px 16px; position:sticky; top:0; z-index:20; border-bottom:3px solid var(--naranja); display:flex; align-items:center; gap:10px; }
+  .hdr{ background:#111; color:#fff; padding:13px 16px; position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:10px; }
   .hdr b{ font-size:17px; letter-spacing:.4px } .hdr .sub{ font-size:11px; color:#bdbdbd }
+  /* ===== franja de marca GDO =====
+     Firma visual: los cuatro colores del manual, siempre en el mismo orden y
+     proporción (naranja > negro > rojo > amarillo), de borde a borde y debajo
+     del logo. Va colgada del borde inferior del header con un pseudo-elemento,
+     así no hace falta tocar el HTML. Reemplaza a la línea naranja lisa que
+     estaba antes (una sola franja por pantalla). */
+  header.hdr{ position:relative }
+  header.hdr::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:4px;
+    background:linear-gradient(90deg,#F58220 0 62%,#000 62% 84%,#E53935 84% 94%,#FBC02D 94% 100%); }
+  @media(min-width:760px){ header.hdr::after{ height:7px } }
   .hdr .back{ background:none; border:0; color:#fff; font-size:20px; cursor:pointer; display:none }
   .wrap{ max-width:680px; margin:0 auto; padding:16px }
   /* chooser */

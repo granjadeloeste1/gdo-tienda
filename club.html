@@ -14,8 +14,18 @@
          --surf:#161619; --surf2:#1f1f24; }
   body{ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
         background:#0a0a0b; color:var(--tinta); -webkit-font-smoothing:antialiased; }
-  .hdr{ background:#0a0a0b; color:#fff; padding:14px 16px; position:sticky; top:0; z-index:10; border-bottom:3px solid var(--naranja); }
+  .hdr{ background:#0a0a0b; color:#fff; padding:14px 16px; position:sticky; top:0; z-index:10; }
   .hn{ max-width:680px; margin:0 auto; display:flex; align-items:center; gap:12px; }
+  /* ===== franja de marca GDO =====
+     Los cuatro colores del manual en orden y proporción fijos, debajo del logo
+     y de borde a borde. Cuelga de .hdr y NO de .hn: .hn está limitado a 680px
+     y centrado, así que en escritorio la franja quedaría cortada en el medio de
+     la pantalla en vez de llegar a los bordes.
+     Reemplaza a la línea naranja lisa: una sola franja por pantalla. */
+  .hdr{ position:sticky }
+  .hdr::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:4px;
+    background:linear-gradient(90deg,#F58220 0 62%,#000 62% 84%,#E53935 84% 94%,#FBC02D 94% 100%); }
+  @media(min-width:760px){ .hdr::after{ height:7px } }
   /* Isotipo del gallo dentro de un círculo (mismo header que las listas de precio) */
   .hn .lg{ width:38px; height:38px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 0 0 2px rgba(245,130,32,.6); }
   .hn .lg img{ width:26px; height:26px; display:block; }

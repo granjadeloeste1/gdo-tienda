@@ -289,6 +289,12 @@
     });
   }
 
+  // Fecha de hoy en YYYY-MM-DD, igual que la que guarda el panel en la partida.
+  function hoyStr(){
+    var d=new Date();
+    return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  }
+
   // Código legible y único del voucher, mismo formato que los del club.
   function nuevoCodigo(){
     var a=new Uint8Array(6);
@@ -382,6 +388,27 @@
           if(x.estado==='habilitada' || x.estado==='jugando') abierta=x;
           if(x.estado==='jugada' && (!hoy || (x.finTs&&hoy.finTs&&x.finTs.toMillis()>hoy.finTs.toMillis()))) hoy=x;
         });
+        // RESCATE DEL PREMIO: si hay una partida GANADA hoy y su voucher no se
+        // llegó a emitir (se cortó internet justo ahí, se cerró la pantalla, o la
+        // partida es anterior a que existiera el voucher), lo emitimos ahora.
+        // Sin esto el premio quedaba ganado pero sin comprobante, y no había forma
+        // de recuperarlo desde la app.
+        if(!abierta && hoy && hoy.gano && hoy.fecha===hoyStr()){
+          partida=hoy;
+          db.collection('canjes').doc(hoy._id).get().then(function(v){
+            if(v.exists){
+              if(v.data().usado){ mostrar('fin'); $('finCuerpo').innerHTML =
+                '<div class="res gano"><div style="font-size:52px">🎉</div><h2>¡Gracias por jugar!</h2>'+
+                '<p>Tu premio <b style="color:#fff">'+esc(hoy.premioIco||'')+' '+esc(hoy.premioNombre||'')+'</b> ya fue <b style="color:#48c97e">entregado</b>.</p></div>'; return; }
+              mostrar('fin'); pintarGano(hoy.tiempoMs||0, v.data().codigo);
+            } else {
+              mostrar('fin');
+              emitirVoucher(hoy.tiempoMs||0).then(function(cod){ pintarGano(hoy.tiempoMs||0, cod); })
+                                            .catch(function(){ pintarGano(hoy.tiempoMs||0, null); });
+            }
+          }).catch(function(){});
+          return;
+        }
         if(abierta){
           partida=abierta;
           if(abierta.estado==='jugando' && !corriendo){

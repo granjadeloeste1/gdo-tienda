@@ -132,6 +132,14 @@
   .tabs button{ flex:1; background:#26262b; border:0; border-radius:8px; padding:9px; font-weight:700; color:#cfd2d6; cursor:pointer; }
   .tabs button.on{ background:var(--naranja); color:#111; }
   a.volver{ color:var(--naranja); font-weight:700; text-decoration:none; }
+  /* Premio ganado en el juego: va arriba de todo y se distingue de los canjes
+     por puntos, porque no se compró con saldo — se ganó por destreza. */
+  .prm-juego{ cursor:pointer; border:1px solid var(--naranja); border-left:5px solid var(--naranja);
+              border-radius:14px; padding:13px 14px; margin-bottom:12px; background:rgba(245,130,32,.10);
+              box-shadow:0 4px 16px rgba(245,130,32,.22); }
+  .prm-juego .pj-tag{ display:inline-block; font-size:8.5px; letter-spacing:.14em; text-transform:uppercase;
+                      font-weight:800; padding:3px 8px; border-radius:99px; background:var(--naranja);
+                      color:#111; margin-bottom:5px; }
 </style>
 </head>
 <body>
@@ -812,13 +820,32 @@
       cont = document.getElementById('canjes'); if(!cont) return;
       if(snap.empty){ cont.innerHTML='<p class="muted small">Todavía no tenés canjes. Canjeá un premio y te damos un voucher. 🎟️</p>'; return; }
       var arr=[]; snap.forEach(function(d){ var x=d.data(); x._id=d.id; arr.push(x); });
-      arr.sort(function(a,b){ return ((b.ts&&b.ts.toMillis?b.ts.toMillis():0)-(a.ts&&a.ts.toMillis?a.ts.toMillis():0)); });
+      // ORDEN: primero los premios GANADOS EN EL JUEGO que están vigentes —son por
+      // destreza y vencen el mismo día, así que son los que hay que ver primero—,
+      // después el resto de los canjes, y dentro de cada grupo, del más nuevo al
+      // más viejo.
+      var peso = function(c){ return (c.origen==='juego' && estadoCanje(c)==='vigente') ? 0 : 1; };
+      arr.sort(function(a,b){
+        return (peso(a)-peso(b)) ||
+               ((b.ts&&b.ts.toMillis?b.ts.toMillis():0)-(a.ts&&a.ts.toMillis?a.ts.toMillis():0));
+      });
       cont.innerHTML = arr.map(function(c){
-        var st = estadoCanje(c);
+        var st = estadoCanje(c), juego = c.origen==='juego';
         var chip = st==='usado'   ? '<span class="chip">✔ Usado</span>'
                  : st==='vencido' ? '<span class="chip" style="background:#f6e7e4;color:#c0392b">⌛ Vencido</span>'
                  : '<span class="chip" style="background:#eafaf1;color:#1e8449">✅ Vigente · ver</span>';
-        var org = c.origen==='juego' ? ' · 🎮 DIEZ EXACTO' : '';
+        // El premio del juego se destaca: no se ganó con puntos, se ganó jugando.
+        if(juego && st==='vigente'){
+          return '<div class="premio prm-juego" data-v="'+esc(c._id)+'">'+
+            '<span class="ico" style="font-size:32px">'+esc(c.premioIco||'🎁')+'</span>'+
+            '<div class="info">'+
+              '<span class="pj-tag">🎮 Ganado en DIEZ EXACTO</span>'+
+              '<b style="font-size:16px">'+esc(c.premioNombre||'')+'</b>'+
+              '<span class="costo">'+esc(c.codigo||'')+' · vence hoy</span>'+
+            '</div>'+
+            '<span class="chip" style="background:#F58220;color:#111;font-weight:800">Ver premio</span></div>';
+        }
+        var org = juego ? ' · 🎮 DIEZ EXACTO' : '';
         return '<div class="premio" data-v="'+esc(c._id)+'" style="cursor:pointer'+(st==='vigente'?'':';opacity:.6')+'"><span class="ico">'+esc(c.premioIco||'🎁')+'</span>'+
           '<div class="info"><b>'+esc(c.premioNombre||'')+'</b><span class="costo">'+esc(c.codigo||'')+esc(org)+'</span></div>'+chip+'</div>';
       }).join('');

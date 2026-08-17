@@ -818,8 +818,9 @@
         var chip = st==='usado'   ? '<span class="chip">✔ Usado</span>'
                  : st==='vencido' ? '<span class="chip" style="background:#f6e7e4;color:#c0392b">⌛ Vencido</span>'
                  : '<span class="chip" style="background:#eafaf1;color:#1e8449">✅ Vigente · ver</span>';
+        var org = c.origen==='juego' ? ' · 🎮 DIEZ EXACTO' : '';
         return '<div class="premio" data-v="'+esc(c._id)+'" style="cursor:pointer'+(st==='vigente'?'':';opacity:.6')+'"><span class="ico">'+esc(c.premioIco||'🎁')+'</span>'+
-          '<div class="info"><b>'+esc(c.premioNombre||'')+'</b><span class="costo">'+esc(c.codigo||'')+'</span></div>'+chip+'</div>';
+          '<div class="info"><b>'+esc(c.premioNombre||'')+'</b><span class="costo">'+esc(c.codigo||'')+esc(org)+'</span></div>'+chip+'</div>';
       }).join('');
       cont.querySelectorAll('[data-v]').forEach(function(el){
         el.onclick=function(){ var c=null; for(var i=0;i<arr.length;i++){ if(arr[i]._id===el.dataset.v){ c=arr[i]; break; } } if(c) voucherView(c); };

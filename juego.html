@@ -197,6 +197,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
 <script>
 /* ====== DIEZ EXACTO — juego del GDO CLUB ======
    QUIÉN DECIDE QUÉ (importante, porque hay premios de por medio):
@@ -288,19 +289,73 @@
     });
   }
 
+  // Código legible y único del voucher, mismo formato que los del club.
+  function nuevoCodigo(){
+    var a=new Uint8Array(6);
+    if(window.crypto && crypto.getRandomValues) crypto.getRandomValues(a);
+    else for(var k=0;k<a.length;k++) a[k]=Math.floor(Math.random()*256);
+    var hex=''; for(var i=0;i<a.length;i++) hex+=('0'+a[i].toString(16)).slice(-2);
+    hex=hex.toUpperCase();
+    return 'GDO-'+hex.slice(0,4)+'-'+hex.slice(4,8)+'-'+hex.slice(8,12);
+  }
+
+  /* VOUCHER DEL JUEGO — es un /canjes igual que los del club, con origen:'juego'.
+     Al ser el mismo tipo de documento, el premio ganado aparece solo en "Mis
+     canjes" del socio y en la lista de Canjes del panel, y lo valida el MISMO
+     escáner: se marca usado una sola vez y no se puede canjear dos veces.
+     El id del voucher es el de la partida: así una partida ganada no puede
+     emitir dos vouchers (el segundo intento choca contra el doc que ya existe). */
+  function emitirVoucher(ms){
+    var fin = new Date(); fin.setHours(23,59,59,999);   // vence al cierre de la jornada
+    var codigo = nuevoCodigo();
+    var ref = db.collection('canjes').doc(partida._id);
+    return ref.set({
+      clienteUid: user.uid, origen:'juego', partidaId: partida._id,
+      premioNombre: partida.premioNombre || '', premioIco: partida.premioIco || '🎁',
+      costo: 0, estado:'emitido', usado:false, codigo: codigo,
+      socioNombre: (socio&&socio.nombre)||'', socioNro: (socio&&socio.nroSocio)||0,
+      tiempoMs: ms, venceMs: fin.getTime(), ts: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(function(){ return codigo; });
+  }
+
+  function pintarGano(ms, codigo){
+    $('finCuerpo').innerHTML =
+      '<div class="res gano"><div style="font-size:52px">🎉</div>'+
+      '<h2>¡GANASTE!</h2>'+
+      '<div class="tmp">'+plano(ms)+'</div>'+
+      '<p>Frenaste justo en el objetivo.</p>'+
+      '<div style="font-size:40px;margin-top:10px">'+esc(partida.premioIco||'🎁')+'</div>'+
+      '<p style="color:#fff;font-weight:700;font-size:17px;margin-top:4px">'+esc(partida.premioNombre||'Premio del día')+'</p>'+
+      (codigo
+        ? '<div id="qrBox" style="background:#fff;width:166px;height:166px;margin:14px auto 0;border-radius:10px;display:flex;align-items:center;justify-content:center"></div>'+
+          '<div class="cod">'+esc(codigo)+'</div>'+
+          '<p style="font-size:11.5px">Mostrá este código en el mostrador <b>antes de irte</b>. Vence hoy al cierre de la jornada.</p>'+
+          '<p style="font-size:10px;color:#9aa1aa;margin-top:8px;border-top:1px solid #2c2c31;padding-top:6px">Válido para UN ÚNICO canje en el local. El primero en escanearse anula al resto.</p>'
+        : '<p style="font-size:12px;color:#ffb4a8;margin-top:10px">Ganaste, pero no pudimos emitir el voucher. <b>Mostrale esta pantalla al encargado</b> antes de irte.</p>')+
+      '</div>';
+    if(codigo){
+      try{ new QRCode(document.getElementById('qrBox'),
+        { text:'https://rutas.granjadeloeste.com/#/v/'+partida._id, width:150, height:150, correctLevel:QRCode.CorrectLevel.M }); }catch(e){}
+      // En vivo: cuando el cajero lo escanea y lo marca usado, la pantalla del
+      // socio cambia sola al agradecimiento (igual que los premios del club).
+      db.collection('canjes').doc(partida._id).onSnapshot(function(d){
+        if(d.exists && d.data().usado){
+          $('finCuerpo').innerHTML =
+            '<div class="res gano"><div style="font-size:52px">🎉</div>'+
+            '<h2>¡Gracias por jugar!</h2>'+
+            '<p>Tu premio <b style="color:#fff">'+esc(partida.premioIco||'')+' '+esc(partida.premioNombre||'')+'</b> ya fue <b style="color:#48c97e">entregado</b>.</p>'+
+            '<p style="margin-top:10px">Volvé mañana: el número cambia. 🐔</p></div>';
+        }
+      }, function(){});
+    }
+  }
+
   function resultado(ms, gano){
     mostrar('fin');
-    var prem = cfg||{};
     if(gano){
-      $('finCuerpo').innerHTML =
-        '<div class="res gano"><div style="font-size:52px">🎉</div>'+
-        '<h2>¡GANASTE!</h2>'+
-        '<div class="tmp">'+plano(ms)+'</div>'+
-        '<p>Frenaste justo en el objetivo.</p>'+
-        '<div style="font-size:40px;margin-top:10px">'+esc(prem.premioIco||'🎁')+'</div>'+
-        '<p style="color:#fff;font-weight:700;font-size:17px;margin-top:4px">'+esc(prem.premioNombre||'Premio del día')+'</p>'+
-        '<div class="cod">'+esc(partida.codigo||partida._id.slice(0,8).toUpperCase())+'</div>'+
-        '<p style="font-size:11.5px">Mostrá este código en el mostrador <b>antes de irte</b>. Vence hoy al cierre de la jornada.</p></div>';
+      $('finCuerpo').innerHTML = '<div class="res gano"><div style="font-size:52px">🎉</div><h2>¡GANASTE!</h2><p>Generando tu voucher…</p></div>';
+      emitirVoucher(ms).then(function(cod){ pintarGano(ms, cod); })
+                       .catch(function(){ pintarGano(ms, null); });
     }else{
       // Diferencia CON SIGNO: "-0.12" si frenó antes, "+0.12" si se pasó.
       var d = (ms-partida.objetivoMs)/1000;

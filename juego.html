@@ -192,7 +192,7 @@
     <div class="r"><i></i><span>Además sumás <b>Puntos GDO</b> con cada compra y los canjeás por premios</span></div>
     <div class="r"><i></i><span><b>Un premio nuevo cada día.</b> Si hoy no lo lográs, mañana va otro</span></div>
   </div>
-  <a class="btn-club" href="club.html">⭐ Asociate gratis al GDO CLUB</a>
+  <a class="btn-club" id="btnClub" href="club.html?volver=juego">⭐ Ingresá o hacete socio del <b>GDO CLUB</b></a>
 
   <!-- Aviso de PRÓXIMAMENTE. Lo saca el interruptor del panel cuando se activa
        el juego (club_config/flags.juegoActivo). Arranca VISIBLE: si no hay
@@ -497,6 +497,24 @@
   // a Próximamente: es el lado seguro del error, pero ya no se muestra de entrada.
   var resuelto=false;
   function resolver(encendido, msg){ resuelto=true; pintarLock(encendido, msg); }
+
+  /* Botón del Club, según quién esté mirando:
+     · SOCIO logueado  → se le reconoce que ya es socio y el link va a su credencial.
+     · sin sesión      → invitación a entrar o asociarse, y se le pasa ?volver=juego
+                         para que al terminar el club lo devuelva acá.
+     Si entra al club por su link de siempre (sin ese parámetro), no cambia nada. */
+  function pintarClub(esSocio, nom){
+    var b=$('btnClub'); if(!b) return;
+    if(esSocio){
+      b.href='club.html';
+      b.innerHTML='⭐ '+(nom ? '¡Hola '+esc(nom)+'! ' : '')+'Ya sos socio · <b>Ver mi credencial</b>';
+      b.style.background='transparent'; b.style.color='var(--nar)';
+      b.style.border='2px solid var(--nar)'; b.style.boxShadow='none';
+    }else{
+      b.href='club.html?volver=juego';
+      b.innerHTML='⭐ Ingresá o hacete socio del <b>GDO CLUB</b>';
+    }
+  }
   setTimeout(function(){ if(!resuelto) resolver(false,''); }, 7000);
 
   $('bPush').onclick=function(){ corriendo ? frenar() : arrancar(); };
@@ -506,7 +524,8 @@
     if(!u || u.isAnonymous){
       db.collection('club_config').doc('flags').get().then(function(d){
         var on = !!(d.exists && d.data().juegoActivo===true);
-        resolver(on, on ? 'Para jugar tenés que <b>entrar como socio</b>. <a href="club.html" style="color:var(--nar)">Iniciá sesión o asociate gratis</a>.' : '');
+        pintarClub(false);
+        resolver(on, on ? 'Para jugar tenés que <b>entrar como socio</b>.' : '');
       }).catch(function(){ resolver(false,''); });
       if(!u) auth.signInAnonymously().catch(function(){});
       return;
@@ -520,9 +539,10 @@
       var on = !!(r[0].exists && r[0].data().juegoActivo===true);
       cfg = r[1].exists ? r[1].data() : null;
       socio = r[2].exists ? r[2].data() : null;
+      pintarClub(!!socio, socio && (socio.nombre||'').split(' ')[0]);
       if(!on){ resolver(false,''); return; }
-      if(!socio){ resolver(true,'No encontramos tu perfil de socio. <a href="club.html" style="color:var(--nar)">Entrá al GDO CLUB</a>.'); return; }
-      resolver(true, 'Comprá en sucursal desde <b>$30.000</b> y el cajero te habilita la partida acá mismo.');
+      if(!socio){ resolver(true,'No encontramos tu perfil de socio.'); return; }
+      resolver(true, 'Con tu compra en sucursal se habilita tu partida acá mismo.');
       escucharPartidas();
     }).catch(function(){ resolver(false,''); });
   });

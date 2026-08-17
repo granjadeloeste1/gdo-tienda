@@ -242,6 +242,13 @@
 
   var unsub = null;
   var unsubCanjes = null;   // listener en vivo de "Mis canjes"
+  /* VUELTA AL JUEGO. Si el socio llegó desde la pantalla del juego (?volver=juego)
+     SIN sesión, apenas termina de entrar o de asociarse lo devolvemos al juego,
+     que es lo que vino a hacer. Si ya estaba logueado no lo mandamos a ningún
+     lado: entró a ver su credencial. Y si abre el club por su link de siempre
+     (sin el parámetro), no cambia nada. */
+  var volverAlJuego = false, entroSinSesion = false;
+  try{ volverAlJuego = new URLSearchParams(location.search).get('volver') === 'juego'; }catch(e){}
   var lastSocio = {};   // últimos datos del socio (para armar el voucher)
 
   // ¿Entró escaneando el QR del mostrador? (club.html?local) → check-in.
@@ -279,6 +286,7 @@
   auth.onAuthStateChanged(function (user) {
     if (unsub) { unsub(); unsub = null; }
     if (unsubCanjes) { try{ unsubCanjes(); }catch(e){} unsubCanjes = null; }
+    if (!user || user.isAnonymous) entroSinSesion = true;   // llegó sin sesión de socio
     if (!user) { auth.signInAnonymously().catch(function () { vistaProximamente(); }); return; } // sin sesión: anónimo para leer el flag
     checkClubActivo(function (activo) {
       if (!activo && !accesoAnticipado) { vistaProximamente(); return; }   // apagado y sin clave → no mostrar
@@ -547,6 +555,8 @@
 
   function renderSocio(user, socio){
     lastSocio = socio || {};
+    // Vino del juego sin sesión y ya entró: lo devolvemos a jugar.
+    if (volverAlJuego && entroSinSesion) { volverAlJuego = false; location.replace('juego.html'); return; }
     var pts = socio.puntos||0;
     var nom = (socio.nombre||'').split(' ')[0] || 'socio';
     document.getElementById('hdrPts').style.display='inline-block';

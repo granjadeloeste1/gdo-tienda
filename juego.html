@@ -17,17 +17,17 @@
   body{ background:var(--papel); color:var(--tinta); font-family:var(--sans); font-size:16px;
         line-height:1.62; -webkit-font-smoothing:antialiased; }
 
-  /* ---- encabezado + franja de marca ---- */
-  .hdr{ background:var(--neg); padding:13px 16px; position:sticky; top:0; z-index:10; }
-  .hn{ max-width:520px; margin:0 auto; display:flex; align-items:center; gap:11px; }
-  .hn .lg{ width:36px; height:36px; border-radius:50%; background:#fff; display:flex; align-items:center;
-           justify-content:center; flex-shrink:0; box-shadow:0 0 0 2px rgba(245,130,32,.6); }
-  .hn .lg img{ width:24px; height:24px; display:block; }
-  .hn b{ font-size:16px; letter-spacing:.5px; color:#fff; display:block; line-height:1.15; }
-  .hn .sub{ font-size:10.5px; color:#bdbdbd; }
-  .hdr::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:4px;
-    background:linear-gradient(90deg,#F58220 0 62%,#000 62% 84%,#E53935 84% 94%,#FBC02D 94% 100%); }
-  @media(min-width:760px){ .hdr::after{ height:7px } }
+  /* ---- encabezado: logo, volanta y el nombre en dos líneas, a la izquierda.
+         Mismos valores que la página de bases, para que sean la misma familia. ---- */
+  h1,h2,h3{ font-family:var(--slab); }
+  .jhdr{ padding:42px 0 32px; }
+  .jwrap{ max-width:900px; margin:0 auto; padding:0 26px; }
+  .jhdr img{ width:280px; max-width:72%; display:block; margin:0 0 24px; }
+  .eyebrow{ font-size:11px; font-weight:700; letter-spacing:.26em; text-transform:uppercase;
+            color:var(--gris); margin:0 0 12px; }
+  .jhdr h1{ font-size:clamp(38px,6.4vw,66px); line-height:.9; margin:0; letter-spacing:-.018em; }
+  .jhdr h1 .b{ color:var(--nar); display:block; }
+  .franja{ height:7px; background:linear-gradient(90deg,var(--nar) 0 62%,var(--neg) 62% 84%,var(--rojo) 84% 94%,var(--ama) 94% 100%); }
 
   .pant{ max-width:520px; margin:0 auto; padding:26px 22px 40px; display:flex; flex-direction:column;
          align-items:center; text-align:center; }
@@ -129,19 +129,18 @@
 </style>
 </head>
 <body>
-<header class="hdr">
-  <div class="hn">
-    <span class="lg"><img src="assets/isotipo-color.svg" alt="GDO"/></span>
-    <div><b>DIEZ EXACTO</b><div class="sub">GDO CLUB · Juego</div></div>
+<!-- Encabezado del juego: mismo armado que la página de bases — logo arriba,
+     volanta, y el nombre en dos líneas alineado a la izquierda. -->
+<header class="jhdr">
+  <div class="jwrap">
+    <img src="assets/logo-original.svg" alt="Granja del Oeste"/>
+    <p class="eyebrow">GDO Club · Juego</p>
+    <h1>DIEZ<span class="b">EXACTO</span></h1>
   </div>
 </header>
+<div class="franja"></div>
 
 <div class="pant">
-  <!-- Logotipo del juego: el nombre en slab, DIEZ en negro y EXACTO en naranja,
-       con el volanta en gris espaciado. Es la firma del juego y se repite igual
-       en la tarjeta de la lista. -->
-  <p class="kick gris" id="kickLock">GDO Club · Juego · Próximamente</p><div class="g8"></div>
-  <h1 class="mega">DIEZ<span class="b">EXACTO</span></h1><div class="g14"></div>
   <p class="lead"><b>Activalo con tu compra</b> y participá por grandes premios.</p><div class="g22"></div>
 
   <div class="tuto">
@@ -230,7 +229,8 @@
   function pintarLock(encendido, msg){
     var soon=$('soon'), b=$('bAct'), kick=$('kickLock'), nota=$('nota');
     if(soon) soon.classList.toggle('hide', encendido);
-    if(kick) kick.textContent = encendido ? 'GDO Club · Juego' : 'GDO Club · Juego · Próximamente';
+    // El volanta queda SIEMPRE "GDO Club · Juego", como el logotipo aprobado.
+    // Que el juego no esté vigente lo dice el recuadro de Próximamente de abajo.
     if(b){
       b.classList.toggle('on', false);
       b.disabled = true;

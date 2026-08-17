@@ -34,7 +34,8 @@
   .g8{height:8px} .g14{height:14px} .g22{height:22px}
 
   .kick{ font-size:9.5px; font-weight:700; letter-spacing:.28em; text-transform:uppercase; color:var(--nar); margin:0; }
-  .mega{ font-family:var(--slab); font-size:40px; line-height:.92; margin:0; letter-spacing:-.015em; }
+  .kick.gris{ color:var(--gris); letter-spacing:.24em; font-size:11px; }
+  .mega{ font-family:var(--slab); font-size:52px; line-height:.9; margin:0; letter-spacing:-.02em; font-weight:700; }
   .mega .b{ color:var(--nar); display:block; }
   .lead{ color:var(--gris); font-size:12.5px; margin:0; max-width:246px; line-height:1.5; }
 
@@ -136,9 +137,12 @@
 </header>
 
 <div class="pant">
-  <p class="kick" id="kickLock">GDO Club · Juego · Próximamente</p><div class="g8"></div>
-  <h1 class="mega">ACTIVALO<span class="b">CON TU COMPRA</span></h1><div class="g8"></div>
-  <p class="lead">Y participá por grandes premios.</p><div class="g22"></div>
+  <!-- Logotipo del juego: el nombre en slab, DIEZ en negro y EXACTO en naranja,
+       con el volanta en gris espaciado. Es la firma del juego y se repite igual
+       en la tarjeta de la lista. -->
+  <p class="kick gris" id="kickLock">GDO Club · Juego · Próximamente</p><div class="g8"></div>
+  <h1 class="mega">DIEZ<span class="b">EXACTO</span></h1><div class="g14"></div>
+  <p class="lead"><b>Activalo con tu compra</b> y participá por grandes premios.</p><div class="g22"></div>
 
   <div class="tuto">
     <div class="esc"><span class="paso">01</span><div class="art"><div class="tick"></div></div><p>Comprá en <b>sucursal</b> y se te habilita</p></div>
@@ -297,13 +301,17 @@
         '<div class="cod">'+esc(partida.codigo||partida._id.slice(0,8).toUpperCase())+'</div>'+
         '<p style="font-size:11.5px">Mostrá este código en el mostrador <b>antes de irte</b>. Vence hoy al cierre de la jornada.</p></div>';
     }else{
-      var dif = Math.abs(ms-partida.objetivoMs)/1000;
+      // Diferencia CON SIGNO: "-0.12" si frenó antes, "+0.12" si se pasó.
+      var d = (ms-partida.objetivoMs)/1000;
+      var signo = (d<0?'−':'+')+Math.abs(d).toFixed(2);
       $('finCuerpo').innerHTML =
-        '<div class="res pierde"><div style="font-size:46px">⏱️</div>'+
-        '<h2>Casi</h2>'+
-        '<div class="tmp">'+plano(ms)+'</div>'+
-        '<p>Te quedaste a <b>'+dif.toFixed(2)+' s</b> del objetivo de hoy.</p>'+
-        '<p style="margin-top:10px">Mañana el número cambia. Volvé a intentar con tu próxima compra. 🐔</p></div>';
+        '<div class="res pierde">'+
+        '<p style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#9aa1aa">Tu tiempo</p>'+
+        '<div class="tmp" style="margin:6px 0 2px">'+plano(ms)+'</div>'+
+        '<h2>CASI</h2>'+
+        '<div style="font-size:30px;font-weight:700;color:var(--nar)">'+signo+' <span style="font-size:18px">s</span></div>'+
+        '<p style="margin-top:2px">del objetivo de hoy</p>'+
+        '<p style="margin-top:14px">Mañana el número cambia. <b style="color:#F58220">Volvé a intentar</b> con tu próxima compra. 🐔</p></div>';
     }
   }
 

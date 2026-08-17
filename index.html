@@ -282,6 +282,16 @@ td.l{color:#3a4048}
 #gdoChooser .gc-tag{margin-left:auto;font:700 8.5px system-ui,'Segoe UI',Arial,sans-serif;letter-spacing:.12em;
   text-transform:uppercase;padding:3px 7px;border-radius:99px;background:#F58220;color:#000;white-space:nowrap}
 #gdoChooser .gc-opt.pronto .gc-arr{display:none}
+/* Logotipo del juego: mismo criterio que en juego.html — volanta gris espaciada,
+   el nombre en slab con DIEZ en negro y EXACTO en naranja. Es la firma del juego. */
+#gdoChooser .gc-volanta{font:700 8.5px system-ui,'Segoe UI',Arial,sans-serif;letter-spacing:.22em;
+  text-transform:uppercase;color:#8a8a8a;margin-bottom:1px}
+#gdoChooser .gc-marca{font-family:"Memphis","Rockwell","Roboto Slab","Zilla Slab",Georgia,serif;
+  font-size:23px;line-height:1;letter-spacing:-.01em;color:#111}
+#gdoChooser .gc-marca span{color:#F58220}
+#gdoChooser .gc-opt.pronto .gc-marca{color:#2B2B2B}
+#gdoChooser .gc-opt.pronto .gc-marca span{color:#B4884F}
+#gdoChooser .gc-txt small{margin-top:3px}
 </style>
 <div id="gdoChooser">
   <div class="gc-box">
@@ -309,7 +319,11 @@ td.l{color:#3a4048}
       </p>
       <a class="gc-opt pronto" id="gcJuego" href="juego.html" style="margin-top:14px">
         <span class="gc-ico">&#x23F1;&#xFE0F;</span>
-        <span class="gc-txt"><b>DIEZ EXACTO</b><small id="gcJuegoSub">Muy pronto en sucursal</small></span>
+        <span class="gc-txt">
+          <span class="gc-volanta">GDO Club &middot; Juego</span>
+          <b class="gc-marca">DIEZ <span>EXACTO</span></b>
+          <small id="gcJuegoSub">Muy pronto en sucursal</small>
+        </span>
         <span class="gc-tag" id="gcJuegoTag">Pr&oacute;ximamente</span>
         <span class="gc-arr">&rsaquo;</span>
       </a>

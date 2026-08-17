@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#F58220"/>
+<title>DIEZ EXACTO — GDO CLUB · Granja del Oeste</title>
+<meta name="description" content="DIEZ EXACTO, el juego del GDO CLUB de Granja del Oeste. Frená el reloj justo y el premio es tuyo."/>
+<style>
+  @font-face{font-family:"LatoGDO";src:url(assets/lato-gdo.woff2) format("woff2");font-weight:400;font-display:swap}
+  @font-face{font-family:"LatoGDO";src:url(assets/lato-gdo-bold.woff2) format("woff2");font-weight:700;font-display:swap}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{ --nar:#F58220; --nar-luz:#FFC48A; --nar-hondo:#7A3B0A; --neg:#000; --papel:#FBF9F6;
+         --tinta:#141210; --gris:#6B6660; --linea:#E6E0D8; --rojo:#E53935; --ama:#FBC02D;
+         --sans:"LatoGDO","Lato","Segoe UI",Roboto,Arial,sans-serif;
+         --slab:"Memphis","Rockwell","Roboto Slab","Zilla Slab",Georgia,serif; }
+  body{ background:var(--papel); color:var(--tinta); font-family:var(--sans); font-size:16px;
+        line-height:1.62; -webkit-font-smoothing:antialiased; }
+
+  /* ---- encabezado + franja de marca ---- */
+  .hdr{ background:var(--neg); padding:13px 16px; position:sticky; top:0; z-index:10; }
+  .hn{ max-width:520px; margin:0 auto; display:flex; align-items:center; gap:11px; }
+  .hn .lg{ width:36px; height:36px; border-radius:50%; background:#fff; display:flex; align-items:center;
+           justify-content:center; flex-shrink:0; box-shadow:0 0 0 2px rgba(245,130,32,.6); }
+  .hn .lg img{ width:24px; height:24px; display:block; }
+  .hn b{ font-size:16px; letter-spacing:.5px; color:#fff; display:block; line-height:1.15; }
+  .hn .sub{ font-size:10.5px; color:#bdbdbd; }
+  .hdr::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:4px;
+    background:linear-gradient(90deg,#F58220 0 62%,#000 62% 84%,#E53935 84% 94%,#FBC02D 94% 100%); }
+  @media(min-width:760px){ .hdr::after{ height:7px } }
+
+  .pant{ max-width:520px; margin:0 auto; padding:26px 22px 40px; display:flex; flex-direction:column;
+         align-items:center; text-align:center; }
+  .g8{height:8px} .g14{height:14px} .g22{height:22px}
+
+  .kick{ font-size:9.5px; font-weight:700; letter-spacing:.28em; text-transform:uppercase; color:var(--nar); margin:0; }
+  .mega{ font-family:var(--slab); font-size:40px; line-height:.92; margin:0; letter-spacing:-.015em; }
+  .mega .b{ color:var(--nar); display:block; }
+  .lead{ color:var(--gris); font-size:12.5px; margin:0; max-width:246px; line-height:1.5; }
+
+  /* ---- instructivo de 3 pasos (se turnan solos) ---- */
+  .tuto{ position:relative; width:100%; height:214px; background:var(--neg); overflow:hidden; border-radius:14px; }
+  .esc{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+        gap:11px; opacity:0; animation:esc 10.5s infinite; color:#fff; }
+  .esc:nth-child(1){animation-delay:0s} .esc:nth-child(2){animation-delay:3.5s} .esc:nth-child(3){animation-delay:7s}
+  .esc p{ font-size:12.5px; margin:0; color:#e8e2da; } .esc p b{ color:#fff; }
+  .paso{ font-family:var(--slab); font-size:46px; line-height:.8; color:transparent;
+         -webkit-text-stroke:1.5px rgba(245,130,32,.55); letter-spacing:-.02em; margin-bottom:2px; }
+  .art{ height:66px; display:grid; place-items:center; margin:6px 0 10px; }
+  .tick{ width:74px; height:46px; background:#fff; position:relative; border-radius:3px; animation:sello 3.5s infinite; }
+  .tick::before{ content:""; position:absolute; left:8px; right:8px; top:11px; height:3px; background:#d8d2ca;
+                 box-shadow:0 8px 0 #d8d2ca,0 16px 0 var(--nar); }
+  .tick::after{ content:""; position:absolute; left:0; right:0; bottom:-4px; height:8px;
+                background:radial-gradient(circle at 5px -1px,transparent 5px,#fff 5px) repeat-x; background-size:11px 8px; }
+  .minipush{ width:64px; height:64px; border-radius:50%; padding:6px;
+             background:conic-gradient(from 208deg,#5c5c5c,#141414 22%,#484848 47%,#0d0d0d 70%,#3f3f3f 88%,#5c5c5c);
+             box-shadow:0 7px 0 -1px #050505; animation:apreta 3.5s infinite; }
+  .minipush i{ display:block; width:100%; height:100%; border-radius:50%;
+               background:radial-gradient(115% 115% at 50% 8%,var(--nar-luz),var(--nar) 46%,var(--nar-hondo)); }
+  .minidisp{ font-family:"Courier New",monospace; font-weight:700; font-size:32px; color:var(--nar);
+             letter-spacing:.04em; font-variant-numeric:tabular-nums; text-shadow:0 0 20px rgba(245,130,32,.6); }
+  @keyframes esc{0%{opacity:0;transform:translateY(9px)}4%,29%{opacity:1;transform:translateY(0)}33%,100%{opacity:0;transform:translateY(-9px)}}
+  @keyframes sello{0%,12%{transform:scale(.8) rotate(-6deg);opacity:.4}22%,100%{transform:scale(1) rotate(0);opacity:1}}
+  @keyframes apreta{0%,42%{transform:translateY(0)}52%,66%{transform:translateY(6px)}76%,100%{transform:translateY(0)}}
+  @media(prefers-reduced-motion:reduce){
+    .esc{animation:none;opacity:1;position:relative;margin-bottom:18px}
+    .tuto{height:auto;padding:18px 0}
+    .tick,.minipush{animation:none}
+  }
+
+  /* ---- reglas ---- */
+  .blk{ background:var(--neg); color:#fff; width:100%; font-size:12px; line-height:1.4; border-radius:14px; overflow:hidden; margin-top:10px; }
+  .blk .r{ padding:11px 16px; display:flex; align-items:center; gap:9px; text-align:left; }
+  .blk .r+.r{ border-top:1px solid #222; }
+  .blk .r i{ width:6px; height:6px; border-radius:50%; background:var(--nar); flex:none; }
+
+  /* ---- aviso de próximamente ---- */
+  .soon{ margin:14px 0 0; padding:13px 14px; border:1px dashed rgba(245,130,32,.55); border-radius:14px;
+         background:rgba(245,130,32,.07); text-align:left; width:100%; }
+  .soon p{ margin:7px 0 0; font-size:11.5px; line-height:1.55; color:#4A4540; }
+  .soon b{ color:#111; }
+  .soonb{ display:inline-block; font-size:9px; letter-spacing:.16em; text-transform:uppercase; font-weight:700;
+          padding:4px 9px; border-radius:99px; background:var(--nar); color:#000; }
+  .hide{ display:none !important; }
+
+  /* ---- botón de activar (3 estados, los fija el interruptor del panel) ---- */
+  .bact{ width:100%; margin-top:16px; border:0; border-radius:12px; padding:15px; font-family:var(--sans);
+         font-size:14px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; cursor:pointer;
+         background:#DCD6CE; color:#9c958c; }
+  .bact.on{ background:var(--nar); color:#000; cursor:pointer; }
+  .bact:disabled{ cursor:default; }
+
+  .bases-link{ display:inline-block; margin-top:16px; font-size:11.5px; color:var(--gris);
+               text-decoration:underline; text-underline-offset:3px; }
+  .volver{ display:inline-block; margin-top:22px; color:var(--nar); font-weight:700; text-decoration:none; font-size:14px; }
+  .foot{ text-align:center; font-size:11px; color:var(--gris); padding:10px 10px 30px; line-height:1.6; }
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="hn">
+    <span class="lg"><img src="assets/isotipo-color.svg" alt="GDO"/></span>
+    <div><b>DIEZ EXACTO</b><div class="sub">GDO CLUB · Juego</div></div>
+  </div>
+</header>
+
+<div class="pant">
+  <p class="kick" id="kickLock">GDO Club · Juego · Próximamente</p><div class="g8"></div>
+  <h1 class="mega">ACTIVALO<span class="b">CON TU COMPRA</span></h1><div class="g8"></div>
+  <p class="lead">Y participá por grandes premios.</p><div class="g22"></div>
+
+  <div class="tuto">
+    <div class="esc"><span class="paso">01</span><div class="art"><div class="tick"></div></div><p>Comprá en <b>sucursal</b> y se te habilita</p></div>
+    <div class="esc"><span class="paso">02</span><div class="art"><div class="minipush"><i></i></div></div><p>Un toque y el <b>reloj arranca</b></p></div>
+    <div class="esc"><span class="paso">03</span><div class="art"><div class="minidisp">10.00</div></div><p>Frenalo justo y el <b>premio es tuyo</b></p></div>
+  </div>
+
+  <div class="blk">
+    <div class="r"><i></i><span>Compra en <b>sucursal</b> desde <b>$30.000</b></span></div>
+    <div class="r"><i></i><span><b>Un intento</b> por día</span></div>
+    <div class="r"><i></i><span>El premio <b>puede variar diariamente</b></span></div>
+  </div>
+
+  <!-- Aviso de PRÓXIMAMENTE. Lo saca el interruptor del panel cuando se activa
+       el juego (club_config/flags.juegoActivo). Arranca VISIBLE: si no hay
+       internet o el flag no se puede leer, es preferible avisar de más que
+       dejar creer que el juego ya está corriendo. -->
+  <div class="soon" id="soon">
+    <span class="soonb">Próximamente</span>
+    <p>Todavía <b>no está vigente</b>. Te mostramos cómo va a ser para que lo tengas listo: en los próximos días se habilita en sucursal y vas a poder activarlo con tu compra.</p>
+  </div>
+
+  <button class="bact" id="bAct" disabled>Juego apagado</button>
+
+  <a class="bases-link" href="juego-bases.html">Bases y condiciones</a>
+  <a class="volver" href="index.html">← Volver a la lista de precios</a>
+</div>
+
+<div class="foot">Propiedad de Granja del Oeste<sup style="font-size:8px">&reg;</sup> &middot; GDO CLUB &middot; DIEZ EXACTO</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* El estado del juego lo manda SOLO el personal, desde el panel:
+   club_config/flags.juegoActivo. Sin el campo = apagado (modo Próximamente).
+   Apagado no esconde nada: la pantalla se ve entera, pero no se habilita
+   ninguna partida. */
+(function(){
+  function pintar(encendido){
+    var soon=document.getElementById('soon'), b=document.getElementById('bAct'),
+        kick=document.getElementById('kickLock');
+    if(soon) soon.classList.toggle('hide', encendido);
+    if(kick) kick.textContent = encendido ? 'GDO Club · Juego' : 'GDO Club · Juego · Próximamente';
+    if(b){
+      b.classList.toggle('on', encendido);
+      b.disabled = !encendido;
+      b.textContent = encendido ? 'Activar partida' : 'Juego apagado';
+    }
+  }
+  try{
+    firebase.initializeApp({ apiKey:'AIzaSyDljWSSEDrZylMxgYCPaqaqU2x-3QYvZaM', authDomain:'ruteogdo.firebaseapp.com',
+      projectId:'ruteogdo', storageBucket:'ruteogdo.firebasestorage.app', messagingSenderId:'507253098011',
+      appId:'1:507253098011:web:785699004cd41dfe1f9abe' });
+    var db=firebase.firestore();
+    firebase.auth().signInAnonymously()
+      .then(function(){ return db.collection('club_config').doc('flags').get(); })
+      .then(function(d){ pintar(!!(d.exists && d.data().juegoActivo === true)); })
+      .catch(function(){ /* sin conexión: queda en Próximamente */ });
+  }catch(e){}
+})();
+</script>
+</body>
+</html>

@@ -272,6 +272,16 @@ td.l{color:#3a4048}
 #gdoChooser .gdo-franja{width:100%;height:4px;margin:18px 0 4px;border-radius:2px;
   background:linear-gradient(90deg,#F58220 0 62%,#000 62% 84%,#E53935 84% 94%,#FBC02D 94% 100%)}
 @media(min-width:760px){#gdoChooser .gdo-franja{height:7px}}
+/* Tarjeta del juego. En modo PRÓXIMAMENTE queda en gris con el sello: NO se
+   esconde, para que el socio pueda entrar y ver de qué se trata. La activa el
+   interruptor del panel (club_config/flags.juegoActivo). */
+#gdoChooser .gc-opt.pronto{background:#F3EFE9;border:1px dashed #C9C1B6;box-shadow:none}
+#gdoChooser .gc-opt.pronto .gc-txt b{color:#2B2B2B}
+#gdoChooser .gc-opt.pronto .gc-txt small{color:#6B6660}
+#gdoChooser .gc-opt.pronto .gc-ico,#gdoChooser .gc-opt.pronto .gc-arr{color:#9c958c;filter:grayscale(1)}
+#gdoChooser .gc-tag{margin-left:auto;font:700 8.5px system-ui,'Segoe UI',Arial,sans-serif;letter-spacing:.12em;
+  text-transform:uppercase;padding:3px 7px;border-radius:99px;background:#F58220;color:#000;white-space:nowrap}
+#gdoChooser .gc-opt.pronto .gc-arr{display:none}
 </style>
 <div id="gdoChooser">
   <div class="gc-box">
@@ -297,6 +307,12 @@ td.l{color:#3a4048}
       <p style="margin:8px 4px 0;font:11.5px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5;text-align:left">
         &#8505;&#65039; Algunos productos <b style="color:#777">no suman puntos</b>: caj&oacute;n de pollo &middot; caj&oacute;n de huevos.
       </p>
+      <a class="gc-opt pronto" id="gcJuego" href="juego.html" style="margin-top:14px">
+        <span class="gc-ico">&#x23F1;&#xFE0F;</span>
+        <span class="gc-txt"><b>DIEZ EXACTO</b><small id="gcJuegoSub">Muy pronto en sucursal</small></span>
+        <span class="gc-tag" id="gcJuegoTag">Pr&oacute;ximamente</span>
+        <span class="gc-arr">&rsaquo;</span>
+      </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
       Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v1.0<br>Todos los derechos reservados
@@ -1501,6 +1517,18 @@ window.GDO = window.GDO || {};
       if (!activo) { var n = document.getElementById('clubNote'); if (n) n.style.display = 'none'; }
       try { if (GDO.FB && GDO.FB.user !== undefined) GDO.clubUI(GDO.FB.user && !GDO.FB.user.isAnonymous ? GDO.FB.user : null); } catch (e) {}
     }
+    // Tarjeta del juego DIEZ EXACTO. A diferencia del club, APAGADO NO LA ESCONDE:
+    // queda en gris con el sello "Próximamente" y el socio puede entrar igual a ver
+    // de qué se trata. Arranca así, y solo se enciende si el servidor lo confirma.
+    function aplicarJuego(activo) {
+      GDO.juegoActivo = !!activo;
+      var card = document.getElementById('gcJuego');
+      var sub = document.getElementById('gcJuegoSub');
+      var tag = document.getElementById('gcJuegoTag');
+      if (card) card.classList.toggle('pronto', !activo);
+      if (sub) sub.textContent = activo ? 'Activalo con tu compra' : 'Muy pronto en sucursal';
+      if (tag) tag.style.display = activo ? 'none' : '';
+    }
     // El botón del Club arranca VISIBLE (#clubChooserBox = display:block). Solo lo
     // ESCONDEMOS si el SERVIDOR confirma que el club está apagado. Así, aunque la
     // lectura de Firestore falle o tarde (App Check / caché offline / sesión socio),
@@ -1514,6 +1542,7 @@ window.GDO = window.GDO || {};
             GDO.FB.db.collection('club_config').doc('flags').onSnapshot(function (d) {
               if (d.metadata && d.metadata.fromCache) return;   // SOLO datos del servidor
               aplicar(d.exists && d.data().activo === true);
+              aplicarJuego(d.exists && d.data().juegoActivo === true);
             }, function () { /* error: no tocamos nada → el botón queda visible */ });
           } catch (e) {}
         });

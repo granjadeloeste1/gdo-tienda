@@ -132,6 +132,12 @@
   .tabs button{ flex:1; background:#26262b; border:0; border-radius:8px; padding:9px; font-weight:700; color:#cfd2d6; cursor:pointer; }
   .tabs button.on{ background:var(--naranja); color:#111; }
   a.volver{ color:var(--naranja); font-weight:700; text-decoration:none; }
+  /* Ojito para ver la contraseña. El input deja lugar a la derecha para el botón. */
+  .pwrap{ position:relative; }
+  .pwrap input{ padding-right:46px; }
+  .pojo{ position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:0;
+         font-size:18px; line-height:1; cursor:pointer; padding:6px 8px; opacity:.65; }
+  .pojo:hover,.pojo.on{ opacity:1; }
   /* Premio ganado en el juego: va arriba de todo y se distingue de los canjes
      por puntos, porque no se compró con saldo — se ganó por destreza. */
   .prm-juego{ cursor:pointer; border:1px solid var(--naranja); border-left:5px solid var(--naranja);
@@ -249,6 +255,20 @@
      (sin el parámetro), no cambia nada. */
   var volverAlJuego = false, entroSinSesion = false;
   try{ volverAlJuego = new URLSearchParams(location.search).get('volver') === 'juego'; }catch(e){}
+
+  /* Ver / ocultar la contraseña. Va por delegación en document porque los
+     formularios se re-dibujan (login, registro) y los botones nacen después. */
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('.pojo'); if(!b) return;
+    e.preventDefault();
+    var inp = document.getElementById(b.dataset.ver); if(!inp) return;
+    var ver = inp.type === 'password';
+    inp.type = ver ? 'text' : 'password';
+    b.textContent = ver ? '🙈' : '👁';
+    b.classList.toggle('on', ver);
+    b.setAttribute('aria-label', ver ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    try{ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }catch(err){}
+  });
   var lastSocio = {};   // últimos datos del socio (para armar el voucher)
 
   // ¿Entró escaneando el QR del mostrador? (club.html?local) → check-in.
@@ -336,7 +356,7 @@
       box.innerHTML =
         '<div id="msg"></div>'+
         '<label>Email</label><input id="email" type="email" autocomplete="email" placeholder="tucorreo@ejemplo.com"/>'+
-        '<label>Contraseña</label><input id="pass" type="password" autocomplete="current-password" placeholder="••••••••"/>'+
+        '<label>Contraseña</label><div class="pwrap"><input id="pass" type="password" autocomplete="current-password" placeholder="••••••••"/><button type="button" class="pojo" data-ver="pass" aria-label="Mostrar contraseña">👁</button></div>'+
         '<div style="height:12px"></div><button class="btn" id="goLogin" type="button">Entrar</button>'+
         '<div style="text-align:center;margin-top:6px"><button class="btn-g" id="goReset" type="button">Olvidé mi contraseña</button></div>';
       document.getElementById('goLogin').onclick = doLogin;
@@ -349,7 +369,7 @@
         '<label>Dirección *</label><input id="direccion" type="text" autocomplete="street-address" placeholder="Calle, número, localidad"/>'+
         '<label>Teléfono / WhatsApp *</label><input id="telefono" type="tel" inputmode="tel" autocomplete="tel" placeholder="Ej: 11 1234-5678"/>'+
         '<label>Email *</label><input id="email" type="email" autocomplete="email" placeholder="tucorreo@ejemplo.com"/>'+
-        '<label>Contraseña (mín. 6) *</label><input id="pass" type="password" autocomplete="new-password" placeholder="Creá una contraseña"/>'+
+        '<label>Contraseña (mín. 6) *</label><div class="pwrap"><input id="pass" type="password" autocomplete="new-password" placeholder="Creá una contraseña"/><button type="button" class="pojo" data-ver="pass" aria-label="Mostrar contraseña">👁</button></div>'+
         '<div class="small muted" style="margin-top:8px">* Todos los datos son obligatorios.</div>'+
         '<details class="tyc" style="margin-top:12px;border:1px solid var(--linea,#e6e8eb);border-radius:9px;padding:10px 12px">'+
           '<summary style="cursor:pointer;font-weight:700;font-size:13px">📄 Términos y Condiciones del GDO CLUB</summary>'+TYC_HTML+'</details>'+

@@ -40,15 +40,33 @@
   .mega .b{ color:var(--nar); display:block; }
   .lead{ color:var(--gris); font-size:12.5px; margin:0; max-width:246px; line-height:1.5; }
 
-  /* ---- instructivo de 3 pasos (se turnan solos) ---- */
-  .tuto{ position:relative; width:100%; height:214px; background:var(--neg); overflow:hidden; border-radius:14px; }
-  .esc{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
-        gap:11px; opacity:0; animation:esc 10.5s infinite; color:#fff; }
-  .esc:nth-child(1){animation-delay:0s} .esc:nth-child(2){animation-delay:3.5s} .esc:nth-child(3){animation-delay:7s}
-  .esc p{ font-size:12.5px; margin:0; color:#e8e2da; } .esc p b{ color:#fff; }
-  .paso{ font-family:var(--slab); font-size:46px; line-height:.8; color:transparent;
-         -webkit-text-stroke:1.5px rgba(245,130,32,.55); letter-spacing:-.02em; margin-bottom:2px; }
-  .art{ height:66px; display:grid; place-items:center; margin:6px 0 10px; }
+  /* ---- instructivo: los 3 pasos A LA VEZ ----
+     Antes se turnaban cada 3,5 s y el cliente podía perderse uno mientras leía.
+     Ahora están los tres a la vista, en fila, y cada dibujo se anima solo. */
+  .tuto{ width:100%; background:var(--neg); border-radius:16px; overflow:hidden; padding:6px 0; }
+  .esc{ display:grid; grid-template-columns:44px 78px 1fr; align-items:center; gap:12px;
+        padding:14px 16px; color:#fff; text-align:left; }
+  .esc + .esc{ border-top:1px solid #1e1e1e; }
+  .esc p{ font-size:13px; margin:0; color:#c9c4bd; line-height:1.4; } .esc p b{ color:#fff; }
+  .paso{ font-family:var(--slab); font-size:34px; line-height:1; color:transparent;
+         -webkit-text-stroke:1.5px rgba(245,130,32,.6); letter-spacing:-.02em; }
+  .art{ height:58px; display:grid; place-items:center; }
+  /* Paso 3: el reloj corre y frena justo en el objetivo, con destello al acertar. */
+  .disp{ font-family:"Courier New",monospace; font-weight:700; font-size:23px; color:var(--nar);
+         font-variant-numeric:tabular-nums; letter-spacing:.02em; position:relative; }
+  /* El carrete de centésimas: alto de UNA línea, y adentro la tira de números
+     que se desplaza. Sin alto fijo, la tira empujaba el resto del display. */
+  .disp{ line-height:1.15; display:inline-flex; align-items:baseline; }
+  .disp .cs{ display:inline-block; width:2ch; height:1.15em; overflow:hidden; }
+  .disp .cs i{ display:block; font-style:normal; line-height:1.15;
+               animation:corren 3.5s steps(1) infinite; }
+  .disp.hit{ animation:destello 3.5s infinite; }
+  @keyframes corren{
+    0%{transform:translateY(0)} 8%{transform:translateY(-1.15em)} 16%{transform:translateY(-2.3em)}
+    24%{transform:translateY(-3.45em)} 32%{transform:translateY(-4.6em)} 40%,100%{transform:translateY(-5.75em)} }
+  @keyframes destello{
+    0%,38%{text-shadow:none} 44%{text-shadow:0 0 18px rgba(245,130,32,.95),0 0 34px rgba(245,130,32,.6)}
+    70%,100%{text-shadow:0 0 10px rgba(245,130,32,.45)} }
   .tick{ width:74px; height:46px; background:#fff; position:relative; border-radius:3px; animation:sello 3.5s infinite; }
   .tick::before{ content:""; position:absolute; left:8px; right:8px; top:11px; height:3px; background:#d8d2ca;
                  box-shadow:0 8px 0 #d8d2ca,0 16px 0 var(--nar); }
@@ -65,9 +83,14 @@
   @keyframes sello{0%,12%{transform:scale(.8) rotate(-6deg);opacity:.4}22%,100%{transform:scale(1) rotate(0);opacity:1}}
   @keyframes apreta{0%,42%{transform:translateY(0)}52%,66%{transform:translateY(6px)}76%,100%{transform:translateY(0)}}
   @media(prefers-reduced-motion:reduce){
-    .esc{animation:none;opacity:1;position:relative;margin-bottom:18px}
-    .tuto{height:auto;padding:18px 0}
-    .tick,.minipush{animation:none}
+    .tick,.minipush,.disp .cs i,.disp.hit{animation:none}
+  }
+  /* En pantalla ancha los tres pasos van uno al lado del otro. */
+  @media(min-width:620px){
+    .tuto{display:grid;grid-template-columns:repeat(3,1fr);padding:0}
+    .esc{grid-template-columns:1fr;justify-items:center;text-align:center;gap:8px;padding:20px 14px}
+    .esc + .esc{border-top:0;border-left:1px solid #1e1e1e}
+    .esc p{font-size:12.5px}
   }
 
   /* ---- reglas ---- */
@@ -144,9 +167,21 @@
   <p class="lead"><b>Activalo con tu compra</b> y participá por grandes premios.</p><div class="g22"></div>
 
   <div class="tuto">
-    <div class="esc"><span class="paso">01</span><div class="art"><div class="tick"></div></div><p>Comprá en <b>sucursal</b> y se te habilita</p></div>
-    <div class="esc"><span class="paso">02</span><div class="art"><div class="minipush"><i></i></div></div><p>Un toque y el <b>reloj arranca</b></p></div>
-    <div class="esc"><span class="paso">03</span><div class="art"><div class="minidisp">10.00</div></div><p>Frenalo justo y el <b>premio es tuyo</b></p></div>
+    <div class="esc">
+      <span class="paso">01</span>
+      <div class="art"><div class="tick"></div></div>
+      <p>Comprá en <b>sucursal</b> desde $30.000 y mostrá tu ticket: el cajero te <b>habilita la partida</b></p>
+    </div>
+    <div class="esc">
+      <span class="paso">02</span>
+      <div class="art"><div class="minipush"><i></i></div></div>
+      <p>Tocás una vez y el <b>reloj arranca</b>. Tenés 60 segundos para empezar</p>
+    </div>
+    <div class="esc">
+      <span class="paso">03</span>
+      <div class="art"><div class="disp hit">10<span style="color:#6b6660">.</span><span class="cs"><i>00<br>18<br>37<br>55<br>72<br>91<br>00</i></span></div></div>
+      <p>Frenalo <b>justo en 10.00</b> y el premio es tuyo. Sin tolerancia</p>
+    </div>
   </div>
 
   <div class="blk">

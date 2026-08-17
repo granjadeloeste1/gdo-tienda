@@ -30,8 +30,11 @@ svg#mapa{width:100%;height:auto;display:block}
 .blob .fill{fill:var(--tinta);transition:fill .15s}
 .blob.on .fill{fill:var(--naranja)}
 .blob.dim{opacity:.20}
+/* Nombres de las localidades. El contorno oscuro es lo que los hace legibles
+   tanto sobre el gris como sobre el naranja de la zona seleccionada. */
 .lbl{font-family:"Patrick Hand",sans-serif;fill:#fff;text-anchor:middle;dominant-baseline:middle;
-  pointer-events:none;paint-order:stroke;stroke:rgba(0,0,0,.35);stroke-width:2.2px}
+  pointer-events:none;paint-order:stroke;stroke:rgba(0,0,0,.72);stroke-width:.14em;
+  stroke-linejoin:round;font-weight:700}
 .zona{text-align:center;padding:6px 12px 8px}
 .zona h2{font-family:"Permanent Marker",cursive;margin:0;color:var(--naranja);
   font-size:clamp(30px,9vw,52px);line-height:1;letter-spacing:1px}
@@ -90,19 +93,45 @@ MAPDATA.cells.forEach((c,i)=>{
 svg.appendChild(labelLayer);
 function mv(e){tip.style.left=e.clientX+"px";tip.style.top=e.clientY+"px"}
 
-const SHORT={"Villa Sarmiento":"V. Sarmiento","Villa Udaondo":"V. Udaondo","Ciudad Jardín":"Ciudad Jardín"};
+// Nombres cortos para las zonas angostas: entran enteros en vez de achicarse
+// hasta ser ilegibles o desaparecer. Ramos Mejía, V. Sarmiento y Ciudadela eran
+// las tres que quedaban cortadas.
+const SHORT={"Villa Sarmiento":"V. Sarmiento","Villa Udaondo":"V. Udaondo","Ramos Mejía":"Ramos"};
 const rectHit=(a,b)=>!(a.x+a.width<b.x||b.x+b.width<a.x||a.y+a.height<b.y||b.y+b.height<a.y);
-requestAnimationFrame(()=>{
-  els.forEach(o=>{let fs=19;if(SHORT[o.data.n])o.t.textContent=SHORT[o.data.n];o.t.style.fontSize=fs+"px";
-    const mw=o.box.w*0.86;let l=o.t.getComputedTextLength();
-    while(l>mw&&fs>10){fs--;o.t.style.fontSize=fs+"px";l=o.t.getComputedTextLength()}o.tooWide=l>mw;});
+function acomodarNombres(){
+  // TAMAÑO REAL, NO EN UNIDADES DEL SVG. El viewBox mide 1000 de ancho pero el
+  // mapa se dibuja mucho más chico (en un celular, ~375px): una fuente de 16
+  // unidades terminaba viéndose a 6px. Calculamos la escala y fijamos el tamaño
+  // para que en PANTALLA se lea siempre parecido, mida lo que mida el mapa.
+  const escala=(svg.getBoundingClientRect().width||560)/1000;
+  const uni=px=>px/escala;                 // px reales -> unidades del SVG
+  const FS_IDEAL=uni(17), FS_MIN=uni(12.5);
+  els.forEach(o=>{let fs=FS_IDEAL;if(SHORT[o.data.n])o.t.textContent=SHORT[o.data.n];o.t.style.fontSize=fs+"px";
+    const mw=o.box.w*0.98;let l=o.t.getComputedTextLength();
+    while(l>mw&&fs>FS_MIN){fs-=uni(.5);o.t.style.fontSize=fs+"px";l=o.t.getComputedTextLength()}o.tooWide=l>mw;});
   const placed=[];
+  // Antes se ocultaba el nombre si no entraba en el polígono ('tooWide'), y por eso
+  // desaparecían justo las zonas angostas: Ciudadela, Ramos y V. Sarmiento. Ahora
+  // un nombre que sobresale un poco se muestra igual —es mejor que no verlo— y
+  // solo se oculta si de verdad se pisa con otro ya colocado.
   els.slice().sort((a,b)=>b.area-a.area).forEach(o=>{
     let r;try{r=o.t.getBBox()}catch(e){r=null}
-    const hide=o.tooWide||o.box.w<26||(r&&placed.some(p=>rectHit(r,p)));
-    if(hide){o.t.style.opacity=0;o.small=true}else if(r){placed.push({x:r.x-2,y:r.y-1,width:r.width+4,height:r.height+2})}
+    const rr=r?{x:r.x+r.width*0.18,y:r.y+r.height*0.3,width:r.width*0.64,height:r.height*0.4}:null;
+    const hide=o.box.w<18||(rr&&placed.some(p=>rectHit(rr,p)));
+    // Se tolera el roce: solo se oculta si los nombres se pisan de verdad, no si
+    // apenas se rozan por el borde. Sin esta tolerancia se perdían nombres de
+    // zonas grandes (Hurlingham) por tocar el vecino de costado.
+    if(hide){o.t.style.opacity=0;o.small=true}
+    else{o.t.style.opacity=1;o.small=false;
+      if(r)placed.push({x:r.x+r.width*0.18,y:r.y+r.height*0.3,width:r.width*0.64,height:r.height*0.4});}
   });
-});
+}
+// Se corre cuando el mapa YA tiene su tamaño final (en rAF todavía puede medir
+// mal y los nombres quedan calculados para un ancho que no es el real), y de
+// nuevo al rotar el celular o cambiar el tamaño de la ventana.
+requestAnimationFrame(acomodarNombres);
+window.addEventListener('load', acomodarNombres);
+let _rz; window.addEventListener('resize', ()=>{ clearTimeout(_rz); _rz=setTimeout(acomodarNombres,150); });
 
 const norm=s=>s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").trim();
 document.getElementById("q").addEventListener("input",e=>doSearch(e.target.value));

@@ -272,16 +272,12 @@ td.l{color:#3a4048}
 #gdoChooser .gdo-franja{width:100%;height:4px;margin:18px 0 4px;border-radius:2px;
   background:linear-gradient(90deg,#F58220 0 62%,#000 62% 84%,#E53935 84% 94%,#FBC02D 94% 100%)}
 @media(min-width:760px){#gdoChooser .gdo-franja{height:7px}}
-/* Tarjeta del juego. En modo PRÓXIMAMENTE queda en gris con el sello: NO se
-   esconde, para que el socio pueda entrar y ver de qué se trata. La activa el
-   interruptor del panel (club_config/flags.juegoActivo). */
-#gdoChooser .gc-opt.pronto{background:#F3EFE9;border:1px dashed #C9C1B6;box-shadow:none}
-#gdoChooser .gc-opt.pronto .gc-txt b{color:#2B2B2B}
-#gdoChooser .gc-opt.pronto .gc-txt small{color:#6B6660}
-#gdoChooser .gc-opt.pronto .gc-ico,#gdoChooser .gc-opt.pronto .gc-arr{color:#9c958c;filter:grayscale(1)}
+/* Tarjeta del juego. Va en BLANCO igual que Mayorista y Minorista, con el nombre
+   siempre en negro y naranja. En modo PRÓXIMAMENTE no se apaga ni se esconde:
+   lo único que cambia es el sello y la bajada, así el socio entra igual a ver de
+   qué se trata. La activa el interruptor del panel (club_config/flags.juegoActivo). */
 #gdoChooser .gc-tag{margin-left:auto;font:700 8.5px system-ui,'Segoe UI',Arial,sans-serif;letter-spacing:.12em;
   text-transform:uppercase;padding:3px 7px;border-radius:99px;background:#F58220;color:#000;white-space:nowrap}
-#gdoChooser .gc-opt.pronto .gc-arr{display:none}
 /* Logotipo del juego: mismo criterio que en juego.html — volanta gris espaciada,
    el nombre en slab con DIEZ en negro y EXACTO en naranja. Es la firma del juego. */
 #gdoChooser .gc-volanta{font:700 8.5px system-ui,'Segoe UI',Arial,sans-serif;letter-spacing:.22em;
@@ -289,8 +285,6 @@ td.l{color:#3a4048}
 #gdoChooser .gc-marca{font-family:"Memphis","Rockwell","Roboto Slab","Zilla Slab",Georgia,serif;
   font-size:23px;line-height:1;letter-spacing:-.01em;color:#111}
 #gdoChooser .gc-marca span{color:#F58220}
-#gdoChooser .gc-opt.pronto .gc-marca{color:#2B2B2B}
-#gdoChooser .gc-opt.pronto .gc-marca span{color:#B4884F}
 #gdoChooser .gc-txt small{margin-top:3px}
 </style>
 <div id="gdoChooser">

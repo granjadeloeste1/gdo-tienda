@@ -159,12 +159,12 @@
        el juego (club_config/flags.juegoActivo). Arranca VISIBLE: si no hay
        internet o el flag no se puede leer, es preferible avisar de más que
        dejar creer que el juego ya está corriendo. -->
-  <div class="soon" id="soon">
+  <div class="soon hide" id="soon">
     <span class="soonb">Próximamente</span>
     <p>Todavía <b>no está vigente</b>. Te mostramos cómo va a ser para que lo tengas listo: en los próximos días se habilita en sucursal y vas a poder activarlo con tu compra.</p>
   </div>
 
-  <button class="bact" id="bAct" disabled>Juego apagado</button>
+  <button class="bact" id="bAct" disabled>Cargando…</button>
   <p class="nota" id="nota"></p>
 
   <a class="bases-link" href="juego-bases.html">Bases y condiciones</a>
@@ -369,6 +369,15 @@
     db=firebase.firestore(); auth=firebase.auth();
   }catch(e){}
 
+  // ARRANQUE NEUTRO: la página empieza en "Cargando…", sin el cartel de
+  // Próximamente. Antes arrancaba en apagado y, con el juego encendido, se veía
+  // un parpadeo de "Juego apagado / Próximamente" hasta que llegaba el flag.
+  // Si a los 7 s no hubo respuesta (sin señal, Firestore caído), recién ahí cae
+  // a Próximamente: es el lado seguro del error, pero ya no se muestra de entrada.
+  var resuelto=false;
+  function resolver(encendido, msg){ resuelto=true; pintarLock(encendido, msg); }
+  setTimeout(function(){ if(!resuelto) resolver(false,''); }, 7000);
+
   $('bPush').onclick=function(){ corriendo ? frenar() : arrancar(); };
 
   auth.onAuthStateChanged(function(u){
@@ -376,8 +385,8 @@
     if(!u || u.isAnonymous){
       db.collection('club_config').doc('flags').get().then(function(d){
         var on = !!(d.exists && d.data().juegoActivo===true);
-        pintarLock(on, on ? 'Para jugar tenés que <b>entrar como socio</b>. <a href="club.html" style="color:var(--nar)">Iniciá sesión o asociate gratis</a>.' : '');
-      }).catch(function(){ pintarLock(false,''); });
+        resolver(on, on ? 'Para jugar tenés que <b>entrar como socio</b>. <a href="club.html" style="color:var(--nar)">Iniciá sesión o asociate gratis</a>.' : '');
+      }).catch(function(){ resolver(false,''); });
       if(!u) auth.signInAnonymously().catch(function(){});
       return;
     }
@@ -390,11 +399,11 @@
       var on = !!(r[0].exists && r[0].data().juegoActivo===true);
       cfg = r[1].exists ? r[1].data() : null;
       socio = r[2].exists ? r[2].data() : null;
-      if(!on){ pintarLock(false,''); return; }
-      if(!socio){ pintarLock(true,'No encontramos tu perfil de socio. <a href="club.html" style="color:var(--nar)">Entrá al GDO CLUB</a>.'); return; }
-      pintarLock(true, 'Comprá en sucursal desde <b>$30.000</b> y el cajero te habilita la partida acá mismo.');
+      if(!on){ resolver(false,''); return; }
+      if(!socio){ resolver(true,'No encontramos tu perfil de socio. <a href="club.html" style="color:var(--nar)">Entrá al GDO CLUB</a>.'); return; }
+      resolver(true, 'Comprá en sucursal desde <b>$30.000</b> y el cajero te habilita la partida acá mismo.');
       escucharPartidas();
-    }).catch(function(){ pintarLock(false,''); });
+    }).catch(function(){ resolver(false,''); });
   });
 })();
 </script>

@@ -20,12 +20,13 @@
   /* ---- encabezado: logo, volanta y el nombre en dos líneas, a la izquierda.
          Mismos valores que la página de bases, para que sean la misma familia. ---- */
   h1,h2,h3{ font-family:var(--slab); }
-  .jhdr{ padding:42px 0 32px; }
+  /* Sin logo: el título arranca arriba de todo y es el que manda. Un poco más
+     grande y con el volanta más pegado, así el bloque se lee como una sola pieza. */
+  .jhdr{ padding:22px 0 20px; }
   .jwrap{ max-width:900px; margin:0 auto; padding:0 26px; }
-  .jhdr img{ width:280px; max-width:72%; display:block; margin:0 0 24px; }
   .eyebrow{ font-size:11px; font-weight:700; letter-spacing:.26em; text-transform:uppercase;
-            color:var(--gris); margin:0 0 12px; }
-  .jhdr h1{ font-size:clamp(38px,6.4vw,66px); line-height:.9; margin:0; letter-spacing:-.018em; }
+            color:var(--gris); margin:0 0 8px; }
+  .jhdr h1{ font-size:clamp(44px,7.4vw,74px); line-height:.86; margin:0; letter-spacing:-.022em; }
   .jhdr h1 .b{ color:var(--nar); display:block; }
   .franja{ height:7px; background:linear-gradient(90deg,var(--nar) 0 62%,var(--neg) 62% 84%,var(--rojo) 84% 94%,var(--ama) 94% 100%); }
 
@@ -133,7 +134,6 @@
      volanta, y el nombre en dos líneas alineado a la izquierda. -->
 <header class="jhdr">
   <div class="jwrap">
-    <img src="assets/logo-horizontal-puntos.svg" alt="Granja del Oeste"/>
     <p class="eyebrow">GDO Club · Juego</p>
     <h1>DIEZ<span class="b">EXACTO</span></h1>
   </div>

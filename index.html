@@ -323,7 +323,7 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v1.3<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v1.4<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -454,7 +454,7 @@ function render() {
         var keys = Object.keys(groups), multi = keys.length > 1, orderCell = "";
         keys.forEach(function(u, gi) {
           var isMain = (gi === 0);
-          var tiers = groups[u].slice().sort(function(a,b){ return a.min - b.min; }).map(function(x){ return {min:x.min, price:x.price}; });
+          var tiers = groups[u].slice().sort(function(a,b){ return a.min - b.min; }).map(function(x){ return {min:x.min, price:x.price, pesoKg:x.pesoKg}; });
           // PIEZAS: cuando la unidad secundaria trae UN solo escalón con un peso fijo
           // (ej. la bondiola, cuya columna dice "3 KG C/U APROX"), se cuenta por PIEZA:
           // el cliente pide 1, 2, 3 piezas, no kilos sueltos. El precio de la planilla

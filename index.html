@@ -323,7 +323,7 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v1.2<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v1.3<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -388,6 +388,11 @@ function parseHeader(h){
   var min = nm ? parseInt(nm[1],10) : 1;
   return {min:min, unit:best.u};
 }
+// Peso de la pieza declarado en el encabezado de la planilla: el número pegado a
+// "KG" esté como esté escrito ("3 KG C/U APROX", "POR PIEZA DE 3KG APROX"). Es lo
+// que le dice a la lista que ese precio es POR KILO y que cada pieza pesa eso.
+// Si esta celda pierde el número, el producto vuelve a venderse por unidad suelta.
+function pesoKgDe(h){ var m = String(h).toUpperCase().match(/(\d+)\s*(KGS?|KILOS?)\b/); return m ? parseInt(m[1],10) : 0; }
 function priceForTiers(t, q){ var p=t[0].price; for(var i=0;i<t.length;i++){ if(q>=t[i].min) p=t[i].price; } return p; }
 function cartQtyFor(name, brand, unit){ for(var i=0;i<cart.length;i++){ var l=cart[i]; if(l.name===name && l.brand===brand && l.unit===unit) return l.qty; } return 0; }
 function render() {
@@ -409,10 +414,10 @@ function render() {
         if (i === 0) return;
         if (!h || !String(h).trim()) return;
         var pc = parseHeader(h);
-        if (pc) { cols.push({idx:i, min:pc.min, unit:pc.unit}); return; }
+        if (pc) { cols.push({idx:i, min:pc.min, unit:pc.unit, pesoKg:pesoKgDe(h)}); return; }
         if (secUnit) {                              // "X 30" sin unidad → unidad del título + el número como tier
           var mm = String(h).match(/(\d+)/);
-          cols.push({idx:i, min: mm ? parseInt(mm[1], 10) : 1, unit: secUnit});
+          cols.push({idx:i, min: mm ? parseInt(mm[1], 10) : 1, unit: secUnit, pesoKg:pesoKgDe(h)});
         }
       });
       var nVals = 0;
@@ -444,7 +449,7 @@ function render() {
           var price = (row.v || [])[c.idx - 1];
           if (price === null || price === undefined) return;
           var u = _uNombre || c.unit;
-          (groups[u] = groups[u] || []).push({min:c.min, price:price});
+          (groups[u] = groups[u] || []).push({min:c.min, price:price, pesoKg:c.pesoKg});
         });
         var keys = Object.keys(groups), multi = keys.length > 1, orderCell = "";
         keys.forEach(function(u, gi) {
@@ -455,7 +460,7 @@ function render() {
           // el cliente pide 1, 2, 3 piezas, no kilos sueltos. El precio de la planilla
           // sigue siendo por kilo, así que para el escalón y el total se multiplica por
           // kgPor. La conversión vive en lineKg(); no calcular totales sin pasar por ahí.
-          var kgPor = (!isMain && u === "kg" && tiers.length === 1 && tiers[0].min > 1) ? tiers[0].min : 0;
+          var kgPor = (!isMain && tiers.length === 1 && tiers[0].pesoKg > 1) ? tiers[0].pesoKg : 0;
           var uMostrar = kgPor ? "pieza" : u;
           var opt = {name:row.p, brand:(tbl.brand||""), unit:uMostrar, kgPor:kgPor, tiers:tiers, main:isMain, min:(/TROZADO/i.test(sec.title||"")?5:0)};
           var oi = OPTIONS.push(opt) - 1;

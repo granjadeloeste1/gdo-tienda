@@ -439,9 +439,13 @@ window.GDO = window.GDO || {};
       zona=this.value===''?null:+this.value; dia=null; diaFecha=null; diaIso=null;
       var cd=document.getElementById('ckDias');
       if(zona==null){ cd.innerHTML=''; recalc(); return; }
-      cd.innerHTML='<label class="fl">Día de entrega *</label><div class="dias">'+CFG.zonas[zona].dias.map(function(d){
-        var f=proxFechaDia(d), fl=fmtFechaCorta(f);
-        return '<button type="button" class="diab" data-d="'+esc(d)+'" data-fec="'+esc(fl)+'" data-iso="'+esc(isoFecha(f))+'"><b>'+esc(d)+'</b>'+(fl?'<span class="difec">'+fl+'</span>':'')+'</button>';
+      // Los días salen ORDENADOS POR FECHA REAL, no en el orden de la config: si
+      // hoy es martes, "Miércoles 26/8" tiene que aparecer antes que "Lunes 31/8".
+      var diasOrd=CFG.zonas[zona].dias.map(function(d){ return { d:d, f:proxFechaDia(d) }; })
+        .sort(function(a,b){ return (a.f?a.f.getTime():Infinity)-(b.f?b.f.getTime():Infinity); });
+      cd.innerHTML='<label class="fl">Día de entrega *</label><div class="dias">'+diasOrd.map(function(x){
+        var f=x.f, fl=fmtFechaCorta(f);
+        return '<button type="button" class="diab" data-d="'+esc(x.d)+'" data-fec="'+esc(fl)+'" data-iso="'+esc(isoFecha(f))+'"><b>'+esc(x.d)+'</b>'+(fl?'<span class="difec">'+fl+'</span>':'')+'</button>';
       }).join('')+'</div>'+
         '<div class="note2">🕒 Los pedidos se toman con <b>24 hs de anticipación</b>. Te mostramos la <b>próxima entrega</b> disponible para tu zona (no se entrega el mismo día).</div>';
       cd.querySelectorAll('.diab').forEach(function(b){ b.onclick=function(){ dia=b.dataset.d; diaFecha=b.dataset.fec; diaIso=b.dataset.iso; cd.querySelectorAll('.diab').forEach(function(x){x.classList.toggle('on',x===b)}); }; });

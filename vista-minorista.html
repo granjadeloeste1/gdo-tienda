@@ -506,7 +506,15 @@ window.GDO = window.GDO || {};
         try{ ov.innerHTML='<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px"><div style="background:#fff;border-radius:16px;padding:30px 22px;text-align:center;max-width:340px;box-shadow:0 10px 30px rgba(0,0,0,.25)"><div style="font-size:40px">🐔</div><div style="font-weight:800;font-size:18px;margin:10px 0 4px;color:#222">Registrando tu pedido…</div><div style="color:#666;font-size:14px">Te llevamos a WhatsApp para que lo envíes.</div></div></div>'; }catch(e){}
         var pedidoOk;
         try{ pedidoOk=registrarPedidoEnvio({ nom:nom, tel:tel, addr:addr, loc:loc, entre:entre, zona:CFG.zonas[zona].nombre, dia:dia, diaFecha:diaFecha, diaIso:diaIso, pago:pago, notas:notas, sub:sub, env:env }); }catch(e){ pedidoOk=Promise.reject(e); }
-        (pedidoOk||Promise.resolve()).catch(function(){}).then(function(){ location.href=waURL; });
+        // A WhatsApp vamos SI O SI. Antes esperabamos la promesa de Firestore, pero
+        // .set() NO resuelve hasta que el servidor confirma: con red mala (o sin red)
+        // queda pendiente para siempre y el cliente se trababa en "Registrando tu
+        // pedido". El pedido ya quedo encolado (persistencia offline de Firestore +
+        // respaldo en localStorage), asi que salimos a los 2,5 s como maximo.
+        var yaFui=false;
+        var irWA=function(){ if(yaFui) return; yaFui=true; location.href=waURL; };
+        setTimeout(irWA, 2500);
+        (pedidoOk||Promise.resolve()).catch(function(){}).then(irWA);
       } else {
         window.open(waURL,'_blank'); ov.remove(); pedidoEnviado();
       }

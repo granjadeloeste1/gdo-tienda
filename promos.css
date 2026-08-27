@@ -1,46 +1,67 @@
-/* ====== GDO Tienda — carrusel de promos (formato vertical 9:16) ======
-   La tarjeta TIENE la proporción de la pieza: alta y angosta, como el estado de
-   WhatsApp. No es una caja ancha con la imagen chiquita en el medio. Y pasa de
-   una promo a la otra deslizando hacia ARRIBA, no de costado.
-   Alto acotado a propósito: la promo no puede tapar lo que el cliente vino a
-   buscar. Se lee tocándola, que la abre en pantalla completa. */
-.gdo-promos { margin: 0 0 14px; }
+/* ====== GDO Tienda — carrusel de promos (2 por pantalla, formato 9:16) ======
+   Las tarjetas tienen la proporción de la pieza (alta y angosta, como el estado
+   de WhatsApp). Se ven DE A DOS y se corren de derecha a izquierda.
 
-.gp-stage {
-  position: relative; overflow: hidden; border-radius: 16px; cursor: pointer;
-  background: #0d0d0d;
-  height: clamp(230px, 42vh, 340px);
-  aspect-ratio: 9 / 16;          /* la tarjeta es vertical, no una franja ancha */
-  width: auto; max-width: 100%;
-  margin-inline: auto;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, .3);
-}
-/* El riel se mueve en VERTICAL: la promo siguiente entra desde abajo. */
+   OJO CON EL SALTO: el espacio se reserva ANTES de que lleguen las imágenes
+   (ver .gp-skel y el `min-height` que pone promos.js), porque si el carrusel
+   aparece después empuja el logo y los botones hacia abajo a mitad de carga. */
+.gdo-promos { margin: 4px 0 16px; }
+
+.gp-wrap { position: relative; }
+.gp-stage { overflow: hidden; border-radius: 14px; }
 .gp-track {
-  display: flex; flex-direction: column;
-  height: 100%; width: 100%;
-  transition: transform .55s cubic-bezier(.4, 0, .2, 1);
+  display: flex; align-items: stretch;
+  transition: transform .5s cubic-bezier(.4, 0, .2, 1);
 }
-.gp-slide { flex: 0 0 100%; height: 100%; width: 100%; }
-.gp-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gp-wrap.fija .gp-track { justify-content: center; }
+
+.gp-slide {
+  position: relative; flex: 0 0 50%;   /* dos por pantalla */
+  padding: 0 4px; box-sizing: border-box; cursor: pointer;
+}
+.gp-slide img {
+  width: 100%; aspect-ratio: 9 / 16; object-fit: cover; display: block;
+  border-radius: 12px; background: #0d0d0d;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, .28);
+}
 
 .gp-hint {
-  position: absolute; left: 8px; top: 8px; z-index: 2; white-space: nowrap;
-  background: rgba(0, 0, 0, .55); color: #fff; font: 600 11px system-ui, 'Segoe UI', Arial, sans-serif;
-  padding: 4px 9px; border-radius: 999px; letter-spacing: .2px;
+  position: absolute; left: 11px; top: 8px; z-index: 2; white-space: nowrap;
+  background: rgba(0, 0, 0, .55); color: #fff;
+  font: 600 10.5px system-ui, 'Segoe UI', Arial, sans-serif;
+  padding: 3px 8px; border-radius: 999px; letter-spacing: .2px;
   backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); pointer-events: none;
 }
 
-/* Puntitos: en columna, al costado, para acompañar el sentido vertical. */
-.gp-dots {
-  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-  z-index: 2; display: flex; flex-direction: column; gap: 6px;
+/* Flechas para correrlas a mano, además del automático. */
+.gp-nav {
+  position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
+  width: 34px; height: 34px; border-radius: 50%; border: 0; cursor: pointer;
+  background: rgba(0, 0, 0, .55); color: #fff; font-size: 24px; line-height: 30px;
+  padding: 0; display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .3);
 }
+.gp-nav:hover { background: #F58220; }
+.gp-nav.prev { left: 6px; }
+.gp-nav.next { right: 6px; }
+
+.gp-dots { display: flex; gap: 6px; justify-content: center; margin-top: 9px; }
 .gp-dots i {
-  width: 6px; height: 6px; border-radius: 50%; background: rgba(255, 255, 255, .5);
+  width: 6px; height: 6px; border-radius: 50%; background: rgba(140, 140, 140, .45);
   cursor: pointer; transition: all .2s;
 }
-.gp-dots i.on { background: #F58220; height: 16px; border-radius: 4px; }
+.gp-dots i.on { background: #F58220; width: 16px; border-radius: 4px; }
+
+/* Esqueleto: ocupa exactamente el mismo lugar que las promos reales, así
+   cuando llegan las imágenes no se mueve nada de la pantalla. */
+.gp-skel { display: flex; }
+.gp-skel span {
+  flex: 0 0 50%; margin: 0 4px; border-radius: 12px; aspect-ratio: 9 / 16;
+  background: linear-gradient(100deg, #e9e9ec 30%, #f4f4f6 50%, #e9e9ec 70%);
+  background-size: 220% 100%; animation: gpSkel 1.1s linear infinite;
+}
+@keyframes gpSkel { from { background-position: 120% 0 } to { background-position: -120% 0 } }
 
 /* Pantalla completa: acá sí la promo se ve entera y se lee. */
 .gp-full {
@@ -55,8 +76,3 @@
   border-radius: 50%; border: 0; background: rgba(255, 255, 255, .14); color: #fff;
   font-size: 26px; line-height: 1; cursor: pointer;
 }
-
-/* En el menú inicial (la pantalla donde se elige la lista) va más contenida,
-   para no empujar los botones de Mayorista/Minorista abajo de la pantalla. */
-#gdoChooser .gdo-promos { margin: 4px 0 18px; }
-#gdoChooser .gp-stage { height: clamp(180px, 30vh, 250px); }

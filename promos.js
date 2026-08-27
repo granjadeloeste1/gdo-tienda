@@ -64,16 +64,16 @@ window.GDO = window.GDO || {};
       '<div class="gp-stage" id="gpStage">' +
         '<div class="gp-track" id="gpTrack">' +
           lista.map(function (p) {
-            return '<div class="gp-slide" style="background-image:url(' + p.img + ')">' +
+            return '<div class="gp-slide">' +
                      '<img src="' + p.img + '" alt="' + (p.titulo || 'Promo Granja del Oeste').replace(/"/g, '') + '" loading="lazy">' +
                    '</div>';
           }).join('') +
         '</div>' +
+        (lista.length > 1 ? '<div class="gp-dots" id="gpDots"></div>' : '') +
         // Sin este cartelito nadie descubre que la promo se puede agrandar, y
         // el texto de una pieza 9:16 achicada no se termina de leer.
-        '<span class="gp-hint">' + (lista.some(function (p) { return p.link; }) ? 'Tocá para ver' : '🔍 Tocá para agrandar') + '</span>' +
-      '</div>' +
-      (lista.length > 1 ? '<div class="gp-dots" id="gpDots"></div>' : '');
+        '<span class="gp-hint">' + (lista.some(function (p) { return p.link; }) ? 'Abrir' : '🔍 Ampliar') + '</span>' +
+      '</div>';
 
     var track = cont.querySelector('#gpTrack');
     var dots = cont.querySelector('#gpDots');
@@ -81,7 +81,8 @@ window.GDO = window.GDO || {};
 
     function ir(x) {
       i = (x + lista.length) % lista.length;
-      track.style.transform = 'translateX(-' + (i * 100) + '%)';
+      // VERTICAL: la promo siguiente entra desde abajo, como un estado de WhatsApp.
+      track.style.transform = 'translateY(-' + (i * 100) + '%)';
       if (dots) Array.prototype.forEach.call(dots.children, function (c, k) { c.className = (k === i ? 'on' : ''); });
     }
     function arrancar() { if (lista.length > 1) { clearInterval(timer); timer = setInterval(function () { ir(i + 1); }, CADENCIA); } }
@@ -95,8 +96,12 @@ window.GDO = window.GDO || {};
     }
     ir(0); arrancar();
 
-    // Deslizar con el dedo. 40 px de umbral para no confundir con el scroll
-    // vertical de la página, que es el gesto que el cliente hace todo el tiempo.
+    /* Deslizar con el dedo, HACIA EL COSTADO, aunque la animación sea vertical.
+       Parece contradictorio pero es a propósito: un swipe vertical sobre la
+       tarjeta es indistinguible del scroll de la página, y para cambiar de
+       promo habría que bloquearle al cliente el gesto con el que baja a ver los
+       precios. El costado es inequívoco. Igual la mayoría solo mira cómo rotan
+       solas o toca los puntitos. 40 px de umbral. */
     var x0 = null, y0 = null;
     var stage = cont.querySelector('#gpStage');
     stage.addEventListener('touchstart', function (e) {

@@ -1,41 +1,50 @@
 /* ====== GDO Tienda — carrusel de promos (formato vertical 9:16) ======
-   Alto acotado a propósito: la lista de precios es a lo que viene el cliente,
-   la promo no puede empujarla abajo de la pantalla. Se lee tocándola. */
-.gdo-promos { margin: 0 0 12px; }
+   La tarjeta TIENE la proporción de la pieza: alta y angosta, como el estado de
+   WhatsApp. No es una caja ancha con la imagen chiquita en el medio. Y pasa de
+   una promo a la otra deslizando hacia ARRIBA, no de costado.
+   Alto acotado a propósito: la promo no puede tapar lo que el cliente vino a
+   buscar. Se lee tocándola, que la abre en pantalla completa. */
+.gdo-promos { margin: 0 0 14px; }
+
 .gp-stage {
-  position: relative; overflow: hidden; border-radius: 16px;
-  background: #0d0d0d; cursor: pointer;
-  height: clamp(210px, 40vh, 320px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+  position: relative; overflow: hidden; border-radius: 16px; cursor: pointer;
+  background: #0d0d0d;
+  height: clamp(230px, 42vh, 340px);
+  aspect-ratio: 9 / 16;          /* la tarjeta es vertical, no una franja ancha */
+  width: auto; max-width: 100%;
+  margin-inline: auto;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, .3);
 }
-.gp-track { display: flex; height: 100%; transition: transform .5s ease; }
-.gp-slide {
-  flex: 0 0 100%; height: 100%; position: relative;
-  display: flex; align-items: center; justify-content: center;
-  /* La misma imagen, ampliada y desenfocada, rellena los costados que deja la
-     pieza vertical. Queda prolijo sin recortar nada de la promo. */
-  background-size: cover; background-position: center;
+/* El riel se mueve en VERTICAL: la promo siguiente entra desde abajo. */
+.gp-track {
+  display: flex; flex-direction: column;
+  height: 100%; width: 100%;
+  transition: transform .55s cubic-bezier(.4, 0, .2, 1);
 }
-.gp-slide::before {
-  content: ''; position: absolute; inset: 0;
-  backdrop-filter: blur(22px) brightness(.45);
-  -webkit-backdrop-filter: blur(22px) brightness(.45);
-  background: rgba(0, 0, 0, .25);
+.gp-slide { flex: 0 0 100%; height: 100%; width: 100%; }
+.gp-slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.gp-hint {
+  position: absolute; left: 8px; top: 8px; z-index: 2; white-space: nowrap;
+  background: rgba(0, 0, 0, .55); color: #fff; font: 600 11px system-ui, 'Segoe UI', Arial, sans-serif;
+  padding: 4px 9px; border-radius: 999px; letter-spacing: .2px;
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); pointer-events: none;
 }
-.gp-slide img {
-  position: relative; height: 100%; width: auto; max-width: 100%;
-  object-fit: contain; display: block; border-radius: 10px;
+
+/* Puntitos: en columna, al costado, para acompañar el sentido vertical. */
+.gp-dots {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  z-index: 2; display: flex; flex-direction: column; gap: 6px;
 }
-.gp-dots { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
 .gp-dots i {
-  width: 7px; height: 7px; border-radius: 50%; background: rgba(140, 140, 140, .5);
+  width: 6px; height: 6px; border-radius: 50%; background: rgba(255, 255, 255, .5);
   cursor: pointer; transition: all .2s;
 }
-.gp-dots i.on { background: #F58220; width: 18px; border-radius: 4px; }
+.gp-dots i.on { background: #F58220; height: 16px; border-radius: 4px; }
 
 /* Pantalla completa: acá sí la promo se ve entera y se lee. */
 .gp-full {
-  position: fixed; inset: 0; z-index: 9999; background: rgba(0, 0, 0, .92);
+  position: fixed; inset: 0; z-index: 100002; background: rgba(0, 0, 0, .92);
   display: flex; align-items: center; justify-content: center; padding: 18px;
   animation: gpIn .18s ease;
 }
@@ -46,9 +55,8 @@
   border-radius: 50%; border: 0; background: rgba(255, 255, 255, .14); color: #fff;
   font-size: 26px; line-height: 1; cursor: pointer;
 }
-.gp-hint {
-  position: absolute; right: 10px; bottom: 10px; z-index: 2;
-  background: rgba(0, 0, 0, .55); color: #fff; font-size: 11px; font-weight: 600;
-  padding: 4px 9px; border-radius: 999px; letter-spacing: .2px;
-  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); pointer-events: none;
-}
+
+/* En el menú inicial (la pantalla donde se elige la lista) va más contenida,
+   para no empujar los botones de Mayorista/Minorista abajo de la pantalla. */
+#gdoChooser .gdo-promos { margin: 4px 0 18px; }
+#gdoChooser .gp-stage { height: clamp(180px, 30vh, 250px); }

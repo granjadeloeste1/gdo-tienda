@@ -158,7 +158,7 @@
   .kgmin{ display:inline-block; background:#fff7ef; border:1px solid #f3cda0; color:#a85f1a; border-radius:8px; padding:3px 9px; font-size:11.5px; font-weight:800; margin:2px 0 8px }
   .gdofoot{ text-align:center; color:#9a9a9a; font-size:12px; line-height:1.5; margin:22px 0 90px }
   .gdofoot b{ color:#777 }
-</style><link rel="stylesheet" href="promos.css">
+</style>
 </head>
 <body>
 <header class="hdr"><button class="back" id="back">←</button><span class="lg"><img src="assets/isotipo-color.svg" alt="GDO"/></span><div><b id="htitle">Granja del Oeste</b><div class="sub" id="hsub">Lista de precios</div></div></header>
@@ -203,7 +203,6 @@ window.GDO = window.GDO || {};
 
 <!-- Geo compartido: mismo motor de Google Maps + Georef que la mayorista -->
 <script src="geo.js"></script>
-<script src="promos.js"></script>
 
 <script>
   var $=function(s){return document.querySelector(s)}, app=$('#app');
@@ -616,14 +615,14 @@ window.GDO = window.GDO || {};
       '<div class="banner"><div class="bn-track" id="bnt">'+
         '<img src="assets/banner/b1.jpg" alt="Envíos a domicilio"/>'+
       '</div><div class="bn-dots" id="bnd"></div></div>'+
-      '<section class="gdo-promos" id="gdoPromos" hidden></section>'+
+
       (CFG.envioGratis? '<div class="freebar">🚚 <b>ENVÍO GRATIS</b> en tus compras a partir de <b class="big">'+money(CFG.envioGratisDesde)+'</b></div>':'')+
       '<div class="infostrip">🛒 Pedido mínimo <b>'+money(CFG.minPedido)+'</b> · 🕒 '+CFG.horario+'</div>'+
       '<details class="mapwrap" id="mapaDet"><summary class="maphead">🗺️ Mirá en el mapa qué días llegamos a tu zona <span class="mapchev">▾</span></summary>'+
         '<iframe id="mapaReparto" src="mapa-zona-oeste.html?v=4" title="Zona de reparto Oeste" loading="lazy" style="width:100%;border:0;display:block;min-height:420px"></iframe></details>'+
       '<style>.mapwrap{margin:10px 0;border:1px solid #eee;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)}.mapwrap>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#fff;background:#F58220;padding:13px 16px}.mapwrap>summary::-webkit-details-marker{display:none}.mapwrap .mapchev{margin-left:auto;transition:transform .2s}.mapwrap[open] .mapchev{transform:rotate(180deg)}</style>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+
-      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v1.2<br>Todos los derechos reservados</p>';
+      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v1.3<br>Todos los derechos reservados</p>';
     render(cats);
     // Ajusta la altura del mapa (iframe mismo-origen) a su contenido, y al abrir/cerrar el desplegable.
     (function(){ var det=$('#mapaDet'), f=$('#mapaReparto'); if(!f) return;
@@ -633,7 +632,6 @@ window.GDO = window.GDO || {};
       window.addEventListener('resize', fit);
     })();
     startBanner();
-    if(window.GDO && GDO.Promos) GDO.Promos.refrescar();  // promos verticales del admin
     avisoAnticipacion();
     $('#q').oninput=function(){
       var t=this.value.trim().toLowerCase();

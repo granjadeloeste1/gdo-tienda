@@ -250,7 +250,12 @@ td.l{color:#3a4048}
 .geomsg.ok{color:#1a9c4e}
 .ordhd,.ordcell{background:#fff;box-shadow:-10px 0 10px -6px rgba(0,0,0,.12)}
 </style>
-<link rel="stylesheet" href="promos.css?v=2">
+<!-- Promos: el JS arranca la descarga desde el head y pide las imagenes por REST
+     apenas carga la pagina, sin esperar al SDK de Firebase ni al login anonimo.
+     El preconnect deja lista la conexion a Firestore antes de que haga falta. -->
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="stylesheet" href="promos.css?v=3">
+<script src="promos.js?v=3" defer></script>
 </head>
 <body>
 <!-- ====== Pantalla de elección Mayorista / Minorista (entrada única) ====== -->
@@ -327,7 +332,7 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v1.6<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v1.7<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -818,7 +823,6 @@ render();
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js"></script>
-<script src="promos.js?v=2" defer></script>
 <script>
 /* ====== GDO Reparto — conexión Firebase ======
    Inicializa Firebase (Firestore + Auth) usando el SDK "compat" cargado por

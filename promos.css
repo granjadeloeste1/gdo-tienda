@@ -1,0 +1,54 @@
+/* ====== GDO Tienda — carrusel de promos (formato vertical 9:16) ======
+   Alto acotado a propósito: la lista de precios es a lo que viene el cliente,
+   la promo no puede empujarla abajo de la pantalla. Se lee tocándola. */
+.gdo-promos { margin: 0 0 12px; }
+.gp-stage {
+  position: relative; overflow: hidden; border-radius: 16px;
+  background: #0d0d0d; cursor: pointer;
+  height: clamp(210px, 40vh, 320px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+}
+.gp-track { display: flex; height: 100%; transition: transform .5s ease; }
+.gp-slide {
+  flex: 0 0 100%; height: 100%; position: relative;
+  display: flex; align-items: center; justify-content: center;
+  /* La misma imagen, ampliada y desenfocada, rellena los costados que deja la
+     pieza vertical. Queda prolijo sin recortar nada de la promo. */
+  background-size: cover; background-position: center;
+}
+.gp-slide::before {
+  content: ''; position: absolute; inset: 0;
+  backdrop-filter: blur(22px) brightness(.45);
+  -webkit-backdrop-filter: blur(22px) brightness(.45);
+  background: rgba(0, 0, 0, .25);
+}
+.gp-slide img {
+  position: relative; height: 100%; width: auto; max-width: 100%;
+  object-fit: contain; display: block; border-radius: 10px;
+}
+.gp-dots { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
+.gp-dots i {
+  width: 7px; height: 7px; border-radius: 50%; background: rgba(140, 140, 140, .5);
+  cursor: pointer; transition: all .2s;
+}
+.gp-dots i.on { background: #F58220; width: 18px; border-radius: 4px; }
+
+/* Pantalla completa: acá sí la promo se ve entera y se lee. */
+.gp-full {
+  position: fixed; inset: 0; z-index: 9999; background: rgba(0, 0, 0, .92);
+  display: flex; align-items: center; justify-content: center; padding: 18px;
+  animation: gpIn .18s ease;
+}
+@keyframes gpIn { from { opacity: 0 } to { opacity: 1 } }
+.gp-full img { max-width: 100%; max-height: 100%; border-radius: 12px; display: block; }
+.gp-x {
+  position: absolute; top: 12px; right: 14px; width: 40px; height: 40px;
+  border-radius: 50%; border: 0; background: rgba(255, 255, 255, .14); color: #fff;
+  font-size: 26px; line-height: 1; cursor: pointer;
+}
+.gp-hint {
+  position: absolute; right: 10px; bottom: 10px; z-index: 2;
+  background: rgba(0, 0, 0, .55); color: #fff; font-size: 11px; font-weight: 600;
+  padding: 4px 9px; border-radius: 999px; letter-spacing: .2px;
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); pointer-events: none;
+}

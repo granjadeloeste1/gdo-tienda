@@ -249,6 +249,16 @@ td.l{color:#3a4048}
 .geomsg{color:#5b6470}
 .geomsg.ok{color:#1a9c4e}
 .ordhd,.ordcell{background:#fff;box-shadow:-10px 0 10px -6px rgba(0,0,0,.12)}
+/* ===== Día de retiro =====
+   El cliente elige QUÉ DÍA pasa a buscar el pedido. Con eso el local sabe para
+   cuándo prepararlo y queda registrado en la ficha del cliente. */
+.dias{display:flex;gap:7px;flex-wrap:wrap}
+.diab{background:#fff;border:1px solid #e4e6ea;color:#3a4048;border-radius:10px;
+  padding:9px 12px;font:700 13px system-ui,'Segoe UI',Arial,sans-serif;cursor:pointer;line-height:1.25;text-align:center}
+.diab small{display:block;font-weight:600;font-size:10.5px;color:#8a929c;margin-top:2px}
+.diab.on{background:#fff7ef;border-color:#F58220;color:#a85f1a;box-shadow:0 0 0 1px #F58220 inset}
+.diab.on small{color:#a85f1a}
+.fg.err .dias .diab{border-color:#d9534f}
 </style>
 <!-- Promos: el JS arranca la descarga desde el head y pide las imagenes por REST
      apenas carga la pagina, sin esperar al SDK de Firebase ni al login anonimo.
@@ -608,6 +618,7 @@ function updateRowSub(oi, q){
 }
 function renderCartBar(){
   var bar=document.getElementById("cartbar");
+  if(!bar) return;                       // la barra vive más abajo en la página
   if(cart.length){ bar.classList.add("show"); document.getElementById("cbCount").textContent=cartCount(); document.getElementById("cbTotal").textContent=$n(cartTotal()); }
   else { bar.classList.remove("show"); }
 }
@@ -663,18 +674,87 @@ function renderCart(){
 }
 function openCart(){ renderCart(); document.getElementById("ovl").classList.add("show"); document.body.style.overflow="hidden"; }
 function closeCart(){ document.getElementById("ovl").classList.remove("show"); document.body.style.overflow=""; render(); }
-document.getElementById("ovl").addEventListener("click", function(e){ if(e.target===this) closeCart(); });
+/* OJO: el markup del carrito (#ovl) está MÁS ABAJO que este <script>, así que acá
+   todavía NO existe. Hasta ahora esta línea tiraba un TypeError que cortaba en seco
+   el resto del script: nunca corrían el `loadCart()` ni el `render()` del final, y
+   el carrito guardado no se recuperaba al volver a abrir la página. Enganchamos el
+   click cuando el DOM está listo. */
+(function engancharOvl(){
+  function bind(){
+    var ovl=document.getElementById("ovl");
+    if(ovl) ovl.addEventListener("click", function(e){ if(e.target===this) closeCart(); });
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", bind);
+  else bind();
+})();
 
 function val(id){ var el=document.getElementById(id); return el?el.value:""; }
-function saveForm(){ try{ localStorage.setItem("gdo_form", JSON.stringify({ n:val("cName"), t:val("cTel"), a:val("cAddr"), l:val("cLoc"), e:val("cEntre"), p:val("cPay"), o:val("cNotes"), g:geoCoords })); }catch(e){} }
+
+/* ===== DÍA DE RETIRO =====
+   El pedido mayorista es SIEMPRE retiro en el local, así que lo único que falta
+   saber es qué día pasa el cliente. Con eso el local prepara la mercadería para
+   ese día y el dato queda en la ficha del cliente (panel de administración).
+   Se ofrecen los próximos días hábiles (Lun a Sáb); si ya cerró, el primero es
+   mañana. Siempre queda la opción "A coordinar" para no trabar a nadie. */
+var DIA_NOM=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+var DIA_COR=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+var diaRetiro=null;   // {iso:"2026-09-11", txt:"Jueves 11/9"} · iso "" = a coordinar
+function isoDe(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function diasRetiro(){
+  var hoy=new Date(); hoy.setHours(0,0,0,0);
+  var ahora=new Date();
+  // Después del cierre (13:30) o en domingo, hoy ya no sirve.
+  var cerrado = ahora.getDay()===0 || (ahora.getHours()*60+ahora.getMinutes())>=13*60+30;
+  var c=new Date(hoy); if(cerrado) c.setDate(c.getDate()+1);
+  var out=[];
+  while(out.length<7){
+    if(c.getDay()!==0){
+      var dif=Math.round((c-hoy)/86400000);
+      var fecha=c.getDate()+"/"+(c.getMonth()+1);
+      out.push({
+        iso:isoDe(c), fecha:fecha,
+        corto: dif===0?"Hoy":(dif===1?"Mañana":DIA_COR[c.getDay()]),
+        txt: (dif===0?"Hoy":(dif===1?"Mañana":DIA_NOM[c.getDay()]))+" "+fecha,
+        nombre: DIA_NOM[c.getDay()]
+      });
+    }
+    c.setDate(c.getDate()+1);
+  }
+  return out;
+}
+function pintarDiasRetiro(){
+  var box=document.getElementById("cDiaOpts"); if(!box) return;
+  var ds=diasRetiro();
+  // Un día guardado que ya pasó no vale más: se limpia la elección.
+  if(diaRetiro && diaRetiro.iso && !ds.some(function(x){ return x.iso===diaRetiro.iso; })) diaRetiro=null;
+  var h="";
+  ds.forEach(function(x){
+    h+='<button type="button" class="diab'+(diaRetiro&&diaRetiro.iso===x.iso?" on":"")+'" data-iso="'+x.iso+'" data-txt="'+x.txt+'" data-nom="'+x.nombre+'">'+x.corto+'<small>'+x.fecha+'</small></button>';
+  });
+  h+='<button type="button" class="diab'+(diaRetiro&&diaRetiro.iso===""?" on":"")+'" data-iso="" data-txt="A coordinar" data-nom="">A coordinar<small>lo vemos por WhatsApp</small></button>';
+  box.innerHTML=h;
+  [].forEach.call(box.querySelectorAll(".diab"), function(b){
+    b.onclick=function(){
+      diaRetiro={ iso:b.getAttribute("data-iso"), txt:b.getAttribute("data-txt"), nombre:b.getAttribute("data-nom") };
+      [].forEach.call(box.querySelectorAll(".diab"), function(x){ x.classList.toggle("on", x===b); });
+      var fg=document.getElementById("fgDia"); if(fg) fg.classList.remove("err");
+      saveForm();
+    };
+  });
+}
+
+function saveForm(){ try{ localStorage.setItem("gdo_form", JSON.stringify({ n:val("cName"), t:val("cTel"), a:val("cAddr"), l:val("cLoc"), e:val("cEntre"), p:val("cPay"), o:val("cNotes"), g:geoCoords, dr:diaRetiro })); }catch(e){} }
 function restoreForm(){
-  try{ var f=JSON.parse(localStorage.getItem("gdo_form")||"null"); if(!f) return;
+  // OJO: nada de `return` acá adentro — al final hay que pintar los días de retiro.
+  try{ var f=JSON.parse(localStorage.getItem("gdo_form")||"null"); if(f){
     if(!val("cName")) document.getElementById("cName").value=f.n||"";
     if(!val("cTel")) document.getElementById("cTel").value=f.t||"";
     if(f.p){ var pe=document.getElementById("cPay"); if([].some.call(pe.options,function(o){return o.value===f.p;})) pe.value=f.p; }
     if(!val("cNotes")) document.getElementById("cNotes").value=f.o||"";
     if(f.g && f.g.lat) geoCoords=f.g;
-  }catch(e){}
+    if(f.dr && !diaRetiro) diaRetiro=f.dr;
+  } }catch(e){}
+  pintarDiasRetiro();
 }
 
 /* ===== Coordenadas elegidas =====
@@ -687,8 +767,16 @@ function sendWhatsApp(){
   var fgN=document.getElementById("fgName"), fgT=document.getElementById("fgTel");
   if(!name){ fgN.classList.add("err"); ok=false; } else fgN.classList.remove("err");
   if(!tel){ fgT.classList.add("err"); ok=false; } else fgT.classList.remove("err");
+  // Día de retiro: es el dato que le falta al local para saber cuándo preparar
+  // el pedido. Si el cliente todavía no lo sabe, tiene la opción "A coordinar".
+  var fgD=document.getElementById("fgDia");
+  if(!diaRetiro){ if(fgD) fgD.classList.add("err"); ok=false; } else if(fgD) fgD.classList.remove("err");
   if(!cart.length){ alert("Tu pedido está vacío."); return; }
-  if(!ok) return;
+  if(!ok){
+    var primerErr=document.querySelector(".fg.err");
+    if(primerErr && primerErr.scrollIntoView) primerErr.scrollIntoView({behavior:"smooth",block:"center"});
+    return;
+  }
   var pay=val("cPay"), notes=val("cNotes").trim();
   var mapsLink="https://www.google.com/maps/dir/?api=1&destination=Acu%C3%B1a%201334%2C%20Villa%20Tesei%2C%20Buenos%20Aires";
   var L=[];
@@ -701,6 +789,7 @@ function sendWhatsApp(){
   L.push("• *Nombre:* "+name);
   L.push("• *Teléfono:* "+tel);
   L.push("• *Modalidad:* Retiro en sucursal");
+  L.push("• *Día de retiro:* "+(diaRetiro && diaRetiro.txt ? diaRetiro.txt : "A coordinar"));
   L.push("• *Retiro en:* Acuña 1334, Villa Tesei");
   L.push("• *Cómo llegar:* "+mapsLink);
   L.push("• *Forma de pago:* "+pay);
@@ -746,9 +835,14 @@ function pedidoEnviado(){
   d.addEventListener("click",function(e){ if(e.target===d) d.remove(); });
   document.body.appendChild(d);
 }
-loadCart();
-renderCartBar();
-render();
+/* Arranque: recuperamos el pedido que el cliente había dejado armado y pintamos
+   la barra de abajo. Va cuando el DOM está listo porque la barra del carrito
+   está más abajo que este script. */
+(function arranque(){
+  function go(){ loadCart(); renderCartBar(); render(); }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", go);
+  else go();
+})();
 
 </script>
 <div class="cartbar" id="cartbar">
@@ -788,6 +882,11 @@ render();
         <div class="fg">
           <div class="pickup">🏪 <b>Retiro en sucursal</b><br>Acu&#xF1;a 1334, Villa Tesei · Lun&#8209;S&#xE1;b 6:00 a 13:30 hs<br>
             <a href="https://www.google.com/maps/dir/?api=1&amp;destination=Acu%C3%B1a%201334%2C%20Villa%20Tesei%2C%20Buenos%20Aires" target="_blank" rel="noopener">&#x1F4CD; C&#xF3;mo llegar (Google Maps)</a></div>
+        </div>
+        <div class="fg" id="fgDia">
+          <label>&iquest;Qu&eacute; d&iacute;a pas&aacute;s a retirar? <span class="req">*</span></label>
+          <div class="dias" id="cDiaOpts"></div>
+          <div class="ferr">Eleg&iacute; el d&iacute;a en que vas a pasar</div>
         </div>
         <div class="fg">
           <label>Forma de pago</label>
@@ -1509,14 +1608,27 @@ window.GDO = window.GDO || {};
     // estimado como referencia (totalEstimado), nunca 'puntos'.
     var socioUid = (window.GDO && GDO.FB && GDO.FB.esSocio && GDO.FB.uid) ? GDO.FB.uid : null;
     var totalEst = (typeof cartTotal === 'function') ? Math.round(cartTotal()) : 0;
+    // MODALIDAD: la lista mayorista es SIEMPRE retiro en el local. Va marcado
+    // como tal para que la app de reparto NO lo meta en el armado de rutas (no
+    // hay nada que repartir) y lo muestre en el tablero con su cartel de retiro.
+    // `fechaEntrega` lleva el día que el cliente eligió pasar a buscarlo: es el
+    // mismo campo que usa un envío, así el orden de la lista, el CRM y las
+    // métricas leen siempre lo mismo y solo cambia la palabra que se muestra.
     guardar({
       id: nid(), origen:'tienda', cliente:name, telefono:tel,
+      modalidad:'retiro',
       direccion:addr, localidad:localidad, entrecalles:entrecalles, lat:lat, lng:lng,
-      items:items, fechaEntrega:'', especificaciones:esp.join(' · '),
+      items:items,
+      fechaEntrega: (diaRetiro && diaRetiro.iso) ? diaRetiro.iso : '',
+      diaEntrega: (diaRetiro && diaRetiro.nombre) ? diaRetiro.nombre : '',
+      especificaciones: esp.join(' · '),
       formaPago: pay || '',
       prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
       clienteUid: socioUid, totalEstimado: totalEst,
-      ventana:'', historia:[], ts:Date.now()
+      // `creado`: fecha de alta del pedido. Sin esto, un pedido con el día de
+      // retiro "a coordinar" quedaba sin NINGUNA fecha y el CRM no lo podía
+      // contar como compra (no sabía cuándo fue).
+      ventana:'', historia:[], creado:Date.now(), ts:Date.now()
     });
   }
 
@@ -1606,16 +1718,20 @@ window.GDO = window.GDO || {};
     var _enviando=false;
     window.sendWhatsApp=function(){
       var nombre=val2('cName').trim(), tel=val2('cTel').trim();
-      var valido=window.cart && cart.length && nombre && tel;
+      // También exigimos el día de retiro: si falta, _send muestra el error y
+      // NO queremos registrar el pedido (todavía no está completo).
+      var valido=window.cart && cart.length && nombre && tel && window.diaRetiro;
       if(valido){
         if(_enviando) return;            // ya se está enviando: ignorar el 2º click
         _enviando=true;
         var btn=document.getElementById('sendBtn');
         if(btn) btn.disabled=true;
-        // MAYORISTA = SOLO RETIRO (2026-06-23): ya NO se registra en el panel de
-        // Rutas (no hay envío que rutear). El registro de pedidos de ENVÍO volverá
-        // con la lista MINORISTA, al integrarla. Ver memoria project_gdo-lista-unificada.
-        // try{ registrarPedidoReparto(); }catch(e){}
+        // MAYORISTA = SOLO RETIRO. Desde 2026-09 SÍ se registra en el panel,
+        // pero marcado `modalidad:'retiro'`: no entra al armado de rutas (no hay
+        // nada que repartir) y aparece en el tablero como "Retiro en sucursal",
+        // con el día que el cliente eligió pasar a buscarlo. Así el local sabe
+        // qué preparar y para cuándo, y la venta queda en el CRM y en Métricas.
+        try{ registrarPedidoReparto(); }catch(e){}
         // se rehabilita a los 4 s para permitir un reenvío deliberado más tarde
         setTimeout(function(){ _enviando=false; if(btn) btn.disabled=false; }, 4000);
       }

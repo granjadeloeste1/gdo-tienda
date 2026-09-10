@@ -690,22 +690,45 @@ function closeCart(){ document.getElementById("ovl").classList.remove("show"); d
 
 function val(id){ var el=document.getElementById(id); return el?el.value:""; }
 
-/* ===== DÍA DE RETIRO =====
+/* ===== DÍA Y HORARIO DE RETIRO =====
    El pedido mayorista es SIEMPRE retiro en el local, así que lo único que falta
-   saber es qué día pasa el cliente. Con eso el local prepara la mercadería para
-   ese día y el dato queda en la ficha del cliente (panel de administración).
-   Se ofrecen los próximos días hábiles (Lun a Sáb); si ya cerró, el primero es
-   mañana. Siempre queda la opción "A coordinar" para no trabar a nadie. */
+   saber es CUÁNDO pasa el cliente. Con eso el local prepara la mercadería para
+   ese momento y el dato queda en la ficha del cliente (panel de administración).
+
+   DÍA: los próximos días hábiles (Lun a Sáb). HOY entra si todavía queda alguna
+   franja libre; si ya no queda ninguna, el primero es mañana. El día es
+   OBLIGATORIO: no hay "a coordinar" (para eso está el horario).
+
+   HORARIO: franjas de UNA hora, de 6:30 a 13:30 (la última es 12:30 a 13:30).
+   Para HOY solo se ofrecen las que todavía no arrancaron, con MARGEN minutos de
+   anticipación: si son las 12, no se puede elegir "de 6:30 a 7:30", y tampoco
+   una que empiece en cinco minutos (el pedido hay que prepararlo). Acá SÍ hay
+   "A coordinar", para el que no sabe a qué hora va a poder ir. */
 var DIA_NOM=["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
 var DIA_COR=["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
-var diaRetiro=null;   // {iso:"2026-09-11", txt:"Jueves 11/9"} · iso "" = a coordinar
+var ABRE=6*60+30, CIERRA=13*60+30, MARGEN=30;
+var diaRetiro=null;    // {iso:"2026-09-11", txt:"Jueves 11/9", nombre:"Jueves"}
+var horaRetiro=null;   // {txt:"9:30 a 10:30 hs"} · {txt:"A coordinar", libre:true}
 function isoDe(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function hhmm(m){ return Math.floor(m/60)+":"+String(m%60).padStart(2,"0"); }
+function franjas(){
+  var out=[];
+  for(var m=ABRE; m+60<=CIERRA; m+=60) out.push({ ini:m, desde:hhmm(m), hasta:hhmm(m+60), txt:hhmm(m)+" a "+hhmm(m+60)+" hs" });
+  return out;
+}
+// Franjas que todavía se pueden elegir para ese día (para hoy, las que no
+// empezaron; para el resto, todas).
+function franjasDe(iso){
+  var ahora=new Date();
+  if(iso!==isoDe(ahora)) return franjas();
+  var min=ahora.getHours()*60+ahora.getMinutes()+MARGEN;
+  return franjas().filter(function(f){ return f.ini>=min; });
+}
 function diasRetiro(){
   var hoy=new Date(); hoy.setHours(0,0,0,0);
-  var ahora=new Date();
-  // Después del cierre (13:30) o en domingo, hoy ya no sirve.
-  var cerrado = ahora.getDay()===0 || (ahora.getHours()*60+ahora.getMinutes())>=13*60+30;
-  var c=new Date(hoy); if(cerrado) c.setDate(c.getDate()+1);
+  var c=new Date(hoy);
+  // Hoy solo entra si es día hábil Y queda alguna franja libre.
+  if(c.getDay()===0 || !franjasDe(isoDe(c)).length) c.setDate(c.getDate()+1);
   var out=[];
   while(out.length<7){
     if(c.getDay()!==0){
@@ -725,25 +748,48 @@ function diasRetiro(){
 function pintarDiasRetiro(){
   var box=document.getElementById("cDiaOpts"); if(!box) return;
   var ds=diasRetiro();
-  // Un día guardado que ya pasó no vale más: se limpia la elección.
-  if(diaRetiro && diaRetiro.iso && !ds.some(function(x){ return x.iso===diaRetiro.iso; })) diaRetiro=null;
-  var h="";
-  ds.forEach(function(x){
-    h+='<button type="button" class="diab'+(diaRetiro&&diaRetiro.iso===x.iso?" on":"")+'" data-iso="'+x.iso+'" data-txt="'+x.txt+'" data-nom="'+x.nombre+'">'+x.corto+'<small>'+x.fecha+'</small></button>';
-  });
-  h+='<button type="button" class="diab'+(diaRetiro&&diaRetiro.iso===""?" on":"")+'" data-iso="" data-txt="A coordinar" data-nom="">A coordinar<small>lo vemos por WhatsApp</small></button>';
-  box.innerHTML=h;
+  // Un día guardado que ya pasó no vale más: se limpia la elección (y su horario).
+  if(diaRetiro && !ds.some(function(x){ return x.iso===diaRetiro.iso; })){ diaRetiro=null; horaRetiro=null; }
+  box.innerHTML=ds.map(function(x){
+    return '<button type="button" class="diab'+(diaRetiro&&diaRetiro.iso===x.iso?" on":"")+'" data-iso="'+x.iso+'" data-txt="'+x.txt+'" data-nom="'+x.nombre+'">'+x.corto+'<small>'+x.fecha+'</small></button>';
+  }).join("");
   [].forEach.call(box.querySelectorAll(".diab"), function(b){
     b.onclick=function(){
       diaRetiro={ iso:b.getAttribute("data-iso"), txt:b.getAttribute("data-txt"), nombre:b.getAttribute("data-nom") };
       [].forEach.call(box.querySelectorAll(".diab"), function(x){ x.classList.toggle("on", x===b); });
       var fg=document.getElementById("fgDia"); if(fg) fg.classList.remove("err");
+      pintarHorarios();
+      saveForm();
+    };
+  });
+  pintarHorarios();
+}
+function pintarHorarios(){
+  var box=document.getElementById("cHoraOpts"), fg=document.getElementById("fgHora");
+  if(!box||!fg) return;
+  // El horario aparece recién cuando hay un día elegido: las franjas libres
+  // dependen del día (hoy no es lo mismo que mañana).
+  if(!diaRetiro){ fg.style.display="none"; box.innerHTML=""; return; }
+  fg.style.display="";
+  var fs=franjasDe(diaRetiro.iso);
+  // Si la franja guardada ya no está disponible en este día, se descarta.
+  if(horaRetiro && !horaRetiro.libre && !fs.some(function(f){ return f.txt===horaRetiro.txt; })) horaRetiro=null;
+  box.innerHTML=fs.map(function(f){
+    return '<button type="button" class="diab'+(horaRetiro&&horaRetiro.txt===f.txt?" on":"")+'" data-h="'+f.txt+'">'+f.desde+'<small>a '+f.hasta+' hs</small></button>';
+  }).join("")
+   +'<button type="button" class="diab'+(horaRetiro&&horaRetiro.libre?" on":"")+'" data-h="">A coordinar<small>lo vemos por WhatsApp</small></button>';
+  [].forEach.call(box.querySelectorAll(".diab"), function(b){
+    b.onclick=function(){
+      var h=b.getAttribute("data-h");
+      horaRetiro = h ? { txt:h } : { txt:"A coordinar", libre:true };
+      [].forEach.call(box.querySelectorAll(".diab"), function(x){ x.classList.toggle("on", x===b); });
+      fg.classList.remove("err");
       saveForm();
     };
   });
 }
 
-function saveForm(){ try{ localStorage.setItem("gdo_form", JSON.stringify({ n:val("cName"), t:val("cTel"), a:val("cAddr"), l:val("cLoc"), e:val("cEntre"), p:val("cPay"), o:val("cNotes"), g:geoCoords, dr:diaRetiro })); }catch(e){} }
+function saveForm(){ try{ localStorage.setItem("gdo_form", JSON.stringify({ n:val("cName"), t:val("cTel"), a:val("cAddr"), l:val("cLoc"), e:val("cEntre"), p:val("cPay"), o:val("cNotes"), g:geoCoords, dr:diaRetiro, hr:horaRetiro })); }catch(e){} }
 function restoreForm(){
   // OJO: nada de `return` acá adentro — al final hay que pintar los días de retiro.
   try{ var f=JSON.parse(localStorage.getItem("gdo_form")||"null"); if(f){
@@ -753,6 +799,7 @@ function restoreForm(){
     if(!val("cNotes")) document.getElementById("cNotes").value=f.o||"";
     if(f.g && f.g.lat) geoCoords=f.g;
     if(f.dr && !diaRetiro) diaRetiro=f.dr;
+    if(f.hr && !horaRetiro) horaRetiro=f.hr;
   } }catch(e){}
   pintarDiasRetiro();
 }
@@ -767,10 +814,13 @@ function sendWhatsApp(){
   var fgN=document.getElementById("fgName"), fgT=document.getElementById("fgTel");
   if(!name){ fgN.classList.add("err"); ok=false; } else fgN.classList.remove("err");
   if(!tel){ fgT.classList.add("err"); ok=false; } else fgT.classList.remove("err");
-  // Día de retiro: es el dato que le falta al local para saber cuándo preparar
-  // el pedido. Si el cliente todavía no lo sabe, tiene la opción "A coordinar".
+  // Día y horario de retiro: es lo que le falta al local para saber cuándo
+  // preparar el pedido. El día es obligatorio; en el horario, el que no sabe
+  // todavía elige "A coordinar".
   var fgD=document.getElementById("fgDia");
   if(!diaRetiro){ if(fgD) fgD.classList.add("err"); ok=false; } else if(fgD) fgD.classList.remove("err");
+  var fgH=document.getElementById("fgHora");
+  if(diaRetiro && !horaRetiro){ if(fgH) fgH.classList.add("err"); ok=false; } else if(fgH) fgH.classList.remove("err");
   if(!cart.length){ alert("Tu pedido está vacío."); return; }
   if(!ok){
     var primerErr=document.querySelector(".fg.err");
@@ -790,6 +840,7 @@ function sendWhatsApp(){
   L.push("• *Teléfono:* "+tel);
   L.push("• *Modalidad:* Retiro en sucursal");
   L.push("• *Día de retiro:* "+(diaRetiro && diaRetiro.txt ? diaRetiro.txt : "A coordinar"));
+  L.push("• *Horario:* "+(horaRetiro && horaRetiro.txt ? horaRetiro.txt : "A coordinar"));
   L.push("• *Retiro en:* Acuña 1334, Villa Tesei");
   L.push("• *Cómo llegar:* "+mapsLink);
   L.push("• *Forma de pago:* "+pay);
@@ -887,6 +938,11 @@ function pedidoEnviado(){
           <label>&iquest;Qu&eacute; d&iacute;a pas&aacute;s a retirar? <span class="req">*</span></label>
           <div class="dias" id="cDiaOpts"></div>
           <div class="ferr">Eleg&iacute; el d&iacute;a en que vas a pasar</div>
+        </div>
+        <div class="fg" id="fgHora" style="display:none">
+          <label>&iquest;En qu&eacute; horario? <span class="req">*</span></label>
+          <div class="dias" id="cHoraOpts"></div>
+          <div class="ferr">Eleg&iacute; la franja horaria (o &laquo;A coordinar&raquo;)</div>
         </div>
         <div class="fg">
           <label>Forma de pago</label>
@@ -1621,6 +1677,9 @@ window.GDO = window.GDO || {};
       items:items,
       fechaEntrega: (diaRetiro && diaRetiro.iso) ? diaRetiro.iso : '',
       diaEntrega: (diaRetiro && diaRetiro.nombre) ? diaRetiro.nombre : '',
+      // La franja horaria va en `ventana`, el mismo campo que la ventana horaria
+      // de un envío. Vacío = el cliente eligió coordinarla por WhatsApp.
+      ventana: (horaRetiro && !horaRetiro.libre && horaRetiro.txt) ? horaRetiro.txt : '',
       especificaciones: esp.join(' · '),
       formaPago: pay || '',
       prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
@@ -1628,7 +1687,7 @@ window.GDO = window.GDO || {};
       // `creado`: fecha de alta del pedido. Sin esto, un pedido con el día de
       // retiro "a coordinar" quedaba sin NINGUNA fecha y el CRM no lo podía
       // contar como compra (no sabía cuándo fue).
-      ventana:'', historia:[], creado:Date.now(), ts:Date.now()
+      historia:[], creado:Date.now(), ts:Date.now()
     });
   }
 
@@ -1718,9 +1777,9 @@ window.GDO = window.GDO || {};
     var _enviando=false;
     window.sendWhatsApp=function(){
       var nombre=val2('cName').trim(), tel=val2('cTel').trim();
-      // También exigimos el día de retiro: si falta, _send muestra el error y
-      // NO queremos registrar el pedido (todavía no está completo).
-      var valido=window.cart && cart.length && nombre && tel && window.diaRetiro;
+      // También exigimos el día y el horario de retiro: si falta alguno, _send
+      // muestra el error y NO queremos registrar el pedido (está incompleto).
+      var valido=window.cart && cart.length && nombre && tel && window.diaRetiro && window.horaRetiro;
       if(valido){
         if(_enviando) return;            // ya se está enviando: ignorar el 2º click
         _enviando=true;

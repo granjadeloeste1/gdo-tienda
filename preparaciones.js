@@ -39,6 +39,12 @@ window.GDO = window.GDO || {};
     },
   ];
 
+  /* RECARGO POR PREPARACIÓN (lista MAYORISTA).
+     Filetear, cubetear o trozar es trabajo de gente: cuesta $500 por kilo, en
+     todas las versiones. El producto TAL CUAL —la primera opción, "Entera" /
+     "Entero"— no lleva recargo: es el producto sin tocar. */
+  var RECARGO_KG = 500;
+
   /* Devuelve la definición de preparaciones de un producto, o null si ese
      producto no lleva. Se mira SOLO el nombre: la descripción puede nombrar
      otro producto (un combo que dice "3 kg de cuarto trasero" no es un cuarto
@@ -53,6 +59,14 @@ window.GDO = window.GDO || {};
   }
   // La opción por defecto es la primera: el producto tal cual, sin trabajo extra.
   function porDefecto(nombre) { var p = de(nombre); return p ? p.opciones[0] : ''; }
+  // ¿Ese corte lleva trabajo (y por lo tanto recargo)? Todo menos el tal cual.
+  function conTrabajo(nombre, corte) {
+    var d = de(nombre);
+    return !!(d && corte && corte !== d.opciones[0]);
+  }
+  // Recargo por kilo de ese corte. 0 si el producto va tal cual.
+  function recargo(nombre, corte) { return conTrabajo(nombre, corte) ? RECARGO_KG : 0; }
 
-  GDO.Prep = { de: de, porDefecto: porDefecto, lista: PREPS };
+  GDO.Prep = { de: de, porDefecto: porDefecto, conTrabajo: conTrabajo, recargo: recargo,
+               RECARGO_KG: RECARGO_KG, lista: PREPS };
 })();

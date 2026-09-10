@@ -106,7 +106,13 @@ td.l{color:#e0e0e0;font-family:inherit;font-size:12px;font-weight:400;white-spac
 .ci-prepbox{margin-top:9px}
 /* Un contador por corte: el pedido se puede repartir (3 kg fileteados + 2 en cubos) */
 .preprow{display:flex;align-items:center;gap:10px;padding:4px 0}
-.preprow .pn{flex:1;min-width:0;font-size:13px;font-weight:700;color:#e8d4b0}
+.preprow .pn{flex:1;min-width:0;font-size:13px;font-weight:700;color:#e8d4b0;display:flex;flex-direction:column;gap:1px}
+.preprow .pmas{font-style:normal;font-size:11px;font-weight:800;color:#F58220}
+.preprow .psin{font-style:normal;font-size:11px;font-weight:700;color:#7a8a72}
+.prep-pitch{font-size:12.5px;line-height:1.5;color:#c9b48f;margin-bottom:8px}
+.prep-pitch b{color:#F58220}
+.prep-extra{margin-top:8px;padding-top:7px;border-top:1px dashed rgba(245,130,32,.45);font-size:12.5px;color:#c9b48f;text-align:right}
+.prep-extra b{color:#F58220;font-size:14px}
 .ci-main{flex:1;min-width:0}
 .ci-name{font-size:13px;color:#fff;font-weight:600;line-height:1.3}
 .ci-brand{font-size:10px;color:#F58220;text-transform:uppercase;letter-spacing:.05em;margin-top:1px}
@@ -226,7 +232,10 @@ td.l{color:#3a4048}
 .ci-note{background:#fff;border-color:#e7d6bf;color:#1e1e1e}
 .ci-note:focus{border-color:#F58220;background:#fff}
 .ci-note::placeholder{color:#b08a5a}
-.preprow .pn{color:#6a5436}
+.preprow .pn{color:#3a4048}
+.preprow .psin{color:#8a929c}
+.prep-pitch{color:#6a5436}
+.prep-extra{color:#6a5436;border-top-color:#f3ddbf}
 .ci-note.has{border-color:#F58220;background:#fff8f0}
 .ci-name{color:#1e1e1e}
 .ci-brand{color:#F58220}
@@ -510,7 +519,13 @@ function render() {
       tbH += "</tbody></table></div>";
     });
     if (!vis) return;
-    var nota = /TROZADO/i.test(sec.title||"") ? "<div class=\"secnote\">📦 El trozado se vende por <b>mínimo 5 kg</b> por producto (compra mayorista en el local).</div>" : "";
+    var nota = /TROZADO/i.test(sec.title||"")
+      ? "<div class=\"secnote\">📦 El trozado se vende por <b>mínimo 5 kg</b> por producto (compra mayorista en el local).</div>"
+        // Se avisa acá, en la tabla, y no recién en el carrito: el cliente decide
+        // cuánto lleva mirando el precio, y el trabajo de corte cambia ese número.
+        + "<div class=\"secnote\">✂️ <b>¿Querés que te lo preparemos?</b> Fileteado, en cubos, trozado o sin piel por solo <b>"
+        + $n((window.GDO&&GDO.Prep)?GDO.Prep.RECARGO_KG:500) + " el kilo</b>. Lo elegís al armar tu pedido; entero no tiene cargo.</div>"
+      : "";
     html += "<details" + (t ? " open" : "") + "><summary>" + escAttr(sec.title) + "</summary><div class=\"sb\">" + nota + tbH + "</div></details>";
   });
   root.innerHTML = html || vistaVacia();
@@ -577,7 +592,22 @@ function findLine(opt){ for(var i=0;i<cart.length;i++){ var l=cart[i]; if(l.name
 // son PIEZAS, y tanto el escalón de precio como el total van en kilos.
 function lineKg(l){ return l.qty * (l.kgPor || 1); }
 function lineUnitPrice(l){ return priceForTiers(l.tiers, lineKg(l)); }
-function lineTotal(l){ return lineUnitPrice(l)*lineKg(l); }
+/* RECARGO POR PREPARACIÓN: filetear, cubetear o trozar cuesta $500 el kilo. Se
+   cobra SOLO sobre los kilos que llevan trabajo — el producto tal cual ("Entera"
+   / "Entero") no paga nada. Como el pedido se puede repartir entre cortes, el
+   recargo se calcula corte por corte y no sobre toda la línea. */
+function kgPreparados(l){
+  if(!l || !l.cortes || !window.GDO || !GDO.Prep) return 0;
+  if(String(l.unit).toLowerCase()!=='kg') return 0;   // los cortes se venden por kilo
+  var s=0;
+  for(var k in l.cortes){ if(GDO.Prep.conTrabajo(l.name, k)) s+=l.cortes[k]||0; }
+  return s;
+}
+function recargoLinea(l){
+  var r = (window.GDO && GDO.Prep) ? GDO.Prep.RECARGO_KG : 0;
+  return kgPreparados(l) * r;
+}
+function lineTotal(l){ return lineUnitPrice(l)*lineKg(l) + recargoLinea(l); }
 // Detalle bajo el contador: "2 piezas · 6 kg aprox. · $ 7.200 el kilo"
 function subHtml(l, q){
   var o = {tiers:l.tiers, kgPor:l.kgPor, qty:q};
@@ -673,19 +703,26 @@ function prepBox(l, i){
   var d = cortesDeLinea(l);
   if(!d) return "";
   var u = unitPlural(l.unit);
+  var rec = (window.GDO && GDO.Prep) ? GDO.Prep.RECARGO_KG : 0;
+  var kgP = kgPreparados(l), extra = recargoLinea(l);
   return '<div class="ci-notebox ci-prepbox">'
-    +'<span class="ci-notelbl">✂️ '+escAttr(d.titulo)+' — repartí los '+escAttr(u)+'</span>'
+    +'<span class="ci-notelbl">✂️ ¿Querés que te lo preparemos?</span>'
+    +'<div class="prep-pitch">Te lo dejamos listo para usar por solo <b>'+$n(rec)+' el kilo</b>. '
+      +'Repartí los '+escAttr(u)+' como los quieras: lo que va <b>'+escAttr(d.opciones[0]).toLowerCase()+'</b> no paga nada.</div>'
     // Los contadores se identifican por el ÍNDICE de la opción, no por su texto:
     // el nombre del corte lleva paréntesis y espacios, y meterlo en un atributo
     // onclick es pedir problemas.
     + d.opciones.map(function(o, oi){
-        return '<div class="preprow"><span class="pn">'+escAttr(o)+'</span>'
+        var conRec = GDO.Prep.conTrabajo(l.name, o);
+        return '<div class="preprow"><span class="pn">'+escAttr(o)
+          +(conRec?'<i class="pmas">+'+$n(rec)+'/kg</i>':'<i class="psin">sin cargo</i>')+'</span>'
           +'<div class="stp stp-sm">'
             +'<button type="button" onclick="setCorte('+i+','+oi+',-1)">&minus;</button>'
             +'<input type="number" inputmode="numeric" min="0" value="'+((l.cortes[o])||0)+'" onchange="setCorteVal('+i+','+oi+',this.value)">'
             +'<button type="button" onclick="setCorte('+i+','+oi+',1)">+</button>'
           +'</div></div>';
       }).join('')
+    + (extra ? '<div class="prep-extra">Preparación: '+kgP+' kg × '+$n(rec)+' = <b>'+$n(extra)+'</b></div>' : '')
     +'</div>';
 }
 /* Los cortes de una línea con kilos/cajones asignados, del más grande al más
@@ -960,9 +997,18 @@ function sendWhatsApp(){
     var det = l.kgPor
       ? l.qty+" "+unitLabel(l.unit,l.qty)+" de "+l.kgPor+" kg aprox. ("+lineKg(l)+" kg) × "+$n(up)
       : l.qty+" "+unitLabel(l.unit,l.qty)+" × "+$n(up);
-    L.push("    "+det+" = *"+$n(tot)+"*");
-    // Cómo lo quiere cortado; si lo repartió, una línea por corte.
-    cortesLista(l).forEach(function(x){ L.push("    ✂️ "+x.cant+" "+unitLabel(l.unit,x.cant)+" "+x.corte.toLowerCase()); });
+    // La mercadería primero, con SU total (sin la preparación): así la cuenta
+    // "10 kg × $8.500" cierra con el número que está al lado.
+    var extra = recargoLinea(l);
+    L.push("    "+det+" = *"+$n(tot-extra)+"*");
+    // Cómo lo quiere cortado; si lo repartió, una línea por corte. El trabajo de
+    // preparación se cobra aparte y se detalla acá.
+    cortesLista(l).forEach(function(x){
+      var rec = (window.GDO&&GDO.Prep) ? GDO.Prep.recargo(l.name, x.corte) : 0;
+      L.push("    ✂️ "+x.cant+" "+unitLabel(l.unit,x.cant)+" "+x.corte.toLowerCase()
+        + (rec ? " · preparación "+x.cant+" × "+$n(rec)+" = *"+$n(rec*x.cant)+"*" : ""));
+    });
+    if(extra) L.push("    *Subtotal del producto: "+$n(tot)+"*");
     if(l.note && l.note.trim()) L.push("    📝 _"+l.note.trim()+"_");
     L.push("");
   });
@@ -1724,7 +1770,11 @@ window.GDO = window.GDO || {};
       var partes=cortesLista(l);
       if(partes.length){
         partes.forEach(function(x){
+          // El precio del renglón incluye el trabajo de preparación ($500/kg),
+          // así lo que ve el panel es lo que se le cobra al cliente.
+          var rec = (window.GDO&&GDO.Prep) ? GDO.Prep.recargo(l.name, x.corte) : 0;
           items.push(Object.assign({}, base, { cantidad:x.cant, preparacion:x.corte,
+            precio: base.precio + rec,
             kg: (l.kgPor ? x.cant*l.kgPor : null) }));
         });
         return;

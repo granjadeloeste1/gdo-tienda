@@ -795,7 +795,9 @@ function renderCart(){
       +prepBox(l, i)
       +'<div class="ci-notebox">'
         +'<span class="ci-notelbl">📝 Aclaración para este producto</span>'
-        +'<input class="ci-note'+((l.note&&l.note.trim())?' has':'')+'" type="text" placeholder="Ej: fileteada para churrasco, cajón de 6 cabezas" value="'+escAttr(l.note||"")+'" oninput="setNote('+i+',this.value,this)">'
+        // Sin texto de ejemplo: el que había ("fileteada para churrasco") ahora
+        // se elige arriba, en las opciones de corte, y confundía.
+        +'<input class="ci-note'+((l.note&&l.note.trim())?' has':'')+'" type="text" value="'+escAttr(l.note||"")+'" oninput="setNote('+i+',this.value,this)">'
       +'</div>'
     +'</div>';
   });

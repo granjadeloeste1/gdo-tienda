@@ -162,11 +162,13 @@
      Va arriba del selector de kilos porque es una decisión del producto, no una
      aclaración al final: el cliente elige cómo lo quiere y recién después cuánto. */
   .preps{ border-top:1px dashed var(--linea); margin-top:8px; padding-top:9px }
-  .preps .lbl{ display:block; font-size:12.5px; color:var(--gris); font-weight:800; margin-bottom:6px }
-  .prepops{ display:flex; gap:6px; flex-wrap:wrap }
-  .prepb{ background:#fff; border:1px solid var(--linea); color:#3a4048; border-radius:999px;
-    padding:7px 12px; font:700 12.5px system-ui,'Segoe UI',Arial,sans-serif; cursor:pointer; line-height:1.2 }
-  .prepb.on{ background:#fff7ef; border-color:var(--naranja); color:#a85f1a; box-shadow:0 0 0 1px var(--naranja) inset }
+  .preps .lbl{ display:block; font-size:12.5px; color:var(--gris); font-weight:800; margin-bottom:7px }
+  .preps .lbl i{ font-style:normal; font-weight:600; color:#9aa1aa }
+  .preprow{ display:flex; align-items:center; gap:9px; padding:3px 0 }
+  .preprow .pn{ flex:1; min-width:0; font-size:13.5px; font-weight:700; color:#3a4048 }
+  .preprow .pu{ font-size:12px; color:var(--gris); font-weight:700; width:18px }
+  .kgtotal{ border-top:1px dashed var(--linea); margin-top:7px; padding-top:9px }
+  .kgtotal b{ font-size:16px }
   /* Aclaración libre por producto, dentro del carrito */
   .ci-wrap{ padding:12px 0; border-bottom:1px solid var(--linea) } .ci-wrap:last-child{ border-bottom:0 }
   .ci-wrap .ci{ padding:0; border-bottom:0 }
@@ -284,44 +286,76 @@ window.GDO = window.GDO || {};
     var it=(window.MIN_DATA||[]).filter(function(x){ return x.nombre===nombre; })[0];
     return (it && /MILANES/i.test(it.cat||'')) ? 2 : 1;
   }
-  /* ===== PREPARACIÓN DEL CORTE =====
-     Los productos que se pueden pedir de varias formas (suprema, cuarto trasero)
-     muestran las opciones debajo del precio. La elección se guarda apenas se
-     toca, incluso antes de sumar kilos: PREPSEL la recuerda y setPeso la copia
-     a la línea del pedido. Un producto = una preparación; si alguien quiere la
-     mitad fileteada y la mitad entera, lo aclara en el campo de aclaraciones y
-     el local le arma dos renglones (pasa poco y no vale complicar la pantalla). */
-  var PREPSEL = {};
+  /* ===== CORTES (cómo quiere el cliente el producto) =====
+     Suprema y cuarto trasero se pueden pedir de varias formas, y el mismo pedido
+     puede llevar PARTE de cada una: 3 kg fileteados y 7 enteros. Por eso, en vez
+     de un solo "¿cuántos kg?", esos productos muestran UN CONTADOR POR CORTE.
+
+     La línea del pedido sigue siendo UNA sola y `kg` sigue siendo el TOTAL: es
+     lo que decide el escalón de precio. Eso importa — si los 3 kg y los 7 kg
+     fueran dos líneas sueltas, cada una pagaría su escalón chico y pedir dos
+     cortes saldría más caro que pedir 10 kg de uno solo, que sería absurdo.
+     El reparto vive aparte, en `cortes` ({Entera:7, Fileteada:3}), y recién al
+     mandar el pedido se abre en un renglón por corte (así la comanda de
+     producción los suma). */
   function prepDe(nombre){ return (window.GDO && GDO.Prep) ? GDO.Prep.de(nombre) : null; }
-  function prepSel(nombre){
-    var d = prepDe(nombre); if(!d) return '';
-    return PREPSEL[nombre] || d.opciones[0];
-  }
+  function cortesDe(nombre){ var it=CART[pkey(nombre)]; return (it && it.cortes) || {}; }
+  function kgCorte(nombre, corte){ return cortesDe(nombre)[corte] || 0; }
+  function sumaCortes(c){ var s=0; for(var k in c) s+=c[k]||0; return s; }
+
   function prepHTML(nombre){
     var d = prepDe(nombre); if(!d) return '';
-    var sel = prepSel(nombre), nA = esc(nombre);
-    return '<div class="preps"><span class="lbl">'+esc(d.titulo)+'</span><div class="prepops">'+
+    var nA = esc(nombre);
+    return '<div class="preps"><span class="lbl">'+esc(d.titulo)+' <i>— poné los kilos de cada corte</i></span>'+
       d.opciones.map(function(o){
-        return '<button type="button" class="prepb'+(o===sel?' on':'')+'" data-prep-n="'+nA+'" data-prep-o="'+esc(o)+'">'+esc(o)+'</button>';
-      }).join('')+'</div></div>';
+        var oA = esc(o);
+        return '<div class="preprow"><span class="pn">'+oA+'</span>'+
+          '<span class="stp"><button class="kdec" data-cn="'+nA+'" data-co="'+oA+'">−</button>'+
+            '<span class="qn" data-ck="'+esc(nombre+'||'+o)+'">'+kgCorte(nombre,o)+'</span>'+
+            '<button class="kinc" data-cn="'+nA+'" data-co="'+oA+'">+</button></span><span class="pu">kg</span></div>';
+      }).join('')+'</div>';
   }
-  function setPrep(nombre, opcion){
-    PREPSEL[nombre] = opcion;
-    var it = CART[pkey(nombre)];
-    if(it){ it.prep = opcion; sync(); drawCart(); }
-    document.querySelectorAll('[data-prep-n="'+cssEsc(nombre)+'"]').forEach(function(b){
-      b.classList.toggle('on', b.dataset.prepO === opcion);
-    });
+
+  /* Sube o baja los kilos de UN corte. El mínimo del producto se controla sobre
+     el TOTAL (no sobre cada corte): pedir 2 kg fileteados + 3 enteros cumple un
+     mínimo de 5 kg igual que pedir 5 de una sola forma. */
+  function setCorte(nombre, corte, delta){
+    var k=pkey(nombre), it=CART[k];
+    if(!it) it={tipo:'peso',nombre:nombre,tiers:TIERMAP[nombre]||[],kg:0,cortes:{},nota:''};
+    it.cortes = it.cortes || {};
+    var min=minKgDe(nombre);
+    var antes=sumaCortes(it.cortes);
+    var actual=it.cortes[corte]||0, nuevo=Math.max(0, actual+delta);
+    it.cortes[corte]=nuevo;
+    var total=sumaCortes(it.cortes);
+    /* El primer clic desde cero deja el pedido en el mínimo del producto. Al
+       BAJAR no se corrige nada: mientras uno reparte los kilos entre cortes el
+       total pasa por valores intermedios, y que la app suba sola un número que
+       acabás de poner termina en pedidos de más. Si al final quedó corto, se
+       avisa al enviar. */
+    if(antes===0 && total>0 && total<min){ it.cortes[corte]=nuevo+(min-total); total=min; }
+    it.kg=total;
+    if(!it.tiers || !it.tiers.length) it.tiers=TIERMAP[nombre]||[];
+    if(total<=0) delete CART[k]; else CART[k]=it;
+    sync(); drawCart();
   }
-  // Escapa comillas para poder usar el nombre dentro de un selector CSS.
-  function cssEsc(s){ return String(s).replace(/"/g,'\\"'); }
+
+  /* Los cortes de una línea, listos para leer: "3 kg fileteada · 2 kg en cubos".
+     Solo se listan los que tienen kilos. */
+  function cortesLista(it){
+    var c=(it && it.cortes) || {}, out=[];
+    for(var k in c){ if(c[k]>0) out.push({ corte:k, kg:c[k] }); }
+    return out.sort(function(a,b){ return b.kg-a.kg; });
+  }
+  function cortesTxt(it){
+    return cortesLista(it).map(function(x){ return x.kg+' kg '+x.corte.toLowerCase(); }).join(' · ');
+  }
 
   function setPeso(nombre, tiers, delta){
-    var k=pkey(nombre), it=CART[k]||{tipo:'peso',nombre:nombre,tiers:tiers,kg:0,prep:prepSel(nombre),nota:''};
+    var k=pkey(nombre), it=CART[k]||{tipo:'peso',nombre:nombre,tiers:tiers,kg:0,nota:''};
     var min=minKgDe(nombre), nv=it.kg+delta;
     if(nv>0 && nv<min) nv=(delta<0?0:min);   // al subir salta al mínimo; al bajar, a 0
     it.kg=Math.max(0,nv); it.tiers=tiers;
-    if(!it.prep) it.prep=prepSel(nombre);
     if(it.kg===0) delete CART[k]; else CART[k]=it;
     sync(); drawCart();
   }
@@ -335,6 +369,8 @@ window.GDO = window.GDO || {};
   function refreshSteppers(){
     document.querySelectorAll('[data-q]').forEach(function(s){ var p=s.dataset.q.split('||'),q=qtyOf(p[0],p[1]); s.textContent=q; var r=s.closest('.var'); if(r) r.classList.toggle('incart',q>0); });
     document.querySelectorAll('[data-qk]').forEach(function(s){ s.textContent=pesoKg(s.dataset.qk); });
+    // kilos de cada corte
+    document.querySelectorAll('[data-ck]').forEach(function(s){ var p=s.dataset.ck.split('||'); s.textContent=kgCorte(p[0],p[1]); });
     document.querySelectorAll('[data-tot]').forEach(function(s){ var it=CART[pkey(s.dataset.tot)]; s.textContent = it ? money(lineTotal(it)) : ''; });
     document.querySelectorAll('[data-pk]').forEach(function(r){ r.classList.toggle('incart', pesoKg(r.dataset.pk)>0); });
   }
@@ -387,10 +423,25 @@ window.GDO = window.GDO || {};
   function registrarPedidoEnvio(d){
     var items=[];
     for(var k in CART){ var it=CART[k];
-      // `preparacion` es el corte elegido (dato ELEGIBLE: la comanda lo suma) y
-      // `nota` la aclaración libre de ese producto. Van separados a propósito.
-      if(it.tipo==='peso') items.push({ producto: it.nombre, cantidad: it.kg, unidad:'kg', preparacion: it.prep||'', nota: (it.nota||'').trim() });
-      else items.push({ producto: it.nombre+' ('+it.variedad+')', cantidad: it.cant, unidad:'unidad', preparacion: it.prep||'', nota: (it.nota||'').trim() });
+      /* `preparacion` es el corte (dato ELEGIBLE: la comanda lo suma) y `nota` la
+         aclaración libre. Van separados a propósito.
+         Si el producto se pidió repartido en varios cortes, se abre en UN RENGLÓN
+         POR CORTE. El precio de cada renglón es el del escalón del TOTAL (los 5 kg
+         del ejemplo), no el de su propio pedacito: pedir dos cortes no puede salir
+         más caro que pedir la misma cantidad de uno solo. */
+      var nota=(it.nota||'').trim();
+      if(it.tipo==='peso'){
+        var partes=cortesLista(it);
+        if(partes.length){
+          var pk=perkg(it.tiers, it.kg);
+          partes.forEach(function(x){
+            items.push({ producto: it.nombre, cantidad: x.kg, unidad:'kg', precio: pk, preparacion: x.corte, nota: nota });
+          });
+        } else {
+          items.push({ producto: it.nombre, cantidad: it.kg, unidad:'kg', precio: perkg(it.tiers, it.kg), preparacion:'', nota: nota });
+        }
+      }
+      else items.push({ producto: it.nombre+' ('+it.variedad+')', cantidad: it.cant, unidad:'unidad', precio: it.precio, preparacion:'', nota: nota });
     }
     if(!items.length) return;
     // Coordenadas de la dirección elegida en el autocompletado (si no la editó después)
@@ -511,6 +562,13 @@ window.GDO = window.GDO || {};
       var nom=(val('ckNom')||'').trim(), tel=(val('ckTel')||'').trim(), msg=document.getElementById('ckMsg');
       if(!nom||!tel){ msg.textContent='Completá tu nombre y teléfono.'; return; }
       if(modo==='envio'){ if(zona==null){ msg.textContent='Elegí tu zona de entrega.'; return; } if(!dia){ msg.textContent='Elegí el día de entrega.'; return; } if(!(val('ckDir')||'').trim()){ msg.textContent='Completá tu dirección.'; return; } }
+      // Mínimo por producto (las milanesas van por 2 kg), medido sobre el TOTAL
+      // de la línea: se avisa recién acá para no corregirle los kilos al cliente
+      // mientras reparte el pedido entre los cortes.
+      var flojo=null;
+      for(var kf in CART){ var lf=CART[kf];
+        if(lf.tipo==='peso' && lf.kg>0 && lf.kg<minKgDe(lf.nombre)){ flojo=lf; break; } }
+      if(flojo){ msg.textContent='“'+flojo.nombre+'” va por mínimo '+minKgDe(flojo.nombre)+' kg (sumando todos los cortes). Ahora tenés '+flojo.kg+' kg.'; return; }
       var sub=cartTotal(), env=envioCosto();
       var addr=(val('ckDir')||'').trim(), loc=(val('ckLoc')||'').trim(), entre=(val('ckEntre')||'').trim(), pago=(val('ckPago')||''), notas=(val('ckNotas')||'').trim();
       var L=[];
@@ -550,8 +608,9 @@ window.GDO = window.GDO || {};
           L.push('*'+i+') '+it.nombre+' ('+it.variedad+')*');
           L.push('    '+it.cant+' un × '+money(it.precio)+' = *'+money(lineTotal(it))+'*');
         }
-        // Cómo lo quiere cortado y cualquier aclaración de ese producto.
-        if(it.prep) L.push('    ✂️ '+it.prep);
+        // Cómo lo quiere cortado (uno por línea si pidió de varias formas) y
+        // cualquier aclaración de ese producto.
+        cortesLista(it).forEach(function(x){ L.push('    ✂️ '+x.kg+' kg '+x.corte.toLowerCase()); });
         if(it.nota && it.nota.trim()) L.push('    📝 _'+it.nota.trim()+'_');
         L.push('');
       }
@@ -607,7 +666,7 @@ window.GDO = window.GDO || {};
       var it=CART[k];
       // La preparación elegida y una aclaración libre para ESE producto ("sin
       // piel", "cortada fina"). Las dos llegan a la comanda de producción.
-      var prep = it.prep ? '<div class="ci-prep">✂️ '+esc(it.prep)+'</div>' : '';
+      var prep = cortesTxt(it) ? '<div class="ci-prep">✂️ '+esc(cortesTxt(it))+'</div>' : '';
       var nota = '<input class="ci-note'+(it.nota?' has':'')+'" data-nota="'+esc(k)+'" value="'+esc(it.nota||'')+'" placeholder="📝 Aclaración para este producto (opcional)" maxlength="120"/>';
       var fila;
       if(it.tipo==='peso'){
@@ -742,14 +801,24 @@ window.GDO = window.GDO || {};
               var bdg = (nt>1 && rank[t.min]===0) ? '<span class="ofb">★ MÁS CONVENIENTE</span>' : '';
               return '<div class="tr'+cls+'">'+bdg+'<span class="tk">'+t.min+' kg</span><b>'+money(t.min*t.perkg)+'</b><small>'+money(t.perkg)+'/kg</small></div>';
             }).join('')+'</div>';
+            // Si el producto se puede pedir cortado de varias formas, en vez de
+            // un solo "¿cuántos kg?" va un contador POR CORTE y abajo el total,
+            // que es lo que define el precio: 3 kg fileteados + 2 en cubos son
+            // 5 kg y pagan el escalón de 5 kg.
+            var conCortes = !!prepDe(p.nombre);
             body='<div class="kgsel" data-pk="'+nA+'">'+tabla+
-              prepHTML(p.nombre)+
               (minK>1?'<div class="kgmin">📦 Mínimo '+minK+' kg por pedido</div>':'')+
-              '<div class="kgrow"><span class="lbl">¿Cuántos kg?</span>'+
-                '<span class="stp"><button class="pdec" data-n="'+nA+'">−</button>'+
-                  '<span class="qn" data-qk="'+nA+'">'+pesoKg(p.nombre)+'</span>'+
-                  '<button class="pinc" data-n="'+nA+'">+</button></span><span class="lbl">kg</span>'+
-                '<span class="ktot" data-tot="'+nA+'"></span></div></div>';
+              (conCortes
+                ? prepHTML(p.nombre)+
+                  '<div class="kgrow kgtotal"><span class="lbl">Total del producto</span>'+
+                    '<b><span data-qk="'+nA+'">'+pesoKg(p.nombre)+'</span> kg</b>'+
+                    '<span class="ktot" data-tot="'+nA+'"></span></div>'
+                : '<div class="kgrow"><span class="lbl">¿Cuántos kg?</span>'+
+                    '<span class="stp"><button class="pdec" data-n="'+nA+'">−</button>'+
+                      '<span class="qn" data-qk="'+nA+'">'+pesoKg(p.nombre)+'</span>'+
+                      '<button class="pinc" data-n="'+nA+'">+</button></span><span class="lbl">kg</span>'+
+                    '<span class="ktot" data-tot="'+nA+'"></span></div>')+
+              '</div>';
             etq='DESDE'; val=money(tiers[0].min*tiers[0].perkg);
           } else {
             var hayCaja = p.vars.length>1 && p.vars.some(function(v){ return /caja/i.test(v.variedad||''); });
@@ -783,8 +852,9 @@ window.GDO = window.GDO || {};
     // variedades sueltas: +/− por unidad
     acc.querySelectorAll('.sinc').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); setVar(b.dataset.n, b.dataset.v, +b.dataset.p, 1); }; });
     acc.querySelectorAll('.sdec').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); setVar(b.dataset.n, b.dataset.v, +b.dataset.p, -1); }; });
-    // cómo quiere el corte (suprema, cuarto trasero)
-    acc.querySelectorAll('.prepb').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); setPrep(b.dataset.prepN, b.dataset.prepO); }; });
+    // kilos de cada corte (suprema, cuarto trasero)
+    acc.querySelectorAll('.kinc').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); setCorte(b.dataset.cn, b.dataset.co, 1); }; });
+    acc.querySelectorAll('.kdec').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); setCorte(b.dataset.cn, b.dataset.co, -1); }; });
     refreshSteppers();
   }
 

@@ -104,10 +104,9 @@ td.l{color:#e0e0e0;font-family:inherit;font-size:12px;font-weight:400;white-spac
 .ci-note.has{border-color:#F58220;background:#171107}
 /* Opciones de corte dentro de la línea del pedido */
 .ci-prepbox{margin-top:9px}
-.prepops{display:flex;gap:6px;flex-wrap:wrap}
-.prepb{background:#0d0d0d;border:1px solid #4a3414;color:#e8d4b0;border-radius:999px;padding:7px 12px;
-  font:700 12.5px system-ui,'Segoe UI',Arial,sans-serif;cursor:pointer;line-height:1.2}
-.prepb.on{background:#F58220;border-color:#F58220;color:#111}
+/* Un contador por corte: el pedido se puede repartir (3 kg fileteados + 2 en cubos) */
+.preprow{display:flex;align-items:center;gap:10px;padding:4px 0}
+.preprow .pn{flex:1;min-width:0;font-size:13px;font-weight:700;color:#e8d4b0}
 .ci-main{flex:1;min-width:0}
 .ci-name{font-size:13px;color:#fff;font-weight:600;line-height:1.3}
 .ci-brand{font-size:10px;color:#F58220;text-transform:uppercase;letter-spacing:.05em;margin-top:1px}
@@ -227,8 +226,7 @@ td.l{color:#3a4048}
 .ci-note{background:#fff;border-color:#e7d6bf;color:#1e1e1e}
 .ci-note:focus{border-color:#F58220;background:#fff}
 .ci-note::placeholder{color:#b08a5a}
-.prepb{background:#fff;border-color:#e7d6bf;color:#6a5436}
-.prepb.on{background:#F58220;border-color:#F58220;color:#fff}
+.preprow .pn{color:#6a5436}
 .ci-note.has{border-color:#F58220;background:#fff8f0}
 .ci-name{color:#1e1e1e}
 .ci-brand{color:#F58220}
@@ -644,27 +642,88 @@ function setQty(i, q){
 function incQty(i, d){ var l=cart[i]; if(!l) return; var nv=l.qty+d; if(l.min && nv>0 && nv<l.min){ nv=(d<0?0:l.min); } setQty(i, nv); }
 function setNote(i, val, el){ var l=cart[i]; if(!l) return; l.note=val; persistCart(); if(el){ if(val&&val.trim()) el.classList.add("has"); else el.classList.remove("has"); } }
 
-/* ===== PREPARACIÓN DEL CORTE (suprema, cuarto trasero) =====
-   Las opciones se muestran en la línea del pedido, al lado de la aclaración:
-   la tabla de precios ya está apretada y meterle cuatro botones por fila la
-   rompe en el celular. La elección viaja en la línea (l.prep) y llega al
-   WhatsApp y al panel como dato ELEGIBLE, para que la comanda de producción
-   pueda sumar "3 kg fileteados, 4 kg enteros". */
-function prepBox(l, i){
+/* ===== CORTES (suprema, cuarto trasero) =====
+   Van en la línea del pedido, al lado de la aclaración: la tabla de precios ya
+   está apretada y meterle contadores por fila la rompe en el celular.
+
+   El pedido se puede REPARTIR entre varios cortes: 3 kg fileteados y 2 en cubos.
+   La línea sigue siendo UNA y `qty` sigue siendo el total — eso es lo que decide
+   el escalón de precio: esos 5 kg pagan el escalón de 5 kg, no dos escalones
+   chicos. El reparto vive en `l.cortes` y recién al mandar el pedido se abre en
+   un renglón por corte, para que la comanda de producción los sume. */
+function cortesDeLinea(l){
   var d = (window.GDO && GDO.Prep) ? GDO.Prep.de(l.name) : null;
-  if(!d) return "";
-  var sel = l.prep || d.opciones[0];
-  return '<div class="ci-notebox ci-prepbox">'
-    +'<span class="ci-notelbl">✂️ '+escAttr(d.titulo)+'</span>'
-    +'<div class="prepops">'
-    + d.opciones.map(function(o){
-        return '<button type="button" class="prepb'+(o===sel?' on':'')+'" onclick="setPrep('+i+',this.dataset.o)" data-o="'+escAttr(o)+'">'+escAttr(o)+'</button>';
-      }).join('')
-    +'</div></div>';
+  if(!d) return null;
+  if(!l.cortes){
+    // Línea vieja (o recién agregada desde la tabla): todo va al primer corte.
+    l.cortes = {}; l.cortes[l.prep || d.opciones[0]] = l.qty;
+  }
+  // Si cambiaron la cantidad desde la tabla de precios, el reparto se reacomoda:
+  // la diferencia va al primer corte, para que el total nunca mienta.
+  var suma=0; for(var k in l.cortes) suma+=l.cortes[k]||0;
+  if(suma!==l.qty){
+    var dif=l.qty-suma, p=d.opciones[0];
+    l.cortes[p]=Math.max(0,(l.cortes[p]||0)+dif);
+    suma=0; for(var k2 in l.cortes) suma+=l.cortes[k2]||0;
+    if(suma!==l.qty){ l.cortes={}; l.cortes[d.opciones[0]]=l.qty; }
+  }
+  return d;
 }
-function setPrep(i, opcion){
+function prepBox(l, i){
+  var d = cortesDeLinea(l);
+  if(!d) return "";
+  var u = unitPlural(l.unit);
+  return '<div class="ci-notebox ci-prepbox">'
+    +'<span class="ci-notelbl">✂️ '+escAttr(d.titulo)+' — repartí los '+escAttr(u)+'</span>'
+    // Los contadores se identifican por el ÍNDICE de la opción, no por su texto:
+    // el nombre del corte lleva paréntesis y espacios, y meterlo en un atributo
+    // onclick es pedir problemas.
+    + d.opciones.map(function(o, oi){
+        return '<div class="preprow"><span class="pn">'+escAttr(o)+'</span>'
+          +'<div class="stp stp-sm">'
+            +'<button type="button" onclick="setCorte('+i+','+oi+',-1)">&minus;</button>'
+            +'<input type="number" inputmode="numeric" min="0" value="'+((l.cortes[o])||0)+'" onchange="setCorteVal('+i+','+oi+',this.value)">'
+            +'<button type="button" onclick="setCorte('+i+','+oi+',1)">+</button>'
+          +'</div></div>';
+      }).join('')
+    +'</div>';
+}
+/* Los cortes de una línea con kilos/cajones asignados, del más grande al más
+   chico. Vacío = ese producto no se pide cortado de varias formas. */
+function cortesLista(l){
+  if(!l || !l.cortes) return [];
+  var out=[];
+  for(var k in l.cortes){ if(l.cortes[k]>0) out.push({corte:k, cant:l.cortes[k]}); }
+  return out.sort(function(a,b){ return b.cant-a.cant; });
+}
+function setCorte(i, oi, delta){
   var l=cart[i]; if(!l) return;
-  l.prep=opcion; persistCart(); renderCart();
+  var d=cortesDeLinea(l); if(!d) return;
+  var corte=d.opciones[oi];
+  setCorteVal(i, oi, Math.max(0, (l.cortes[corte]||0)+delta));
+}
+function setCorteVal(i, oi, val){
+  var l=cart[i]; if(!l) return;
+  var d=cortesDeLinea(l); if(!d) return;
+  var corte=d.opciones[oi];
+  var n=parseInt(val,10); if(isNaN(n)||n<0) n=0;
+  var antes=0; for(var k0 in l.cortes) antes+=l.cortes[k0]||0;
+  l.cortes[corte]=n;
+  var total=0; for(var k in l.cortes) total+=l.cortes[k]||0;
+  /* El MÍNIMO del producto (el trozado va por 5 kg) se mide sobre el TOTAL: 2 kg
+     de un corte + 3 de otro cumplen igual que 5 de uno solo. Se aplica SOLO al
+     subir desde cero (el primer clic te deja en el mínimo). Al bajar NO se
+     corrige: mientras uno reparte los kilos entre cortes el total pasa por
+     valores raros, y que la app te suba un número que acabás de escribir es la
+     mejor forma de terminar pidiendo de más sin darte cuenta. Si al final quedó
+     por debajo del mínimo, se avisa al enviar. */
+  if(l.min && antes===0 && total>0 && total<l.min){
+    l.cortes[corte]=n+(l.min-total); total=l.min;
+    mayToast("El trozado es por mínimo "+l.min+" kg (contando todos los cortes).");
+  }
+  if(total<=0){ cart.splice(i,1); persistCart(); renderCart(); renderCartBar(); render(); return; }
+  l.qty=total;
+  persistCart(); renderCart(); renderCartBar(); render();
 }
 function escAttr(s){ return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function removeLine(i){ cart.splice(i,1); persistCart(); renderCart(); renderCartBar(); }
@@ -858,6 +917,15 @@ function sendWhatsApp(){
   var fgH=document.getElementById("fgHora");
   if(diaRetiro && !horaRetiro){ if(fgH) fgH.classList.add("err"); ok=false; } else if(fgH) fgH.classList.remove("err");
   if(!cart.length){ alert("Tu pedido está vacío."); return; }
+  // Mínimo por producto (el trozado va por 5 kg), medido sobre el TOTAL de la
+  // línea: se avisa recién acá para no corregirle los números al cliente
+  // mientras reparte el pedido entre los cortes.
+  var flojo=cart.filter(function(l){ return l.min && l.qty>0 && l.qty<l.min; })[0];
+  if(flojo){
+    alert("“"+flojo.name+"” se vende por mínimo "+flojo.min+" "+unitPlural(flojo.unit)+
+          " (sumando todos los cortes). Ahora tenés "+flojo.qty+".");
+    return;
+  }
   if(!ok){
     var primerErr=document.querySelector(".fg.err");
     if(primerErr && primerErr.scrollIntoView) primerErr.scrollIntoView({behavior:"smooth",block:"center"});
@@ -893,7 +961,8 @@ function sendWhatsApp(){
       ? l.qty+" "+unitLabel(l.unit,l.qty)+" de "+l.kgPor+" kg aprox. ("+lineKg(l)+" kg) × "+$n(up)
       : l.qty+" "+unitLabel(l.unit,l.qty)+" × "+$n(up);
     L.push("    "+det+" = *"+$n(tot)+"*");
-    if(l.prep) L.push("    ✂️ "+l.prep);
+    // Cómo lo quiere cortado; si lo repartió, una línea por corte.
+    cortesLista(l).forEach(function(x){ L.push("    ✂️ "+x.cant+" "+unitLabel(l.unit,x.cant)+" "+x.corte.toLowerCase()); });
     if(l.note && l.note.trim()) L.push("    📝 _"+l.note.trim()+"_");
     L.push("");
   });
@@ -1643,12 +1712,25 @@ window.GDO = window.GDO || {};
     var localidad=val2('cLoc').trim(), entrecalles=val2('cEntre').trim();
     var lat=null, lng=null;
     if(picked && picked.direccion && addr && picked.direccion.toLowerCase()===addr.toLowerCase()){ lat=picked.lat; lng=picked.lng; if(!localidad) localidad=picked.localidad||''; }
-    var items=cart.map(function(l){
-      return { producto: l.name+(l.brand?' ('+l.brand+')':''), cantidad: l.qty,
-               unidad: (typeof unitLabel==='function'? unitLabel(l.unit,l.qty): l.unit),
-               kg: (l.kgPor ? l.qty*l.kgPor : null),
-               preparacion: (l.prep||''),
-               nota: (l.note||'').trim() };
+    /* Un renglón por producto; y si se pidió repartido en varios cortes, uno por
+       CORTE. El precio de cada uno es el del escalón del TOTAL: repartir el
+       pedido en dos cortes no puede salir más caro que pedir todo de una forma. */
+    var items=[];
+    cart.forEach(function(l){
+      var base={ producto: l.name+(l.brand?' ('+l.brand+')':''),
+                 unidad: (typeof unitLabel==='function'? unitLabel(l.unit,l.qty): l.unit),
+                 precio: (typeof lineUnitPrice==='function'? lineUnitPrice(l) : 0),
+                 nota: (l.note||'').trim() };
+      var partes=cortesLista(l);
+      if(partes.length){
+        partes.forEach(function(x){
+          items.push(Object.assign({}, base, { cantidad:x.cant, preparacion:x.corte,
+            kg: (l.kgPor ? x.cant*l.kgPor : null) }));
+        });
+        return;
+      }
+      items.push(Object.assign({}, base, { cantidad:l.qty, preparacion:'',
+        kg: (l.kgPor ? l.qty*l.kgPor : null) }));
     });
     var esp=[];
     if(notes) esp.push(notes);

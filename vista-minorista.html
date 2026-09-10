@@ -420,6 +420,12 @@ window.GDO = window.GDO || {};
   // cliente salta a WhatsApp y la página se descarga.
   function nid(){ try{ if(window.crypto&&crypto.getRandomValues){ var a=new Uint8Array(16); crypto.getRandomValues(a); var s=''; for(var i=0;i<a.length;i++){ s+=('0'+a[i].toString(36)).slice(-2); } return 'p_'+s; } }catch(e){} return 'p_'+Date.now().toString(36)+Math.random().toString(36).slice(2,12); }
   var MIN_INBOX='gdo_reparto_inbox';
+  // Unidad REAL de una variedad ("PIEZA ENTERA…", "Caja de 20 kg", "1 Paquete x 8").
+  // Con "unidad" a secas la comanda decía "3 unidades" de una bondiola que se vende
+  // por pieza Y por caja: hay que decir cuál. Un sabor o un tamaño → "unidad".
+  var UNI_VAR={caja:'caja',cajas:'caja',cajon:'cajón','cajón':'cajón',cajones:'cajón',paquete:'paquete',paquetes:'paquete',
+    maple:'maple',maples:'maple',pieza:'pieza',piezas:'pieza',bandeja:'bandeja',bandejas:'bandeja',bolsa:'bolsa',bolsas:'bolsa'};
+  function unidadVar(v){ var m=/^\s*(?:\d+(?:[.,]\d+)?\s*)?([a-zá-úñ]+)/i.exec(String(v||'')); return (m && UNI_VAR[m[1].toLowerCase()]) || 'unidad'; }
   function registrarPedidoEnvio(d){
     var items=[];
     for(var k in CART){ var it=CART[k];
@@ -441,7 +447,7 @@ window.GDO = window.GDO || {};
           items.push({ producto: it.nombre, cantidad: it.kg, unidad:'kg', precio: perkg(it.tiers, it.kg), preparacion:'', nota: nota });
         }
       }
-      else items.push({ producto: it.nombre+' ('+it.variedad+')', cantidad: it.cant, unidad:'unidad', precio: it.precio, preparacion:'', nota: nota });
+      else items.push({ producto: it.nombre+' ('+it.variedad+')', cantidad: it.cant, unidad: unidadVar(it.variedad), precio: it.precio, preparacion:'', nota: nota });
     }
     if(!items.length) return;
     // Coordenadas de la dirección elegida en el autocompletado (si no la editó después)
@@ -755,7 +761,7 @@ window.GDO = window.GDO || {};
         '<iframe id="mapaReparto" src="mapa-zona-oeste.html?v=4" title="Zona de reparto Oeste" loading="lazy" style="width:100%;border:0;display:block;min-height:420px"></iframe></details>'+
       '<style>.mapwrap{margin:10px 0;border:1px solid #eee;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)}.mapwrap>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#fff;background:#F58220;padding:13px 16px}.mapwrap>summary::-webkit-details-marker{display:none}.mapwrap .mapchev{margin-left:auto;transition:transform .2s}.mapwrap[open] .mapchev{transform:rotate(180deg)}</style>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+
-      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v1.3<br>Todos los derechos reservados</p>';
+      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v1.4<br>Todos los derechos reservados</p>';
     render(cats);
     // Ajusta la altura del mapa (iframe mismo-origen) a su contenido, y al abrir/cerrar el desplegable.
     (function(){ var det=$('#mapaDet'), f=$('#mapaReparto'); if(!f) return;

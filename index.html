@@ -358,7 +358,7 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v1.7<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v1.8<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -428,6 +428,29 @@ function parseHeader(h){
 // que le dice a la lista que ese precio es POR KILO y que cada pieza pesa eso.
 // Si esta celda pierde el número, el producto vuelve a venderse por unidad suelta.
 function pesoKgDe(h){ var m = String(h).toUpperCase().match(/(\d+)\s*(KGS?|KILOS?)\b/); return m ? parseInt(m[1],10) : 0; }
+/* NOMBRE de la forma SUELTA de pedir un producto (pieza, paquete, kilo). El nombre
+   de la fila describe la CAJA ("BONDIOLA … X CAJA DE 20 KG", "PAPA … X 15 KG (6 X
+   2,5 KG)"); si viaja tal cual, la comanda dice "3 piezas · … X CAJA DE 20 KG" y en
+   el mostrador se preparan 3 cajas en vez de 3 piezas. Se saca el bulto de la caja
+   y se dice qué es cada unidad: "BONDIOLA IMPORTADA BRASIL · PIEZA SUELTA (~3 KG)",
+   "PAPA BASTON TRADICIONAL (MCCAIN) · PAQUETE DE 2,5 KG".
+   COPIA en gdo-reparto/js/lista.js (nombreOpcion): si se cambia una, cambiar la otra. */
+function nombreOpcion(nombre, unidad, kgPor){
+  var s = String(nombre || "");
+  if (s.indexOf(" · ") >= 0) return s;                       // ya convertido
+  var inner = /\(\s*\d+\s*X\s*(\d+(?:[.,]\d+)?)\s*(KGS?|UNI(?:DADES)?)\s*\)/i.exec(s);
+  var t = s.replace(/\s*\([^)]*\d[^)]*\)/g, "")               // "(6 X 2,5 KG)", "(27 PAQUETES)"
+    .replace(/\s*\bX?\s*(?:CAJA|CAJ[OÓ]N|BOLSA)\s*(?:DE\s*)?\d+(?:[.,]\d+)?\s*KGS?\b/i, "")
+    .replace(/\s*\bX?\s*\d+(?:[.,]\d+)?\s*KGS?\b/i, "");       // "X 15 KG"
+  if (inner) t = t.replace(/\s*\bX?\s*\d+\s*UNIDADES?\b/i, ""); // "80 UNIDADES" (la caja)
+  t = t.replace(/\s+/g, " ").replace(/\s*\bX\s*$/i, "").trim();
+  var suf;
+  if (kgPor) suf = "PIEZA SUELTA (~" + kgPor + " KG)";
+  else if (unidad === "kg") suf = "POR KG";
+  else if (inner) suf = String(unidad).toUpperCase() + " DE " + inner[1] + (/^K/i.test(inner[2]) ? " KG" : " UNIDADES");
+  else suf = "POR " + String(unidad).toUpperCase();
+  return t + " · " + suf;
+}
 function priceForTiers(t, q){ var p=t[0].price; for(var i=0;i<t.length;i++){ if(q>=t[i].min) p=t[i].price; } return p; }
 function cartQtyFor(name, brand, unit){ for(var i=0;i<cart.length;i++){ var l=cart[i]; if(l.name===name && l.brand===brand && l.unit===unit) return l.qty; } return 0; }
 function render() {
@@ -497,9 +520,12 @@ function render() {
           // kgPor. La conversión vive en lineKg(); no calcular totales sin pasar por ahí.
           var kgPor = (!isMain && tiers.length === 1 && tiers[0].pesoKg > 1) ? tiers[0].pesoKg : 0;
           var uMostrar = kgPor ? "pieza" : u;
-          var opt = {name:row.p, brand:(tbl.brand||""), unit:uMostrar, kgPor:kgPor, tiers:tiers, main:isMain, min:(/TROZADO/i.test(sec.title||"")?5:0)};
+          // La forma principal (la caja) conserva el nombre de la fila; las sueltas
+          // llevan el suyo, que es el que llega al carrito, al WhatsApp y a la comanda.
+          var nom = isMain ? row.p : nombreOpcion(row.p, uMostrar, kgPor);
+          var opt = {name:nom, brand:(tbl.brand||""), unit:uMostrar, kgPor:kgPor, tiers:tiers, main:isMain, min:(/TROZADO/i.test(sec.title||"")?5:0)};
           var oi = OPTIONS.push(opt) - 1;
-          var q = cartQtyFor(row.p, (tbl.brand||""), uMostrar);
+          var q = cartQtyFor(nom, (tbl.brand||""), uMostrar);
           var sub = q > 0 ? subHtml(opt, q) : "";
           orderCell += "<div class=\"qg\">";
           orderCell += "<span class=\"qg-u " + (isMain ? "main" : "sub") + "\">por " + uMostrar + "</span>";
@@ -585,7 +611,10 @@ recargar();
 })();
 
 /* ===== Pedido / carrito ===== */
-function loadCart(){ try{ var c=JSON.parse(localStorage.getItem("gdo_cart")||"[]"); if(Array.isArray(c)) cart=c; }catch(e){} }
+function loadCart(){ try{ var c=JSON.parse(localStorage.getItem("gdo_cart")||"[]"); if(Array.isArray(c)) cart=c; }catch(e){}
+  // Carritos guardados antes de que las formas sueltas tuvieran nombre propio.
+  cart.forEach(function(l){ if(l && l.main===false) l.name=nombreOpcion(l.name, l.unit, l.kgPor); });
+}
 function persistCart(){ try{ localStorage.setItem("gdo_cart", JSON.stringify(cart)); }catch(e){} }
 function findLine(opt){ for(var i=0;i<cart.length;i++){ var l=cart[i]; if(l.name===opt.name && l.brand===opt.brand && l.unit===opt.unit) return l; } return null; }
 // Kilos reales de una línea. Para lo que se vende por pieza (kgPor) la cantidad
@@ -1765,10 +1794,16 @@ window.GDO = window.GDO || {};
        pedido en dos cortes no puede salir más caro que pedir todo de una forma. */
     var items=[];
     cart.forEach(function(l){
+      // `precio` es SIEMPRE por la unidad del renglón (cantidad × precio = total).
+      // Lo que se vende por pieza se cotiza por kilo: se guarda el precio de la
+      // PIEZA y, aparte, el del kilo (precioKg). Antes iba el del kilo solo, y el
+      // panel mostraba 3 piezas × $6.400 = $19.200 cuando eran $57.600.
+      var upKg=(typeof lineUnitPrice==='function'? lineUnitPrice(l) : 0);
       var base={ producto: l.name+(l.brand?' ('+l.brand+')':''),
                  unidad: (typeof unitLabel==='function'? unitLabel(l.unit,l.qty): l.unit),
-                 precio: (typeof lineUnitPrice==='function'? lineUnitPrice(l) : 0),
+                 precio: l.kgPor ? upKg*l.kgPor : upKg,
                  nota: (l.note||'').trim() };
+      if(l.kgPor) base.precioKg=upKg;
       var partes=cortesLista(l);
       if(partes.length){
         partes.forEach(function(x){

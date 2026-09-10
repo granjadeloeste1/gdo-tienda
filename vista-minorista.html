@@ -158,6 +158,23 @@
   .kgmin{ display:inline-block; background:#fff7ef; border:1px solid #f3cda0; color:#a85f1a; border-radius:8px; padding:3px 9px; font-size:11.5px; font-weight:800; margin:2px 0 8px }
   .gdofoot{ text-align:center; color:#9a9a9a; font-size:12px; line-height:1.5; margin:22px 0 90px }
   .gdofoot b{ color:#777 }
+  /* ===== Preparación del corte (suprema, cuarto trasero) =====
+     Va arriba del selector de kilos porque es una decisión del producto, no una
+     aclaración al final: el cliente elige cómo lo quiere y recién después cuánto. */
+  .preps{ border-top:1px dashed var(--linea); margin-top:8px; padding-top:9px }
+  .preps .lbl{ display:block; font-size:12.5px; color:var(--gris); font-weight:800; margin-bottom:6px }
+  .prepops{ display:flex; gap:6px; flex-wrap:wrap }
+  .prepb{ background:#fff; border:1px solid var(--linea); color:#3a4048; border-radius:999px;
+    padding:7px 12px; font:700 12.5px system-ui,'Segoe UI',Arial,sans-serif; cursor:pointer; line-height:1.2 }
+  .prepb.on{ background:#fff7ef; border-color:var(--naranja); color:#a85f1a; box-shadow:0 0 0 1px var(--naranja) inset }
+  /* Aclaración libre por producto, dentro del carrito */
+  .ci-wrap{ padding:12px 0; border-bottom:1px solid var(--linea) } .ci-wrap:last-child{ border-bottom:0 }
+  .ci-wrap .ci{ padding:0; border-bottom:0 }
+  .ci-prep{ font-size:12px; color:#a85f1a; font-weight:800; margin-top:3px }
+  .ci-note{ width:100%; margin-top:7px; background:#fff; border:1px dashed var(--linea); border-radius:9px;
+    padding:8px 10px; font:400 13px system-ui,'Segoe UI',Arial,sans-serif; color:#1e1e1e; outline:none }
+  .ci-note:focus{ border-color:var(--naranja); border-style:solid }
+  .ci-note.has{ border-color:var(--naranja); border-style:solid; background:#fff8f0 }
 </style>
 </head>
 <body>
@@ -172,6 +189,9 @@
   <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
 </a>
 
+<!-- Opciones de corte por producto (suprema, cuarto trasero). Se carga ANTES del
+     script de la lista porque render() las consulta al dibujar cada producto. -->
+<script src="preparaciones.js?v=1"></script>
 <!-- Firebase: registrar pedidos de ENVÍO en el panel de Rutas (mismo proyecto ruteogdo que la mayorista) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -264,11 +284,44 @@ window.GDO = window.GDO || {};
     var it=(window.MIN_DATA||[]).filter(function(x){ return x.nombre===nombre; })[0];
     return (it && /MILANES/i.test(it.cat||'')) ? 2 : 1;
   }
+  /* ===== PREPARACIÓN DEL CORTE =====
+     Los productos que se pueden pedir de varias formas (suprema, cuarto trasero)
+     muestran las opciones debajo del precio. La elección se guarda apenas se
+     toca, incluso antes de sumar kilos: PREPSEL la recuerda y setPeso la copia
+     a la línea del pedido. Un producto = una preparación; si alguien quiere la
+     mitad fileteada y la mitad entera, lo aclara en el campo de aclaraciones y
+     el local le arma dos renglones (pasa poco y no vale complicar la pantalla). */
+  var PREPSEL = {};
+  function prepDe(nombre){ return (window.GDO && GDO.Prep) ? GDO.Prep.de(nombre) : null; }
+  function prepSel(nombre){
+    var d = prepDe(nombre); if(!d) return '';
+    return PREPSEL[nombre] || d.opciones[0];
+  }
+  function prepHTML(nombre){
+    var d = prepDe(nombre); if(!d) return '';
+    var sel = prepSel(nombre), nA = esc(nombre);
+    return '<div class="preps"><span class="lbl">'+esc(d.titulo)+'</span><div class="prepops">'+
+      d.opciones.map(function(o){
+        return '<button type="button" class="prepb'+(o===sel?' on':'')+'" data-prep-n="'+nA+'" data-prep-o="'+esc(o)+'">'+esc(o)+'</button>';
+      }).join('')+'</div></div>';
+  }
+  function setPrep(nombre, opcion){
+    PREPSEL[nombre] = opcion;
+    var it = CART[pkey(nombre)];
+    if(it){ it.prep = opcion; sync(); drawCart(); }
+    document.querySelectorAll('[data-prep-n="'+cssEsc(nombre)+'"]').forEach(function(b){
+      b.classList.toggle('on', b.dataset.prepO === opcion);
+    });
+  }
+  // Escapa comillas para poder usar el nombre dentro de un selector CSS.
+  function cssEsc(s){ return String(s).replace(/"/g,'\\"'); }
+
   function setPeso(nombre, tiers, delta){
-    var k=pkey(nombre), it=CART[k]||{tipo:'peso',nombre:nombre,tiers:tiers,kg:0};
+    var k=pkey(nombre), it=CART[k]||{tipo:'peso',nombre:nombre,tiers:tiers,kg:0,prep:prepSel(nombre),nota:''};
     var min=minKgDe(nombre), nv=it.kg+delta;
     if(nv>0 && nv<min) nv=(delta<0?0:min);   // al subir salta al mínimo; al bajar, a 0
     it.kg=Math.max(0,nv); it.tiers=tiers;
+    if(!it.prep) it.prep=prepSel(nombre);
     if(it.kg===0) delete CART[k]; else CART[k]=it;
     sync(); drawCart();
   }
@@ -334,8 +387,10 @@ window.GDO = window.GDO || {};
   function registrarPedidoEnvio(d){
     var items=[];
     for(var k in CART){ var it=CART[k];
-      if(it.tipo==='peso') items.push({ producto: it.nombre, cantidad: it.kg, unidad:'kg', nota:'' });
-      else items.push({ producto: it.nombre+' ('+it.variedad+')', cantidad: it.cant, unidad:'u', nota:'' });
+      // `preparacion` es el corte elegido (dato ELEGIBLE: la comanda lo suma) y
+      // `nota` la aclaración libre de ese producto. Van separados a propósito.
+      if(it.tipo==='peso') items.push({ producto: it.nombre, cantidad: it.kg, unidad:'kg', preparacion: it.prep||'', nota: (it.nota||'').trim() });
+      else items.push({ producto: it.nombre+' ('+it.variedad+')', cantidad: it.cant, unidad:'unidad', preparacion: it.prep||'', nota: (it.nota||'').trim() });
     }
     if(!items.length) return;
     // Coordenadas de la dirección elegida en el autocompletado (si no la editó después)
@@ -495,6 +550,9 @@ window.GDO = window.GDO || {};
           L.push('*'+i+') '+it.nombre+' ('+it.variedad+')*');
           L.push('    '+it.cant+' un × '+money(it.precio)+' = *'+money(lineTotal(it))+'*');
         }
+        // Cómo lo quiere cortado y cualquier aclaración de ese producto.
+        if(it.prep) L.push('    ✂️ '+it.prep);
+        if(it.nota && it.nota.trim()) L.push('    📝 _'+it.nota.trim()+'_');
         L.push('');
       }
       L.push('━━━━━━━━━━━━━━');
@@ -547,14 +605,21 @@ window.GDO = window.GDO || {};
     if(!keys.length){ body.innerHTML='<p style="text-align:center;color:#9aa1aa;padding:24px 0">Tu pedido está vacío.</p>'; }
     else body.innerHTML=keys.map(function(k){
       var it=CART[k];
+      // La preparación elegida y una aclaración libre para ESE producto ("sin
+      // piel", "cortada fina"). Las dos llegan a la comanda de producción.
+      var prep = it.prep ? '<div class="ci-prep">✂️ '+esc(it.prep)+'</div>' : '';
+      var nota = '<input class="ci-note'+(it.nota?' has':'')+'" data-nota="'+esc(k)+'" value="'+esc(it.nota||'')+'" placeholder="📝 Aclaración para este producto (opcional)" maxlength="120"/>';
+      var fila;
       if(it.tipo==='peso'){
-        return '<div class="ci"><div class="cinfo"><b>'+esc(it.nombre)+'</b><span>'+it.kg+' kg · '+money(perkg(it.tiers,it.kg))+' /kg</span></div>'+
+        fila='<div class="ci"><div class="cinfo"><b>'+esc(it.nombre)+'</b><span>'+it.kg+' kg · '+money(perkg(it.tiers,it.kg))+' /kg</span>'+prep+'</div>'+
           '<div class="stp"><button data-pdec="'+esc(it.nombre)+'">−</button><input value="'+it.kg+' kg" readonly style="width:56px"><button data-pinc="'+esc(it.nombre)+'">+</button></div>'+
           '<div class="cprice">'+money(lineTotal(it))+'</div><button class="rm" data-rm="'+esc(k)+'">🗑</button></div>';
+      } else {
+        fila='<div class="ci"><div class="cinfo"><b>'+esc(it.nombre)+'</b><span>'+esc(it.variedad)+' · '+money(it.precio)+' c/u</span>'+prep+'</div>'+
+          '<div class="stp"><button data-cdec="'+esc(k)+'">−</button><input value="'+it.cant+'" readonly style="width:40px"><button data-cinc="'+esc(k)+'">+</button></div>'+
+          '<div class="cprice">'+money(lineTotal(it))+'</div><button class="rm" data-rm="'+esc(k)+'">🗑</button></div>';
       }
-      return '<div class="ci"><div class="cinfo"><b>'+esc(it.nombre)+'</b><span>'+esc(it.variedad)+' · '+money(it.precio)+' c/u</span></div>'+
-        '<div class="stp"><button data-cdec="'+esc(k)+'">−</button><input value="'+it.cant+'" readonly style="width:40px"><button data-cinc="'+esc(k)+'">+</button></div>'+
-        '<div class="cprice">'+money(lineTotal(it))+'</div><button class="rm" data-rm="'+esc(k)+'">🗑</button></div>';
+      return '<div class="ci-wrap">'+fila+nota+'</div>';
     }).join('');
     var tot=cartTotal(), falta=Math.max(0,CFG.minPedido-tot);
     document.getElementById('cfTot').textContent=money(tot);
@@ -572,6 +637,15 @@ window.GDO = window.GDO || {};
     body.querySelectorAll('[data-cdec]').forEach(function(b){ var it=CART[b.dataset.cdec]; b.onclick=function(){ if(it) setVar(it.nombre,it.variedad,it.precio,-1) } });
     body.querySelectorAll('[data-cinc]').forEach(function(b){ var it=CART[b.dataset.cinc]; b.onclick=function(){ if(it) setVar(it.nombre,it.variedad,it.precio, 1) } });
     body.querySelectorAll('[data-rm]').forEach(function(b){ b.onclick=function(){ delLine(b.dataset.rm) } });
+    // La aclaración se guarda al tipear, SIN redibujar el carrito (si no, se
+    // pierde el foco y no se puede escribir).
+    body.querySelectorAll('[data-nota]').forEach(function(inp){
+      inp.oninput=function(){
+        var it=CART[inp.dataset.nota]; if(!it) return;
+        it.nota=inp.value;
+        inp.classList.toggle('has', !!inp.value);
+      };
+    });
   }
 
   // ---------- chooser ----------
@@ -669,6 +743,7 @@ window.GDO = window.GDO || {};
               return '<div class="tr'+cls+'">'+bdg+'<span class="tk">'+t.min+' kg</span><b>'+money(t.min*t.perkg)+'</b><small>'+money(t.perkg)+'/kg</small></div>';
             }).join('')+'</div>';
             body='<div class="kgsel" data-pk="'+nA+'">'+tabla+
+              prepHTML(p.nombre)+
               (minK>1?'<div class="kgmin">📦 Mínimo '+minK+' kg por pedido</div>':'')+
               '<div class="kgrow"><span class="lbl">¿Cuántos kg?</span>'+
                 '<span class="stp"><button class="pdec" data-n="'+nA+'">−</button>'+
@@ -708,6 +783,8 @@ window.GDO = window.GDO || {};
     // variedades sueltas: +/− por unidad
     acc.querySelectorAll('.sinc').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); setVar(b.dataset.n, b.dataset.v, +b.dataset.p, 1); }; });
     acc.querySelectorAll('.sdec').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); setVar(b.dataset.n, b.dataset.v, +b.dataset.p, -1); }; });
+    // cómo quiere el corte (suprema, cuarto trasero)
+    acc.querySelectorAll('.prepb').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); setPrep(b.dataset.prepN, b.dataset.prepO); }; });
     refreshSteppers();
   }
 

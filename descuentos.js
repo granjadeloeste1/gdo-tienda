@@ -5,8 +5,8 @@
    El código se busca en Firestore: colección `descuentos`, un documento por
    código. La regla deja LEER uno sabiendo su nombre, pero no listarlos. Desde
    el navegador se revisa lo que se puede revisar: que exista, que esté activo,
-   que no esté vencido, que valga para la modalidad (los "solo envío" no valen
-   para retirar) y, si es PERSONAL, que el teléfono sea el de su dueño. Si el
+   que no esté vencido, que valga para la lista (los "solo venta minorista" no
+   valen en la mayorista) y, si es PERSONAL, que el teléfono sea el de su dueño. Si el
    cliente ya lo había usado, lo detecta el panel al recibir el pedido.
 
    El descuento es un % sobre los PRODUCTOS, no sobre el envío. El pedido viaja
@@ -31,6 +31,9 @@
   function colorDe(d) {
     return (d && (d.color === 'negro' || d.color === 'naranja')) ? d.color : ((d && d.tipo === 'personal') ? 'negro' : 'naranja');
   }
+  // ¿"Solo venta minorista"? Se elige en cada código. Los primeros guardaban
+  // `soloEnvio`: esos cuentan como minoristas. Igual que el panel.
+  function soloMin(d) { return !!(d && (d.soloMinorista != null ? d.soloMinorista : d.soloEnvio)); }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   /* Busca el código en el SERVIDOR (no en la copia offline): un código pausado
@@ -51,17 +54,14 @@
     });
   }
 
-  /* ctx = { telefono, modalidad ('envio'|'retiro'), soloRetiro (la lista es
-     solo de retiro: la mayorista) }. Devuelve { ok, error }. */
+  /* ctx = { telefono, lista ('minorista'|'mayorista') }. Devuelve { ok, error }. */
   function validar(d, ctx) {
     ctx = ctx || {};
     if (!d) return { ok: false, error: 'Ese código no existe. Revisá que esté bien escrito.' };
     if (d.activo === false) return { ok: false, error: 'Ese código no está activo en este momento.' };
     if (d.vence && d.vence < hoyISO()) return { ok: false, error: 'Ese código venció el ' + fmtDia(d.vence) + '.' };
-    if (d.soloEnvio && ctx.modalidad === 'retiro') {
-      return { ok: false, error: ctx.soloRetiro
-        ? 'Este código es para pedidos con envío a domicilio: usalo en la lista minorista 🏠'
-        : 'Este código es solo para envío a domicilio. Elegí “Envío a domicilio” para usarlo.' };
+    if (soloMin(d) && ctx.lista === 'mayorista') {
+      return { ok: false, error: 'Este código es solo para venta minorista: usalo en la lista minorista 🏠' };
     }
     if (d.tipo === 'personal' && d.tel8) {
       var t = tel8(ctx.telefono);
@@ -72,7 +72,7 @@
   }
 
   /* El cuadro del código, listo para meter en el checkout.
-     opts = { box, subtotal() → número, ctx() → {telefono, modalidad, soloRetiro}, onCambio() }
+     opts = { box, subtotal() → número, ctx() → {telefono, lista}, onCambio() }
      Devuelve un control con: monto(), aplicado(), valido(), codigo(), pct(),
      resumen(subtotal), refrescar(), limpiar(). */
   function montar(opts) {
@@ -172,5 +172,5 @@
     (document.head || document.documentElement).appendChild(s);
   })();
 
-  G.Cupon = { norm: norm, buscar: buscar, validar: validar, montar: montar, tel8: tel8, colorDe: colorDe };
+  G.Cupon = { norm: norm, buscar: buscar, validar: validar, montar: montar, tel8: tel8, colorDe: colorDe, soloMin: soloMin };
 })();

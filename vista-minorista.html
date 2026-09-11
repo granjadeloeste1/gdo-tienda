@@ -194,7 +194,7 @@
 <!-- Opciones de corte por producto (suprema, cuarto trasero). Se carga ANTES del
      script de la lista porque render() las consulta al dibujar cada producto. -->
 <script src="preparaciones.js?v=1"></script>
-<script src="descuentos.js?v=2"></script>
+<script src="descuentos.js?v=3"></script>
 <!-- Firebase: registrar pedidos de ENVÍO en el panel de Rutas (mismo proyecto ruteogdo que la mayorista) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -541,7 +541,7 @@ window.GDO = window.GDO || {};
     var cup=(window.GDO&&GDO.Cupon)?GDO.Cupon.montar({
       box:document.getElementById('ckCup'),
       subtotal:function(){ return cartTotal(); },
-      ctx:function(){ return { telefono: val('ckTel'), modalidad: modo }; },
+      ctx:function(){ return { telefono: val('ckTel'), lista: 'minorista' }; },
       onCambio:function(){ recalc(); }
     }):null;
     // El teléfono decide si un código PERSONAL es de este cliente.
@@ -597,8 +597,8 @@ window.GDO = window.GDO || {};
       for(var kf in CART){ var lf=CART[kf];
         if(lf.tipo==='peso' && lf.kg>0 && lf.kg<minKgDe(lf.nombre)){ flojo=lf; break; } }
       if(flojo){ msg.textContent='“'+flojo.nombre+'” va por mínimo '+minKgDe(flojo.nombre)+' kg (sumando todos los cortes). Ahora tenés '+flojo.kg+' kg.'; return; }
-      // Un código que dejó de valer (cambió el teléfono, o pasó a retiro un código
-      // "solo envío") no se manda: el cuadro del código ya dice por qué.
+      // Un código que dejó de valer (por ejemplo, cambió el teléfono en un código
+      // personal) no se manda: el cuadro del código ya dice por qué.
       if(cup && cup.aplicado() && !cup.valido()){ msg.textContent='Revisá el código de descuento (o quitalo) para enviar el pedido.'; return; }
       var sub=cartTotal(), env=envioCosto(), des=cup?cup.monto():0;
       var addr=(val('ckDir')||'').trim(), loc=(val('ckLoc')||'').trim(), entre=(val('ckEntre')||'').trim(), pago=(val('ckPago')||''), notas=(val('ckNotas')||'').trim();
@@ -787,7 +787,7 @@ window.GDO = window.GDO || {};
         '<iframe id="mapaReparto" src="mapa-zona-oeste.html?v=4" title="Zona de reparto Oeste" loading="lazy" style="width:100%;border:0;display:block;min-height:420px"></iframe></details>'+
       '<style>.mapwrap{margin:10px 0;border:1px solid #eee;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)}.mapwrap>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#fff;background:#F58220;padding:13px 16px}.mapwrap>summary::-webkit-details-marker{display:none}.mapwrap .mapchev{margin-left:auto;transition:transform .2s}.mapwrap[open] .mapchev{transform:rotate(180deg)}</style>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+
-      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v1.6<br>Todos los derechos reservados</p>';
+      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v1.7<br>Todos los derechos reservados</p>';
     render(cats);
     // Ajusta la altura del mapa (iframe mismo-origen) a su contenido, y al abrir/cerrar el desplegable.
     (function(){ var det=$('#mapaDet'), f=$('#mapaReparto'); if(!f) return;

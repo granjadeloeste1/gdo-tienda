@@ -281,6 +281,7 @@ td.l{color:#3a4048}
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="stylesheet" href="promos.css?v=3">
 <script src="preparaciones.js?v=1"></script>
+<script src="descuentos.js?v=1"></script>
 <script src="promos.js?v=3" defer></script>
 </head>
 <body>
@@ -358,7 +359,7 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v1.8<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v1.9<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -832,8 +833,17 @@ function renderCart(){
   });
   list.innerHTML=h;
   sum.style.display="flex"; form.style.display="block";
-  document.getElementById("grandTotal").textContent=$n(cartTotal());
+  pintarGrandTotal();
   restoreForm();
+}
+/* Total del pedido dentro de la hoja. Con un código de descuento aplicado se
+   muestra tachado el total de lista y al lado lo que se cobra. */
+function pintarGrandTotal(){
+  var g=document.getElementById("grandTotal"); if(!g) return;
+  var cup=(window.GDO&&GDO.cupMay)||null;
+  if(cup) cup.refrescar();
+  var sub=cartTotal(), des=cup?cup.monto():0;
+  g.innerHTML = des ? '<s style="opacity:.5;font-size:.78em;margin-right:6px">'+$n(sub)+'</s>'+$n(sub-des) : $n(sub);
 }
 function openCart(){ renderCart(); document.getElementById("ovl").classList.add("show"); document.body.style.overflow="hidden"; }
 function closeCart(){ document.getElementById("ovl").classList.remove("show"); document.body.style.overflow=""; render(); }
@@ -999,6 +1009,14 @@ function sendWhatsApp(){
     if(primerErr && primerErr.scrollIntoView) primerErr.scrollIntoView({behavior:"smooth",block:"center"});
     return;
   }
+  // Un código de descuento que dejó de valer (cambió el teléfono, por ejemplo)
+  // no se manda: el cuadro del código ya dice por qué, lo llevamos hasta ahí.
+  var cup=(window.GDO&&GDO.cupMay)||null;
+  if(cup && cup.aplicado() && !cup.valido()){
+    var cb=document.getElementById("cupBox");
+    if(cb && cb.scrollIntoView) cb.scrollIntoView({behavior:"smooth",block:"center"});
+    return;
+  }
   var pay=val("cPay"), notes=val("cNotes").trim();
   var mapsLink="https://www.google.com/maps/dir/?api=1&destination=Acu%C3%B1a%201334%2C%20Villa%20Tesei%2C%20Buenos%20Aires";
   var L=[];
@@ -1044,7 +1062,12 @@ function sendWhatsApp(){
     L.push("");
   });
   L.push("━━━━━━━━━━━━━━");
-  L.push("💰 *TOTAL ESTIMADO: "+$n(cartTotal())+"*");
+  var subT=cartTotal(), desT=cup?cup.monto():0;
+  if(desT){
+    L.push("• *Subtotal:* "+$n(subT));
+    L.push("• 🎟️ *Descuento "+cup.codigo()+" ("+cup.pct()+"%):* −"+$n(desT));
+  }
+  L.push("💰 *TOTAL ESTIMADO: "+$n(subT-desT)+"*");
   L.push("━━━━━━━━━━━━━━");
   L.push("");
   L.push("_El pedido será confirmado por un miembro del equipo en horario comercial para coordinar el retiro en sucursal._");
@@ -1055,6 +1078,7 @@ function sendWhatsApp(){
 /* Al finalizar el envío: cierra el pedido en la web, vacía el carrito y avisa
    que ya está listo (se sigue enviando desde WhatsApp). */
 function pedidoEnviado(){
+  try{ if(window.GDO&&GDO.cupMay) GDO.cupMay.limpiar(); }catch(e){}
   try{ cart=[]; persistCart(); renderCart(); renderCartBar(); }catch(e){}
   try{ closeCart(); }catch(e){}
   var prev=document.getElementById("okPed"); if(prev) prev.remove();
@@ -1139,6 +1163,7 @@ function pedidoEnviado(){
           <label>Notas / aclaraciones</label>
           <textarea id="cNotes" placeholder="Horario de entrega, retiro, comentarios..." oninput="saveForm()"></textarea>
         </div>
+        <div id="cupBox"></div>
         <div class="note">El pedido <b>no es una compra cerrada</b>: será confirmado por un miembro del equipo en horario comercial (Lun&#8209;Sáb 6:00 a 13:30) para coordinar el <b>retiro en sucursal</b>. Los precios pueden estar sujetos a modificaciones.</div>
         <button class="send" id="sendBtn" onclick="sendWhatsApp()">
           <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
@@ -1152,6 +1177,24 @@ function pedidoEnviado(){
     </div>
   </div>
 </div>
+
+<script>
+/* Código de descuento (descuentos.js). La mayorista es solo RETIRO: los códigos
+   "solo envío a domicilio" no valen acá, y el cuadro avisa que son para la
+   lista minorista. Va después del markup del carrito porque usa #cupBox. */
+(function(){
+  if(!(window.GDO && GDO.Cupon)) return;
+  GDO.cupMay = GDO.Cupon.montar({
+    box: document.getElementById("cupBox"),
+    subtotal: function(){ return cartTotal(); },
+    ctx: function(){ return { telefono: val("cTel"), modalidad: "retiro", soloRetiro: true }; },
+    onCambio: function(){ pintarGrandTotal(); }
+  });
+  // El teléfono decide si un código PERSONAL es de este cliente.
+  var t=document.getElementById("cTel");
+  if(t) t.addEventListener("input", function(){ pintarGrandTotal(); });
+})();
+</script>
 
 <!-- ====== Integracion con la app de ruteo GDO ======
    Cada pedido enviado por WhatsApp se registra tambien en Firestore (o en la
@@ -1871,6 +1914,12 @@ window.GDO = window.GDO || {};
     // estimado como referencia (totalEstimado), nunca 'puntos'.
     var socioUid = (window.GDO && GDO.FB && GDO.FB.esSocio && GDO.FB.uid) ? GDO.FB.uid : null;
     var totalEst = (typeof cartTotal === 'function') ? Math.round(cartTotal()) : 0;
+    // Código de descuento válido: el total pasa a ser lo que se cobra y el pedido
+    // lleva qué se descontó. Las reglas de Firestore revisan que el código exista
+    // y que el % sea el real (el navegador no puede inventarse otro).
+    var cupR = (window.GDO && GDO.cupMay && GDO.cupMay.valido()) ? GDO.cupMay : null;
+    var descuento = cupR ? cupR.resumen(totalEst) : null;
+    if (descuento) totalEst = totalEst - descuento.monto;
     // MODALIDAD: la lista mayorista es SIEMPRE retiro en el local. Va marcado
     // como tal para que la app de reparto NO lo meta en el armado de rutas (no
     // hay nada que repartir) y lo muestre en el tablero con su cartel de retiro.
@@ -1890,7 +1939,7 @@ window.GDO = window.GDO || {};
       especificaciones: esp.join(' · '),
       formaPago: pay || '',
       prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
-      clienteUid: socioUid, totalEstimado: totalEst,
+      clienteUid: socioUid, totalEstimado: totalEst, descuento: descuento,
       // `creado`: fecha de alta del pedido. Sin esto, un pedido con el día de
       // retiro "a coordinar" quedaba sin NINGUNA fecha y el CRM no lo podía
       // contar como compra (no sabía cuándo fue).
@@ -1987,6 +2036,12 @@ window.GDO = window.GDO || {};
       // También exigimos el día y el horario de retiro: si falta alguno, _send
       // muestra el error y NO queremos registrar el pedido (está incompleto).
       var valido=window.cart && cart.length && nombre && tel && window.diaRetiro && window.horaRetiro;
+      // Si _send va a frenar el envío (un producto por debajo de su mínimo, o un
+      // código de descuento que no vale), NO hay que registrar el pedido: si no,
+      // quedaba cargado en el panel un pedido que el cliente nunca mandó, y al
+      // corregirlo y reenviarlo aparecía dos veces.
+      if(valido && cart.some(function(l){ return l.min && l.qty>0 && l.qty<l.min; })) valido=false;
+      if(valido && window.GDO && GDO.cupMay && GDO.cupMay.aplicado() && !GDO.cupMay.valido()) valido=false;
       if(valido){
         if(_enviando) return;            // ya se está enviando: ignorar el 2º click
         _enviando=true;

@@ -194,6 +194,7 @@
 <!-- Opciones de corte por producto (suprema, cuarto trasero). Se carga ANTES del
      script de la lista porque render() las consulta al dibujar cada producto. -->
 <script src="preparaciones.js?v=1"></script>
+<script src="descuentos.js?v=1"></script>
 <!-- Firebase: registrar pedidos de ENVÍO en el panel de Rutas (mismo proyecto ruteogdo que la mayorista) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -458,14 +459,19 @@ window.GDO = window.GDO || {};
     // FECHA real del próximo día elegido (24 hs de anticipación, nunca hoy).
     var diaIso=d.diaIso||isoFecha(proxFechaDia(d.dia));
     var diaTxt=d.dia+(d.diaFecha?' '+d.diaFecha:'');
-    var esp=['MINORISTA','Zona: '+d.zona,'Día de entrega: '+diaTxt,'Envío: '+(d.env===0?'sin cargo':money(d.env)),'TOTAL a cobrar: '+money(d.sub+d.env)];
+    // Código de descuento (si trae): va en la aclaración del pedido y el total
+    // de productos pasa a ser lo que se cobra. El panel revisa que valga.
+    var des=d.desc?d.desc.monto:0;
+    var esp=['MINORISTA','Zona: '+d.zona,'Día de entrega: '+diaTxt,'Envío: '+(d.env===0?'sin cargo':money(d.env))];
+    if(d.desc) esp.push('Descuento '+d.desc.codigo+' ('+d.desc.pct+'%): −'+money(des));
+    esp.push('TOTAL a cobrar: '+money(d.sub-des+d.env));
     if(d.notas) esp.push('Notas: '+d.notas);
     var pedido={
       id:nid(), origen:'tienda', lista:'minorista', cliente:d.nom, telefono:d.tel,
       direccion:d.addr, localidad:d.loc||'', entrecalles:d.entre||'', lat:lat, lng:lng,
       items:items, fechaEntrega:diaIso, especificaciones:esp.join(' · '),
       formaPago:d.pago||'', prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
-      clienteUid:null, totalEstimado: Math.round(d.sub),
+      clienteUid:null, totalEstimado: Math.round(d.sub-des), descuento: d.desc||null,
       zona:d.zona, diaEntrega:d.dia, envio:Math.round(d.env),
       ventana:'', historia:[], ts:Date.now()
     };
@@ -517,9 +523,11 @@ window.GDO = window.GDO || {};
         '</div>'+
         '<label class="fl">Forma de pago</label><select id="ckPago" class="fin">'+CFG.formasPago.map(function(f){return '<option>'+esc(f)+'</option>';}).join('')+'</select>'+
         '<label class="fl">Notas / aclaraciones</label><textarea id="ckNotas" class="fin" rows="2" placeholder="Horario, comentarios…"></textarea>'+
+        '<div id="ckCup"></div>'+
       '</div>'+
       '<div class="cfoot">'+
         '<div class="ckline"><span>Productos</span><span id="ckSub"></span></div>'+
+        '<div class="ckline" id="ckDescL" style="display:none;color:#1e8449;font-weight:800"><span>🎟️ Descuento</span><span id="ckDesc"></span></div>'+
         '<div class="ckline" id="ckEnvL"><span>Envío</span><span id="ckEnv"></span></div>'+
         '<div class="tot"><span>Total</span><span id="ckTot"></span></div>'+
         '<div class="minwarn" id="ckMsg"></div>'+
@@ -527,6 +535,17 @@ window.GDO = window.GDO || {};
       '</div></div>';
     document.body.appendChild(ov);
     ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
+    // Código de descuento (descuentos.js). Se descuenta de los PRODUCTOS, no del
+    // envío. El mínimo de compra y el envío gratis se miden ANTES del descuento:
+    // usar un código nunca te hace perder el envío gratis.
+    var cup=(window.GDO&&GDO.Cupon)?GDO.Cupon.montar({
+      box:document.getElementById('ckCup'),
+      subtotal:function(){ return cartTotal(); },
+      ctx:function(){ return { telefono: val('ckTel'), modalidad: modo }; },
+      onCambio:function(){ recalc(); }
+    }):null;
+    // El teléfono decide si un código PERSONAL es de este cliente.
+    document.getElementById('ckTel').addEventListener('input', function(){ recalc(); });
     document.getElementById('ckx').onclick=function(){ ov.remove(); };
     // Autocompletado de dirección (mismo motor Google/Georef que la mayorista)
     geoSel=null;
@@ -540,12 +559,15 @@ window.GDO = window.GDO || {};
     }catch(e){}
     function envioCosto(){ if(modo!=='envio'||zona==null) return 0; if(CFG.envioGratis && cartTotal()>=CFG.envioGratisDesde) return 0; return CFG.zonas[zona].costo||0; }
     function recalc(){
-      var sub=cartTotal(), env=envioCosto();
+      if(cup) cup.refrescar();
+      var sub=cartTotal(), env=envioCosto(), des=cup?cup.monto():0;
       document.getElementById('ckSub').textContent=money(sub);
+      var dl=document.getElementById('ckDescL');
+      if(dl){ dl.style.display=des?'flex':'none'; document.getElementById('ckDesc').textContent='− '+money(des); }
       var envL=document.getElementById('ckEnvL');
       if(modo==='envio'){ envL.style.display='flex'; document.getElementById('ckEnv').textContent=(zona==null?'—':(env===0?'sin cargo':money(env))); }
       else envL.style.display='none';
-      document.getElementById('ckTot').textContent=money(sub+env);
+      document.getElementById('ckTot').textContent=money(sub-des+env);
     }
     ov.querySelectorAll('[data-mod]').forEach(function(b){ b.onclick=function(){ modo=b.dataset.mod; ov.querySelectorAll('[data-mod]').forEach(function(x){x.classList.toggle('on',x===b)}); document.getElementById('ckEnvio').style.display=modo==='envio'?'block':'none'; document.getElementById('ckRetiro').style.display=modo==='retiro'?'block':'none'; document.getElementById('ckDom').style.display=modo==='envio'?'block':'none'; recalc(); }; });
     document.getElementById('ckZona').onchange=function(){
@@ -575,7 +597,10 @@ window.GDO = window.GDO || {};
       for(var kf in CART){ var lf=CART[kf];
         if(lf.tipo==='peso' && lf.kg>0 && lf.kg<minKgDe(lf.nombre)){ flojo=lf; break; } }
       if(flojo){ msg.textContent='“'+flojo.nombre+'” va por mínimo '+minKgDe(flojo.nombre)+' kg (sumando todos los cortes). Ahora tenés '+flojo.kg+' kg.'; return; }
-      var sub=cartTotal(), env=envioCosto();
+      // Un código que dejó de valer (cambió el teléfono, o pasó a retiro un código
+      // "solo envío") no se manda: el cuadro del código ya dice por qué.
+      if(cup && cup.aplicado() && !cup.valido()){ msg.textContent='Revisá el código de descuento (o quitalo) para enviar el pedido.'; return; }
+      var sub=cartTotal(), env=envioCosto(), des=cup?cup.monto():0;
       var addr=(val('ckDir')||'').trim(), loc=(val('ckLoc')||'').trim(), entre=(val('ckEntre')||'').trim(), pago=(val('ckPago')||''), notas=(val('ckNotas')||'').trim();
       var L=[];
       L.push('🛒 *NUEVO PEDIDO MINORISTA*');
@@ -622,8 +647,9 @@ window.GDO = window.GDO || {};
       }
       L.push('━━━━━━━━━━━━━━');
       L.push('• *Subtotal:* '+money(sub));
+      if(des) L.push('• 🎟️ *Descuento '+cup.codigo()+' ('+cup.pct()+'%):* −'+money(des));
       if(modo==='envio') L.push('• *Envío:* '+(env===0?'sin cargo':money(env)));
-      L.push('💰 *TOTAL: '+money(sub+env)+'*');
+      L.push('💰 *TOTAL: '+money(sub-des+env)+'*');
       L.push('━━━━━━━━━━━━━━');
       L.push('');
       L.push('_El pedido será confirmado por un miembro del equipo en horario comercial para acordar la entrega o retiro según corresponda._');
@@ -633,7 +659,7 @@ window.GDO = window.GDO || {};
         // location.href (SIEMPRE funciona; window.open lo bloquea el celular tras un await).
         try{ ov.innerHTML='<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px"><div style="background:#fff;border-radius:16px;padding:30px 22px;text-align:center;max-width:340px;box-shadow:0 10px 30px rgba(0,0,0,.25)"><div style="font-size:40px">🐔</div><div style="font-weight:800;font-size:18px;margin:10px 0 4px;color:#222">Registrando tu pedido…</div><div style="color:#666;font-size:14px">Te llevamos a WhatsApp para que lo envíes.</div></div></div>'; }catch(e){}
         var pedidoOk;
-        try{ pedidoOk=registrarPedidoEnvio({ nom:nom, tel:tel, addr:addr, loc:loc, entre:entre, zona:CFG.zonas[zona].nombre, dia:dia, diaFecha:diaFecha, diaIso:diaIso, pago:pago, notas:notas, sub:sub, env:env }); }catch(e){ pedidoOk=Promise.reject(e); }
+        try{ pedidoOk=registrarPedidoEnvio({ nom:nom, tel:tel, addr:addr, loc:loc, entre:entre, zona:CFG.zonas[zona].nombre, dia:dia, diaFecha:diaFecha, diaIso:diaIso, pago:pago, notas:notas, sub:sub, env:env, desc:(cup?cup.resumen(sub):null) }); }catch(e){ pedidoOk=Promise.reject(e); }
         // A WhatsApp vamos SI O SI. Antes esperabamos la promesa de Firestore, pero
         // .set() NO resuelve hasta que el servidor confirma: con red mala (o sin red)
         // queda pendiente para siempre y el cliente se trababa en "Registrando tu
@@ -761,7 +787,7 @@ window.GDO = window.GDO || {};
         '<iframe id="mapaReparto" src="mapa-zona-oeste.html?v=4" title="Zona de reparto Oeste" loading="lazy" style="width:100%;border:0;display:block;min-height:420px"></iframe></details>'+
       '<style>.mapwrap{margin:10px 0;border:1px solid #eee;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)}.mapwrap>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#fff;background:#F58220;padding:13px 16px}.mapwrap>summary::-webkit-details-marker{display:none}.mapwrap .mapchev{margin-left:auto;transition:transform .2s}.mapwrap[open] .mapchev{transform:rotate(180deg)}</style>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+
-      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v1.4<br>Todos los derechos reservados</p>';
+      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v1.5<br>Todos los derechos reservados</p>';
     render(cats);
     // Ajusta la altura del mapa (iframe mismo-origen) a su contenido, y al abrir/cerrar el desplegable.
     (function(){ var det=$('#mapaDet'), f=$('#mapaReparto'); if(!f) return;

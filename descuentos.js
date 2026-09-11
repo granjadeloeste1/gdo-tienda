@@ -26,6 +26,11 @@
   function hoyISO() { var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function fmtDia(s) { if (!s) return ''; var p = String(s).split('-'); return p[2] + '/' + p[1]; }
   function peso(n) { return '$ ' + Math.round(Number(n) || 0).toLocaleString('es-AR'); }
+  // Color del voucher, el que eligió el negocio al crear el código. Los viejos
+  // (sin el campo) como antes: campaña naranja, personal negro. Igual que el panel.
+  function colorDe(d) {
+    return (d && (d.color === 'negro' || d.color === 'naranja')) ? d.color : ((d && d.tipo === 'personal') ? 'negro' : 'naranja');
+  }
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   /* Busca el código en el SERVIDOR (no en la copia offline): un código pausado
@@ -82,7 +87,7 @@
       if (!b) return;
       if (st.d) {
         var v = validar(st.d, ctx());
-        b.innerHTML = '<div class="cup-ok' + (v.ok ? '' : ' mal') + '">' +
+        b.innerHTML = '<div class="cup-ok' + (v.ok ? (colorDe(st.d) === 'negro' ? ' negro' : '') : ' mal') + '">' +
           '<div class="cup-tk"><b>' + (v.ok ? esc(st.d.pct) + '%' : '!') + '</b><span>' + (v.ok ? 'OFF' : '') + '</span></div>' +
           '<div class="cup-tx"><b>' + esc(st.d.id) + '</b><span>' +
             (v.ok ? '¡Listo! Te descontamos <b>' + peso(monto()) + '</b>' + (st.d.vence ? ' · válido hasta el ' + fmtDia(st.d.vence) : '') : esc(v.error)) +
@@ -157,6 +162,9 @@
       '.cup-tx>b{font:800 15px ui-monospace,Menlo,Consolas,monospace;letter-spacing:1.5px;color:#1e1e1e;word-break:break-all}' +
       '.cup-tx span{font-size:13px;color:#8a4a00;line-height:1.35}' +
       '.cup-x{flex:0 0 auto;background:#fff;border:1px solid #e4e6ea;border-radius:9px;padding:8px 11px;font:700 12.5px system-ui,"Segoe UI",Arial,sans-serif;color:#5b6470;cursor:pointer}' +
+      '.cup-ok.negro{border-color:#1e1e1e;background:linear-gradient(120deg,#f1f1f2,#fbfbfb)}' +
+      '.cup-ok.negro .cup-tk{background:linear-gradient(165deg,#444 0%,#161616 100%)}' +
+      '.cup-ok.negro .cup-tx span{color:#3a3a3a}' +
       '.cup-ok.mal{border-color:#d9534f;background:#fff5f5}' +
       '.cup-ok.mal .cup-tk{background:#d9534f}' +
       '.cup-ok.mal .cup-tx span{color:#d9534f;font-weight:700}' +
@@ -164,5 +172,5 @@
     (document.head || document.documentElement).appendChild(s);
   })();
 
-  G.Cupon = { norm: norm, buscar: buscar, validar: validar, montar: montar, tel8: tel8 };
+  G.Cupon = { norm: norm, buscar: buscar, validar: validar, montar: montar, tel8: tel8, colorDe: colorDe };
 })();

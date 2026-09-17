@@ -1,6 +1,21 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<!-- Meta Pixel (GDO Lista). gdoPx() nunca rompe la pagina si el pixel no carga
+     (bloqueador de anuncios, sin red). Eventos: AddToCart, InitiateCheckout, Purchase. -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1816846682683423');
+fbq('track', 'PageView');
+function gdoPx(ev, p){ try{ if(window.fbq) fbq('track', ev, p||{}); }catch(e){} }
+</script>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -359,7 +374,7 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v2.1<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v2.2<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -666,7 +681,7 @@ function rowSet(oi, val){
   else if(l){ l.qty=q; }
   // `prep`: si el producto se puede pedir cortado de varias formas, arranca en
   // la primera opción (el producto tal cual) y el cliente la cambia en el pedido.
-  else { cart.push({name:opt.name, brand:opt.brand, unit:opt.unit, tiers:opt.tiers, qty:q, main:opt.main, min:opt.min, kgPor:opt.kgPor,
+  else { gdoPx("AddToCart",{content_name:opt.name,currency:"ARS"}); cart.push({name:opt.name, brand:opt.brand, unit:opt.unit, tiers:opt.tiers, qty:q, main:opt.main, min:opt.min, kgPor:opt.kgPor,
                     prep:((window.GDO&&GDO.Prep)?GDO.Prep.porDefecto(opt.name):'')}); }
   persistCart(); updateRowSub(oi, q); renderCartBar();
 }
@@ -845,7 +860,7 @@ function pintarGrandTotal(){
   var sub=cartTotal(), des=cup?cup.monto():0;
   g.innerHTML = des ? '<s style="opacity:.5;font-size:.78em;margin-right:6px">'+$n(sub)+'</s>'+$n(sub-des) : $n(sub);
 }
-function openCart(){ renderCart(); document.getElementById("ovl").classList.add("show"); document.body.style.overflow="hidden"; }
+function openCart(){ renderCart(); if(cart.length) gdoPx("InitiateCheckout",{value:cartTotal(),currency:"ARS",num_items:cart.length}); document.getElementById("ovl").classList.add("show"); document.body.style.overflow="hidden"; }
 function closeCart(){ document.getElementById("ovl").classList.remove("show"); document.body.style.overflow=""; render(); }
 /* OJO: el markup del carrito (#ovl) está MÁS ABAJO que este <script>, así que acá
    todavía NO existe. Hasta ahora esta línea tiraba un TypeError que cortaba en seco
@@ -1072,6 +1087,7 @@ function sendWhatsApp(){
   L.push("");
   L.push("_El pedido será confirmado por un miembro del equipo en horario comercial para coordinar el retiro en sucursal._");
   var url="https://wa.me/5491135800164?text="+encodeURIComponent(L.join("\n"));
+  gdoPx("Purchase",{value:subT-desT,currency:"ARS",num_items:cart.length,content_type:"product",contents:cart.map(function(l){return {id:l.name,quantity:l.qty};})});
   window.open(url, "_blank");
   pedidoEnviado();
 }

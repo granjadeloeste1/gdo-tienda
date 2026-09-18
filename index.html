@@ -374,7 +374,7 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v2.2<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v2.3<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -423,7 +423,7 @@ var UNIT_DEFS = [
   {re:/(\bKG\b|KILOS?)/, u:"kg", pl:"kg"},
   {re:/UNIDADES?|UNIDAD/, u:"unidad", pl:"unidades"}
 ];
-function unitPlural(u){ for(var i=0;i<UNIT_DEFS.length;i++){ if(UNIT_DEFS[i].u===u) return UNIT_DEFS[i].pl; } return u; }
+function unitPlural(u){ for(var i=0;i<UNIT_DEFS.length;i++){ if(UNIT_DEFS[i].u===u) return UNIT_DEFS[i].pl; } return /[aeiou]$/i.test(u) ? u+"s" : u+"es"; }
 function unitLabel(u, qty){ return (qty===1) ? u : unitPlural(u); }
 function unitClass(u){ return "u-"+String(u).toLowerCase().replace(/ó/g,"o").replace(/[^a-z]/g,""); }
 function parseHeader(h){
@@ -438,6 +438,19 @@ function parseHeader(h){
   var nm = before.match(/(\d+)\s*$/);
   var min = nm ? parseInt(nm[1],10) : 1;
   return {min:min, unit:best.u};
+}
+/* Unidad NUEVA que no está en UNIT_DEFS: la palabra que la planilla escribe en el
+   encabezado ("X 5 TARTAS" → 5 tartas, "X TARTA" → 1 tarta). Sin esto, una categoría
+   nueva con una unidad que la lista no conocía se veía pero no se podía PEDIR.
+   COPIA en gdo-reparto/js/lista.js (unidadLibre): si se cambia una, cambiar la otra. */
+function unidadLibre(h){
+  var s = String(h == null ? "" : h).toUpperCase()
+    .replace(/\b(PRECIOS?|POR|MINIMO|MÍNIMO|APROX|C\/U)\b/g, " ");
+  var m = s.match(/(\d+)?\s*([A-ZÁÉÍÓÚÑ]{3,})/);
+  if (!m) return null;
+  var w = m[2].toLowerCase();
+  if (w.length > 4) w = w.replace(/([aeiou])s$/, "$1");       // tartas → tarta, docenas → docena
+  return {min: m[1] ? parseInt(m[1], 10) : 1, unit: w};
 }
 // Peso de la pieza declarado en el encabezado de la planilla: el número pegado a
 // "KG" esté como esté escrito ("3 KG C/U APROX", "POR PIEZA DE 3KG APROX"). Es lo
@@ -484,13 +497,17 @@ function render() {
       // así igual se puede PEDIR (la unidad no está en cada columna, sino en el título).
       var secPc = parseHeader(sec.title || "");
       var secUnit = secPc ? secPc.unit : null;
+      // Si el título no dice la unidad, la dice la 1ª columna ("Precio por tarta").
+      if (!secUnit) { var h0 = parseHeader((tbl.headers || [])[0] || "") || unidadLibre((tbl.headers || [])[0]); secUnit = h0 ? h0.unit : null; }
       (tbl.headers || []).forEach(function(h, i) {
         if (i === 0) return;
         if (!h || !String(h).trim()) return;
         var pc = parseHeader(h);
         if (pc) { cols.push({idx:i, min:pc.min, unit:pc.unit, pesoKg:pesoKgDe(h)}); return; }
+        var mm = String(h).match(/(\d+)/);
+        var ul = unidadLibre(h);
+        if (ul) { cols.push({idx:i, min:ul.min, unit:ul.unit, pesoKg:pesoKgDe(h)}); return; }
         if (secUnit) {                              // "X 30" sin unidad → unidad del título + el número como tier
-          var mm = String(h).match(/(\d+)/);
           cols.push({idx:i, min: mm ? parseInt(mm[1], 10) : 1, unit: secUnit, pesoKg:pesoKgDe(h)});
         }
       });

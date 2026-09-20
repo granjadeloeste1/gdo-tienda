@@ -443,7 +443,11 @@ window.GDO = window.GDO || {};
   var UNI_VAR={caja:'caja',cajas:'caja',cajon:'cajón','cajón':'cajón',cajones:'cajón',paquete:'paquete',paquetes:'paquete',
     maple:'maple',maples:'maple',pieza:'pieza',piezas:'pieza',bandeja:'bandeja',bandejas:'bandeja',bolsa:'bolsa',bolsas:'bolsa'};
   function unidadVar(v){ var m=/^\s*(?:\d+(?:[.,]\d+)?\s*)?([a-zá-úñ]+)/i.exec(String(v||'')); return (m && UNI_VAR[m[1].toLowerCase()]) || 'unidad'; }
-  function registrarPedidoEnvio(d){
+  // Registra el pedido minorista en el panel de reparto. Sirve para las DOS
+  // modalidades (d.modo: 'envio' o 'retiro'): hasta 2026-09 el retiro en
+  // sucursal solo se mandaba por WhatsApp y NO quedaba registrado en ningún
+  // lado, así que no aparecía en Pedidos ni en el CRM ni en Métricas.
+  function registrarPedidoMin(d){
     var items=[];
     for(var k in CART){ var it=CART[k];
       /* `preparacion` es el corte (dato ELEGIBLE: la comanda lo suma) y `nota` la
@@ -472,24 +476,37 @@ window.GDO = window.GDO || {};
     if(geoSel && geoSel.lat!=null && geoSel.direccion && d.addr && geoSel.direccion.toLowerCase()===d.addr.toLowerCase()){
       lat=geoSel.lat; lng=(geoSel.lng!=null?geoSel.lng:(geoSel.lon!=null?geoSel.lon:null));
     }
-    // FECHA real del próximo día elegido (24 hs de anticipación, nunca hoy).
+    var esRet = d.modo === 'retiro';
+    // FECHA real del día elegido. En un ENVÍO, el próximo día de reparto de la
+    // zona (24 hs de anticipación, nunca hoy). En un RETIRO, el día que el
+    // cliente escribió que pasa a buscarlo: es texto libre y opcional, así que
+    // si no se entiende, el pedido queda SIN fecha y el panel lo deja al fondo
+    // hasta que alguien se la carga a mano.
     var diaIso=d.diaIso||isoFecha(proxFechaDia(d.dia));
-    var diaTxt=d.dia+(d.diaFecha?' '+d.diaFecha:'');
+    var diaTxt=(d.dia||'')+(d.diaFecha?' '+d.diaFecha:'');
     // Código de descuento (si trae): va en la aclaración del pedido y el total
     // de productos pasa a ser lo que se cobra. El panel revisa que valga.
     var des=d.desc?d.desc.monto:0;
-    var esp=['MINORISTA','Zona: '+d.zona,'Día de entrega: '+diaTxt,'Envío: '+(d.env===0?'sin cargo':money(d.env))];
+    var env=esRet?0:d.env;
+    var esp=esRet
+      ? ['MINORISTA','Retiro en sucursal: '+CFG.sucursal].concat(d.dia?['Día de retiro: '+d.dia]:[])
+      : ['MINORISTA','Zona: '+d.zona,'Día de entrega: '+diaTxt,'Envío: '+(env===0?'sin cargo':money(env))];
     if(d.desc) esp.push('Descuento '+d.desc.codigo+' ('+d.desc.pct+'%): −'+money(des));
-    esp.push('TOTAL a cobrar: '+money(d.sub-des+d.env));
+    esp.push('TOTAL a cobrar: '+money(d.sub-des+env));
     if(d.notas) esp.push('Notas: '+d.notas);
     var pedido={
       id:nid(), origen:'tienda', lista:'minorista', cliente:d.nom, telefono:d.tel,
-      direccion:d.addr, localidad:d.loc||'', entrecalles:d.entre||'', lat:lat, lng:lng,
+      // El retiro NO entra al armado de rutas: se cierra en el tablero cuando el
+      // cliente pasa a buscarlo, igual que un retiro de la lista mayorista.
+      modalidad: esRet?'retiro':'envio',
+      direccion:d.addr||'', localidad:d.loc||'', entrecalles:d.entre||'', lat:lat, lng:lng,
       items:items, fechaEntrega:diaIso, especificaciones:esp.join(' · '),
       formaPago:d.pago||'', prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
       clienteUid:null, totalEstimado: Math.round(d.sub-des), descuento: d.desc||null,
-      zona:d.zona, diaEntrega:d.dia, envio:Math.round(d.env),
-      ventana:'', historia:[], ts:Date.now()
+      zona:d.zona||'', diaEntrega:d.dia||'', envio:Math.round(env),
+      // `creado`: fecha de alta del pedido. Un retiro con el día "a coordinar"
+      // queda sin fechaEntrega, y sin esto el CRM no sabe cuándo fue la compra.
+      ventana:'', historia:[], creado:Date.now(), ts:Date.now()
     };
     try{ var inb=JSON.parse(localStorage.getItem(MIN_INBOX)||'[]'); if(!Array.isArray(inb)) inb=[]; inb.push(pedido); localStorage.setItem(MIN_INBOX, JSON.stringify(inb)); }catch(e){}
     function drop(){ try{ var inb=JSON.parse(localStorage.getItem(MIN_INBOX)||'[]'); if(Array.isArray(inb)) localStorage.setItem(MIN_INBOX, JSON.stringify(inb.filter(function(x){return x&&x.id!==pedido.id;}))); }catch(e){} }
@@ -618,6 +635,7 @@ window.GDO = window.GDO || {};
       if(cup && cup.aplicado() && !cup.valido()){ msg.textContent='Revisá el código de descuento (o quitalo) para enviar el pedido.'; return; }
       var sub=cartTotal(), env=envioCosto(), des=cup?cup.monto():0;
       var addr=(val('ckDir')||'').trim(), loc=(val('ckLoc')||'').trim(), entre=(val('ckEntre')||'').trim(), pago=(val('ckPago')||''), notas=(val('ckNotas')||'').trim();
+      var diaRet=(val('ckDiaR')||'').trim();
       var L=[];
       L.push('🛒 *NUEVO PEDIDO MINORISTA*');
       L.push('*Granja del Oeste*');
@@ -637,7 +655,7 @@ window.GDO = window.GDO || {};
       } else {
         L.push('• *Modalidad:* Retiro en sucursal');
         L.push('• *Retiro en:* '+CFG.sucursal);
-        var dr=(val('ckDiaR')||'').trim(); if(dr) L.push('• *Día de retiro:* '+dr);
+        if(diaRet) L.push('• *Día de retiro:* '+diaRet);
         L.push('• *Cómo llegar:* '+mapsUrl());
       }
       L.push('• *Forma de pago:* '+pago);
@@ -671,12 +689,20 @@ window.GDO = window.GDO || {};
       L.push('_El pedido será confirmado por un miembro del equipo en horario comercial para acordar la entrega o retiro según corresponda._');
       var waURL='https://wa.me/5491135800164?text='+encodeURIComponent(L.join('\n'));
       gdoPx('Purchase',{value:sub-des+env,currency:'ARS',num_items:cartCount(),content_type:'product'});
+      // El pedido se REGISTRA en el panel en las DOS modalidades.
+      var datosPed = (modo==='envio')
+        ? { modo:'envio', nom:nom, tel:tel, addr:addr, loc:loc, entre:entre,
+            zona:CFG.zonas[zona].nombre, dia:dia, diaFecha:diaFecha, diaIso:diaIso,
+            pago:pago, notas:notas, sub:sub, env:env, desc:(cup?cup.resumen(sub):null) }
+        : { modo:'retiro', nom:nom, tel:tel, addr:'', loc:'', entre:'',
+            zona:'', dia:diaRet, diaFecha:'', diaIso:'',
+            pago:pago, notas:notas, sub:sub, env:0, desc:(cup?cup.resumen(sub):null) };
+      var pedidoOk;
+      try{ pedidoOk=registrarPedidoMin(datosPed); }catch(e){ pedidoOk=Promise.reject(e); }
       if(modo==='envio'){
         // Guardamos el pedido en la app y RECIÉN AHÍ vamos a WhatsApp. Navegamos con
         // location.href (SIEMPRE funciona; window.open lo bloquea el celular tras un await).
         try{ ov.innerHTML='<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px"><div style="background:#fff;border-radius:16px;padding:30px 22px;text-align:center;max-width:340px;box-shadow:0 10px 30px rgba(0,0,0,.25)"><div style="font-size:40px">🐔</div><div style="font-weight:800;font-size:18px;margin:10px 0 4px;color:#222">Registrando tu pedido…</div><div style="color:#666;font-size:14px">Te llevamos a WhatsApp para que lo envíes.</div></div></div>'; }catch(e){}
-        var pedidoOk;
-        try{ pedidoOk=registrarPedidoEnvio({ nom:nom, tel:tel, addr:addr, loc:loc, entre:entre, zona:CFG.zonas[zona].nombre, dia:dia, diaFecha:diaFecha, diaIso:diaIso, pago:pago, notas:notas, sub:sub, env:env, desc:(cup?cup.resumen(sub):null) }); }catch(e){ pedidoOk=Promise.reject(e); }
         // A WhatsApp vamos SI O SI. Antes esperabamos la promesa de Firestore, pero
         // .set() NO resuelve hasta que el servidor confirma: con red mala (o sin red)
         // queda pendiente para siempre y el cliente se trababa en "Registrando tu
@@ -687,6 +713,9 @@ window.GDO = window.GDO || {};
         setTimeout(irWA, 2500);
         (pedidoOk||Promise.resolve()).catch(function(){}).then(irWA);
       } else {
+        // El retiro abre WhatsApp en OTRA pestaña: esta página sigue viva, así que
+        // el guardado (con sus reintentos) termina solo en segundo plano.
+        try{ (pedidoOk||Promise.resolve()).catch(function(){}); }catch(e){}
         window.open(waURL,'_blank'); ov.remove(); pedidoEnviado();
       }
     };
@@ -804,7 +833,7 @@ window.GDO = window.GDO || {};
         '<iframe id="mapaReparto" src="mapa-zona-oeste.html?v=4" title="Zona de reparto Oeste" loading="lazy" style="width:100%;border:0;display:block;min-height:420px"></iframe></details>'+
       '<style>.mapwrap{margin:10px 0;border:1px solid #eee;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)}.mapwrap>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#fff;background:#F58220;padding:13px 16px}.mapwrap>summary::-webkit-details-marker{display:none}.mapwrap .mapchev{margin-left:auto;transition:transform .2s}.mapwrap[open] .mapchev{transform:rotate(180deg)}</style>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+
-      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v1.8<br>Todos los derechos reservados</p>';
+      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v1.9<br>Todos los derechos reservados</p>';
     render(cats);
     // Ajusta la altura del mapa (iframe mismo-origen) a su contenido, y al abrir/cerrar el desplegable.
     (function(){ var det=$('#mapaDet'), f=$('#mapaReparto'); if(!f) return;

@@ -173,6 +173,19 @@ td.l{color:#e0e0e0;font-family:inherit;font-size:12px;font-weight:400;white-spac
 .geomsg{font-size:11px;margin-top:6px;color:#999;line-height:1.4}
 .geomsg.err{color:#f87171}
 .geomsg.ok{color:#25D366}
+/* Link de vendedor: cuenta del cliente mayorista */
+#cartForm.vsc > :not(.vpre){display:none!important}
+#cartForm.venv #fgPickup,#cartForm.venv #fgDia,#cartForm.venv #fgHora{display:none!important}
+.vtabs{display:flex;gap:6px;margin-bottom:12px}
+.vtabs button{flex:1;padding:10px 8px;border-radius:10px;border:1px solid #e4e6ea;background:#fff;color:#555;font:700 13px system-ui,Segoe UI,Arial,sans-serif;cursor:pointer}
+.vtabs button.on{background:#F58220;border-color:#F58220;color:#fff}
+.vcard{border:1px solid #f3cda0;border-left:4px solid #F58220;background:#fff7ef;color:#6a5436;border-radius:10px;padding:11px 12px;margin-bottom:12px;font-size:13px;line-height:1.5}
+.vcard b{color:#111}
+.vbtn{width:100%;background:#F58220;color:#fff;border:0;border-radius:11px;padding:13px;font:800 15px system-ui,Segoe UI,Arial,sans-serif;cursor:pointer;margin:4px 0 8px}
+.vbtn:disabled{opacity:.6}
+.vlink{background:none;border:0;color:#F58220;font-weight:700;cursor:pointer;padding:4px 0;font-size:13px}
+.vmsg{font-size:12.5px;margin:4px 0 10px;line-height:1.45;color:#d9534f}
+.vmsg.ok{color:#1e8449}
 .wa{bottom:84px}
 .iabnr{display:none;background:#F58220;color:#1a0f02;font-size:12.5px;font-weight:600;padding:11px 38px 11px 14px;text-align:center;line-height:1.45;position:relative}
 .iabnr.show{display:block}
@@ -374,7 +387,7 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v2.4<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v2.5<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -430,7 +443,7 @@ if(window.VEND){
   <input class="search" id="s" type="text" placeholder="Buscar producto..." oninput="filt()">
   <button type="button" class="expand-all" id="toggleAll" onclick="toggleAllCats()">📂 Abrir todo</button>
   <div id="root"></div>
-  <div style="text-align:center;font-size:10.5px;color:#9aa1aa;padding:10px 10px 16px;opacity:.85;line-height:1.4">Propiedad de Granja del Oeste<sup style="font-size:8px">&reg;</sup> · v24</div>
+  <div style="text-align:center;font-size:10.5px;color:#9aa1aa;padding:10px 10px 16px;opacity:.85;line-height:1.4">Propiedad de Granja del Oeste<sup style="font-size:8px">&reg;</sup> · v25</div>
 </div>
 <a class="wa" href="https://wa.me/5491135800164" target="_blank">
   <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -1054,13 +1067,11 @@ var geoCoords=null;
 function cuitOk(s){ return String(s||"").replace(/\D/g,"").length===11; }
 function mailOk(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s||"").trim()); }
 function datosVendOk(marcar){
+  // Link de vendedor: tiene que haber entrado con su cuenta (los datos del negocio
+  // salen de ahí). Si no, lo llevamos al cuadro de la cuenta.
   if(!window.VEND) return true;
-  var ok=true;
-  [["fgFant", !!val("cFant").trim()], ["fgRS", !!val("cRS").trim()], ["fgCuit", cuitOk(val("cCuit"))],
-   ["fgMail", mailOk(val("cMail"))], ["fgAddr", !!val("cAddr").trim()]].forEach(function(x){
-    if(!x[1]) ok=false;
-    if(marcar){ var fg=document.getElementById(x[0]); if(fg) fg.classList.toggle("err", !x[1]); }
-  });
+  var ok = typeof window.vendCuentaOk==="function" && window.vendCuentaOk();
+  if(!ok && marcar){ var vc=document.getElementById("vendCuenta"); if(vc && vc.scrollIntoView) vc.scrollIntoView({behavior:"smooth",block:"center"}); }
   return ok;
 }
 function sendWhatsApp(){
@@ -1068,11 +1079,10 @@ function sendWhatsApp(){
   var fgN=document.getElementById("fgName"), fgT=document.getElementById("fgTel");
   if(!name){ fgN.classList.add("err"); ok=false; } else fgN.classList.remove("err");
   if(!tel){ fgT.classList.add("err"); ok=false; } else fgT.classList.remove("err");
-  if(window.VEND){
-    // Pedido de vendedor: va con ENVÍO. El día de entrega lo pone el armado de
-    // rutas, así que acá no se pide día ni horario de retiro.
-    if(!datosVendOk(true)) ok=false;
-  } else {
+  // Link de vendedor: la cuenta del cliente (sus datos salen de ahí). Si elige
+  // ENVÍO el día lo pone el armado de rutas; si elige RETIRO, como la lista común.
+  if(window.VEND && !datosVendOk(true)){ return; }
+  if(!window.VEND || window.vendMod==='retiro'){
   // Día y horario de retiro: es lo que le falta al local para saber cuándo
   // preparar el pedido. El día es obligatorio; en el horario, el que no sabe
   // todavía elige "A coordinar".
@@ -1120,11 +1130,18 @@ function sendWhatsApp(){
     L.push("• *Mail:* "+val("cMail").trim());
     L.push("• *Contacto:* "+name);
     L.push("• *Teléfono:* "+tel);
-    L.push("• *Modalidad:* Envío a domicilio");
-    var dirTxt=val("cAddr").trim(), locTxt=val("cLoc").trim(), entTxt=val("cEntre").trim();
-    L.push("• *Dirección:* "+dirTxt+(locTxt?", "+locTxt:""));
-    if(entTxt) L.push("• *Entre calles:* "+entTxt);
-    if(geoCoords && geoCoords.lat!=null) L.push("• *Ubicación:* https://www.google.com/maps?q="+geoCoords.lat+","+geoCoords.lon);
+    if(window.vendMod==='retiro'){
+      L.push("• *Modalidad:* Retiro en sucursal");
+      L.push("• *Día de retiro:* "+(diaRetiro && diaRetiro.txt ? diaRetiro.txt : "A coordinar"));
+      L.push("• *Horario:* "+(horaRetiro && horaRetiro.txt ? horaRetiro.txt : "A coordinar"));
+      L.push("• *Retiro en:* Acuña 1334, Villa Tesei");
+    } else {
+      L.push("• *Modalidad:* Envío a domicilio");
+      var dirTxt=val("cAddr").trim(), locTxt=val("cLoc").trim(), entTxt=val("cEntre").trim();
+      L.push("• *Dirección:* "+dirTxt+(locTxt?", "+locTxt:""));
+      if(entTxt) L.push("• *Entre calles:* "+entTxt);
+      if(geoCoords && geoCoords.lat!=null) L.push("• *Ubicación:* https://www.google.com/maps?q="+geoCoords.lat+","+geoCoords.lon);
+    }
     if(VEND.nombre) L.push("• *Vendedor:* "+VEND.nombre);
   } else {
   L.push("• *Nombre:* "+name);
@@ -1172,7 +1189,7 @@ function sendWhatsApp(){
   L.push("💰 *TOTAL ESTIMADO: "+$n(subT-desT)+"*");
   L.push("━━━━━━━━━━━━━━");
   L.push("");
-  L.push(window.VEND
+  L.push(window.VEND && window.vendMod!=='retiro'
     ? "_El pedido será confirmado por un miembro del equipo en horario comercial para coordinar el día de entrega._"
     : "_El pedido será confirmado por un miembro del equipo en horario comercial para coordinar el retiro en sucursal._");
   var url="https://wa.me/5491135800164?text="+encodeURIComponent(L.join("\n"));
@@ -1232,8 +1249,11 @@ function pedidoEnviado(){
       <div class="form" id="cartForm" style="display:none">
         <div id="clubNote" style="display:none;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;line-height:1.4"></div>
         <h3>Tus datos</h3>
+        <!-- Solo en el LINK DE VENDEDOR (?v=…): cuenta del cliente mayorista.
+             Para pedir hay que estar registrado (mail + contraseña + datos). -->
+        <div id="vendCuenta" class="vpre" style="display:none"></div>
         <!-- Solo en el LINK DE VENDEDOR (?v=…): datos del negocio. -->
-        <div id="vendBox" style="display:none">
+        <div id="vendBox" class="vpre" style="display:none">
           <div class="fg" id="fgFant">
             <label>Nombre de fantas&iacute;a del negocio <span class="req">*</span></label>
             <input id="cFant" type="text" placeholder="Ej: Almac&eacute;n Don Jos&eacute;" oninput="saveForm()">
@@ -1254,20 +1274,25 @@ function pedidoEnviado(){
             <input id="cMail" type="email" inputmode="email" placeholder="nombre@correo.com" oninput="saveForm()">
             <div class="ferr">Ingres&aacute; un mail v&aacute;lido</div>
           </div>
+          <div class="fg" id="fgPass">
+            <label>Contrase&ntilde;a <span class="req">*</span></label>
+            <input id="cPass" type="password" autocomplete="current-password" placeholder="M&iacute;nimo 6 caracteres">
+            <div class="ferr">M&iacute;nimo 6 caracteres</div>
+          </div>
         </div>
-        <div class="fg" id="fgName">
+        <div class="fg vpre" id="fgName">
           <label id="lblName">Nombre y apellido <span class="req">*</span></label>
           <input id="cName" type="text" placeholder="Tu nombre" oninput="saveForm()">
           <div class="ferr">Ingresá tu nombre</div>
         </div>
-        <div class="fg" id="fgTel">
+        <div class="fg vpre" id="fgTel">
           <label>Teléfono / WhatsApp <span class="req">*</span></label>
           <input id="cTel" type="tel" inputmode="tel" placeholder="11 1234-5678" oninput="saveForm()">
           <div class="ferr">Ingresá un teléfono</div>
         </div>
         <!-- Solo en el LINK DE VENDEDOR: el pedido va con envío, así que se pide
              la dirección con el localizador (el mismo de siempre). -->
-        <div id="vendDir" style="display:none">
+        <div id="vendDir" class="vpre" style="display:none">
           <div class="fg" id="fgAddr">
             <label>Direcci&oacute;n de entrega <span class="req">*</span></label>
             <input id="cAddr" type="text" autocomplete="off" placeholder="Empez&aacute; a escribir y eleg&iacute; de la lista" oninput="saveForm()">
@@ -1283,6 +1308,8 @@ function pedidoEnviado(){
             <input id="cEntre" type="text" placeholder="Calle A y Calle B" oninput="saveForm()">
           </div>
         </div>
+        <!-- Botones de la cuenta (crear / entrar / completar datos). -->
+        <div id="vendAcc" class="vpre" style="display:none"></div>
         <div class="fg" id="fgPickup">
           <div class="pickup">🏪 <b>Retiro en sucursal</b><br>Acu&#xF1;a 1334, Villa Tesei · Lun&#8209;S&#xE1;b 6:00 a 13:30 hs<br>
             <a href="https://www.google.com/maps/dir/?api=1&amp;destination=Acu%C3%B1a%201334%2C%20Villa%20Tesei%2C%20Buenos%20Aires" target="_blank" rel="noopener">&#x1F4CD; C&#xF3;mo llegar (Google Maps)</a></div>
@@ -1315,7 +1342,7 @@ function pedidoEnviado(){
           <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
           Enviar pedido por WhatsApp
         </button>
-        <div class="acts">
+        <div class="acts vpre">
           <button onclick="closeCart()">Seguir comprando</button>
           <button class="clear" onclick="clearCart()">Vaciar pedido</button>
         </div>
@@ -1325,19 +1352,206 @@ function pedidoEnviado(){
 </div>
 
 <script>
-/* Link de vendedor: la lista y el carrito son los de siempre; cambian los
-   carteles de "retiro" por "envío" y el formulario pide los datos del negocio. */
+/* ===== LINK DE VENDEDOR: cuenta del cliente mayorista =====
+   La lista y el carrito son los de siempre. Lo que cambia es el formulario:
+   - Para pedir hay que tener CUENTA (mail + contraseña + datos del negocio). La
+     cuenta es de Firebase Auth, la misma que usa el Club, y el perfil se guarda
+     en /clientes/<uid> marcado `tipo:'mayorista'` (el panel del Club lo saltea).
+     Así no hubo que tocar las reglas de Firestore.
+   - Ya registrado, NO vuelve a cargar nada: sus datos se ven en una tarjeta y
+     viajan solos en el pedido. Los puede cambiar con "Editar mis datos".
+   - Elige ENVÍO (a la dirección registrada; el día lo pone la ruta) o RETIRO en
+     sucursal (con el mismo selector de día y horario que la lista común).
+   Los datos del perfil se vuelcan en los mismos campos del formulario (ocultos)
+   que ya leen sendWhatsApp() y registrarPedidoReparto(). */
+window.vendMod='envio';
 (function(){
   if(!window.VEND) return;
-  function show(id,on){ var e=document.getElementById(id); if(e) e.style.display=on?'':'none'; }
-  show('vendBox',true); show('vendDir',true);
-  show('fgPickup',false); show('fgDia',false); show('fgHora',false);
-  var ln=document.getElementById('lblName'); if(ln) ln.innerHTML='Nombre y apellido (usuario) <span class="req">*</span>';
-  var sub=document.querySelector('.hdr .sub'); if(sub) sub.textContent='Precios por mayor · envío a tu negocio';
-  [].forEach.call(document.querySelectorAll('.infostrip, .envnote'), function(e){ e.style.display='none'; });
+  var perfil=null, perfilExiste=false, cargando=false, creando=false, modo='crear', editando=false;
+  function $(id){ return document.getElementById(id); }
+  function v(id){ var e=$(id); return e?(e.value||'').trim():''; }
+  function show(id,on){ var e=$(id); if(e) e.style.display=on?'':'none'; }
+  function escH(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function usuario(){ var u=window.GDO&&GDO.FB&&GDO.FB.user; return (u && !u.isAnonymous) ? u : null; }
+  function estado(){
+    var u=usuario();
+    if(u){ if(cargando) return 'cargando'; if(editando) return 'editar'; return (perfil && perfil.esMayorista) ? 'ok' : 'completar'; }
+    return modo==='entrar' ? 'entrar' : 'crear';
+  }
+  // ¿Puede pedir? (cuenta con datos completos y, si es envío, con dirección)
+  window.vendCuentaOk=function(){ return estado()==='ok' && (window.vendMod==='retiro' || !!v('cAddr')); };
+
+  function volcarPerfil(){
+    if(!perfil) return;
+    var m={cFant:perfil.fantasia, cRS:perfil.razonSocial, cCuit:perfil.cuit, cMail:perfil.email||(usuario()&&usuario().email),
+           cName:perfil.nombre, cTel:perfil.telefono, cAddr:perfil.direccion, cLoc:perfil.localidad, cEntre:perfil.entrecalles};
+    Object.keys(m).forEach(function(id){ var e=$(id); if(e) e.value=m[id]||''; });
+    window.vendPick = (perfil.lat!=null && perfil.direccion) ? { direccion:perfil.direccion, lat:perfil.lat, lng:perfil.lng, localidad:perfil.localidad||'' } : null;
+    if(window.vendPick) window.geoCoords={ lat:perfil.lat, lon:perfil.lng };
+  }
+  function msg(t, ok){ var e=$('vendMsg'); if(e){ e.className='vmsg'+(ok?' ok':''); e.innerHTML=t||''; } }
+  function errTxt(e){
+    var c=(e&&e.code)||'';
+    if(c==='auth/email-already-in-use') return 'Ese mail ya tiene una cuenta. Tocá <b>«Ya tengo cuenta»</b> y entrá con tu contraseña.';
+    if(c==='auth/invalid-email') return 'Ese mail no es válido.';
+    if(c==='auth/weak-password') return 'La contraseña tiene que tener al menos 6 caracteres.';
+    if(c==='auth/wrong-password'||c==='auth/invalid-credential'||c==='auth/invalid-login-credentials'||c==='auth/user-not-found') return 'Mail o contraseña incorrectos.';
+    if(c==='auth/too-many-requests') return 'Demasiados intentos. Esperá unos minutos y probá de nuevo.';
+    if(c==='auth/network-request-failed') return 'Sin conexión. Revisá tu internet.';
+    return 'No se pudo completar. Probá de nuevo.'+(c?' ('+c+')':'');
+  }
+
+  function pintar(){
+    var s=estado(), f=$('cartForm');
+    if(!f) return;
+    var formDatos = (s==='crear'||s==='completar'||s==='editar');
+    f.classList.toggle('vsc', s!=='ok');
+    f.classList.toggle('venv', s==='ok' && window.vendMod==='envio');
+    // Campos
+    show('vendBox', formDatos || s==='entrar');
+    show('fgFant', formDatos); show('fgRS', formDatos); show('fgCuit', formDatos);
+    show('fgMail', s==='crear'||s==='entrar'); show('fgPass', s==='crear'||s==='entrar');
+    show('fgName', formDatos); show('fgTel', formDatos); show('vendDir', formDatos);
+    var cp=$('cPass'); if(cp) cp.setAttribute('autocomplete', s==='crear'?'new-password':'current-password');
+    // Encabezado de la cuenta
+    var h='';
+    if(s==='crear'||s==='entrar'){
+      h='<div class="vtabs"><button type="button" data-vm="crear" class="'+(s==='crear'?'on':'')+'">Crear cuenta</button><button type="button" data-vm="entrar" class="'+(s==='entrar'?'on':'')+'">Ya tengo cuenta</button></div>'+
+        '<div style="font-size:12.5px;color:#777;margin:-4px 0 12px;line-height:1.45">'+(s==='crear'
+          ? 'Para hacer pedidos mayoristas creá tu cuenta <b>una sola vez</b>. Después entrás con tu mail y pedís sin volver a cargar nada.'
+          : 'Entrá con el mail y la contraseña con los que te registraste.')+'</div>';
+    } else if(s==='cargando'){
+      h='<div class="vcard">Cargando tu cuenta…</div>';
+    } else if(s==='completar'){
+      h='<div class="vcard">Entraste como <b>'+escH(usuario().email)+'</b>. Completá los datos de tu negocio para poder pedir (una sola vez). <button type="button" class="vlink" data-vsalir>Salir</button></div>';
+    } else {
+      var p=perfil||{};
+      h='<div class="vcard">✅ Pedís como <b>'+escH(p.fantasia)+'</b><br>'+escH(p.razonSocial)+' · CUIT '+escH(p.cuit)+'<br>'+
+        escH(p.nombre)+' · '+escH(p.telefono)+' · '+escH(p.email||usuario().email)+'<br>📍 '+escH(p.direccion)+(p.localidad?', '+escH(p.localidad):'')+
+        '<div style="margin-top:4px">'+(s==='editar'?'':'<button type="button" class="vlink" data-veditar>✏️ Editar mis datos</button> &nbsp; ')+'<button type="button" class="vlink" data-vsalir>Salir</button></div></div>';
+      if(s==='ok'){
+        h+='<div class="fg"><label>¿Cómo lo recibís? <span class="req">*</span></label><div class="dias">'+
+          '<button type="button" class="diab'+(window.vendMod==='envio'?' on':'')+'" data-vmod="envio">🚚 Envío<small>a tu negocio</small></button>'+
+          '<button type="button" class="diab'+(window.vendMod==='retiro'?' on':'')+'" data-vmod="retiro">🏪 Retiro<small>en sucursal</small></button></div>'+
+          (window.vendMod==='envio' ? '<div style="font-size:12px;color:#777;margin-top:6px">Te lo llevamos a la dirección de tu cuenta. El <b>día de entrega</b> te lo confirmamos.</div>' : '')+
+          '</div>';
+      }
+    }
+    var vc=$('vendCuenta'); if(vc){ vc.style.display=''; vc.innerHTML=h; }
+    // Botones
+    var b='<div id="vendMsg" class="vmsg"></div>';
+    if(s==='crear') b+='<button type="button" class="vbtn" id="vCrear">Crear mi cuenta</button>';
+    else if(s==='entrar') b+='<button type="button" class="vbtn" id="vEntrar">Entrar</button><button type="button" class="vlink" id="vReset">Olvidé mi contraseña</button>';
+    else if(s==='completar'||s==='editar') b+='<button type="button" class="vbtn" id="vGuardar">Guardar mis datos</button>'+(s==='editar'?'<button type="button" class="vlink" id="vCancelar">Cancelar</button>':'');
+    var va=$('vendAcc'); if(va){ va.style.display=(s==='ok'||s==='cargando')?'none':''; va.innerHTML=b; }
+    enganchar();
+  }
+
+  function datosForm(){
+    return { fantasia:v('cFant'), razonSocial:v('cRS'), cuit:v('cCuit'), nombre:v('cName'), telefono:v('cTel'),
+             direccion:v('cAddr'), localidad:v('cLoc'), entrecalles:v('cEntre') };
+  }
+  // Valida los campos visibles; marca en rojo los que faltan.
+  function validar(conCuenta){
+    var ok=true;
+    function chk(id, bien){ var fg=$(id); if(fg) fg.classList.toggle('err', !bien); if(!bien) ok=false; }
+    chk('fgFant', !!v('cFant')); chk('fgRS', !!v('cRS')); chk('fgCuit', cuitOk(v('cCuit')));
+    chk('fgName', !!v('cName')); chk('fgTel', v('cTel').replace(/\D/g,'').length>=8); chk('fgAddr', !!v('cAddr'));
+    if(conCuenta){ chk('fgMail', mailOk(v('cMail'))); chk('fgPass', ($('cPass').value||'').length>=6); }
+    if(!ok){ var e=document.querySelector('#cartForm .fg.err'); if(e&&e.scrollIntoView) e.scrollIntoView({behavior:'smooth',block:'center'}); }
+    return ok;
+  }
+  // Coordenadas de la dirección elegida en el autocompletado (si coincide).
+  function coords(d){
+    var pk=window.vendPick;
+    if(pk && pk.lat!=null && pk.direccion && d.direccion && pk.direccion.toLowerCase()===d.direccion.toLowerCase()) return { lat:pk.lat, lng:pk.lng };
+    return { lat:null, lng:null };
+  }
+  function guardarPerfil(uid, d, nuevo){
+    var c=coords(d);
+    var doc=Object.assign({}, d, { email:(usuario()&&usuario().email)||v('cMail'), esMayorista:true, lat:c.lat, lng:c.lng,
+      vendedorId:(perfil&&perfil.vendedorId)||VEND.id, vendedorNombre:(perfil&&perfil.vendedorNombre)||VEND.nombre||'' });
+    if(nuevo){ doc.tipo='mayorista'; doc.puntos=0; doc.nroSocio=0; doc.creado=firebase.firestore.FieldValue.serverTimestamp(); }
+    return GDO.FB.db.collection('clientes').doc(uid).set(doc, {merge:true}).then(function(){
+      perfil=Object.assign({}, perfil||{}, doc); perfilExiste=true;
+    });
+  }
+
+  function enganchar(){
+    [].forEach.call(document.querySelectorAll('[data-vm]'), function(x){ x.onclick=function(){ modo=x.getAttribute('data-vm'); pintar(); }; });
+    [].forEach.call(document.querySelectorAll('[data-vmod]'), function(x){ x.onclick=function(){ window.vendMod=x.getAttribute('data-vmod'); if(typeof pintarDiasRetiro==='function') pintarDiasRetiro(); pintar(); }; });
+    [].forEach.call(document.querySelectorAll('[data-vsalir]'), function(x){ x.onclick=function(){
+      perfil=null; editando=false; modo='entrar';
+      try{ GDO.FB.auth.signOut().then(function(){ return GDO.FB.auth.signInAnonymously(); }).catch(function(){}); }catch(e){}
+      ['cFant','cRS','cCuit','cMail','cName','cTel','cAddr','cLoc','cEntre','cPass'].forEach(function(id){ var e=$(id); if(e) e.value=''; });
+      pintar();
+    }; });
+    [].forEach.call(document.querySelectorAll('[data-veditar]'), function(x){ x.onclick=function(){ editando=true; pintar(); }; });
+    var bc=$('vCancelar'); if(bc) bc.onclick=function(){ editando=false; volcarPerfil(); pintar(); };
+    var bCrear=$('vCrear');
+    if(bCrear) bCrear.onclick=function(){
+      if(!validar(true)) return;
+      if(!(window.GDO&&GDO.FB&&GDO.FB.auth&&GDO.FB.db)){ msg('Sin conexión. Revisá tu internet.'); return; }
+      bCrear.disabled=true; bCrear.textContent='Creando tu cuenta…'; creando=true;
+      var d=datosForm();
+      GDO.FB.auth.createUserWithEmailAndPassword(v('cMail'), $('cPass').value).then(function(cred){
+        return guardarPerfil(cred.user.uid, d, true);
+      }).then(function(){
+        creando=false; $('cPass').value=''; volcarPerfil(); pintar();
+      }).catch(function(e){
+        creando=false; bCrear.disabled=false; bCrear.textContent='Crear mi cuenta';
+        // Si la cuenta se creó pero el perfil no se guardó, queda en "completar".
+        if(usuario()) pintar();
+        msg(errTxt(e));
+      });
+    };
+    var bEntrar=$('vEntrar');
+    if(bEntrar) bEntrar.onclick=function(){
+      var ok=true;
+      [['fgMail', mailOk(v('cMail'))], ['fgPass', ($('cPass').value||'').length>=1]].forEach(function(x){ var fg=$(x[0]); if(fg) fg.classList.toggle('err', !x[1]); if(!x[1]) ok=false; });
+      if(!ok) return;
+      if(!(window.GDO&&GDO.FB&&GDO.FB.auth)){ msg('Sin conexión. Revisá tu internet.'); return; }
+      bEntrar.disabled=true; bEntrar.textContent='Entrando…';
+      GDO.FB.auth.signInWithEmailAndPassword(v('cMail'), $('cPass').value).then(function(){ $('cPass').value=''; })
+        .catch(function(e){ bEntrar.disabled=false; bEntrar.textContent='Entrar'; msg(errTxt(e)); });
+    };
+    var bReset=$('vReset');
+    if(bReset) bReset.onclick=function(){
+      var m=v('cMail');
+      if(!mailOk(m)){ var fg=$('fgMail'); if(fg) fg.classList.add('err'); msg('Escribí tu mail arriba y tocá de nuevo.'); return; }
+      GDO.FB.auth.sendPasswordResetEmail(m).then(function(){ msg('✅ Te mandamos un mail a <b>'+escH(m)+'</b> para crear una contraseña nueva (mirá también en spam).', true); })
+        .catch(function(e){ msg(errTxt(e)); });
+    };
+    var bG=$('vGuardar');
+    if(bG) bG.onclick=function(){
+      if(!validar(false)) return;
+      var u=usuario(); if(!u) return;
+      bG.disabled=true; bG.textContent='Guardando…';
+      guardarPerfil(u.uid, datosForm(), !perfilExiste).then(function(){ editando=false; volcarPerfil(); pintar(); })
+        .catch(function(e){ bG.disabled=false; bG.textContent='Guardar mis datos'; msg(errTxt(e)); });
+    };
+  }
+
+  // Lo llama el onAuthStateChanged de Firebase (más abajo en la página).
+  GDO.vendAuth=function(user){
+    if(!user || user.isAnonymous){ perfil=null; perfilExiste=false; cargando=false; pintar(); return; }
+    if(creando) return;                       // el perfil lo está guardando vCrear
+    cargando=true; pintar();
+    GDO.FB.db.collection('clientes').doc(user.uid).get().then(function(d){
+      perfilExiste=d.exists; perfil=d.exists ? d.data() : null;
+      if(perfil && perfil.tipo==='mayorista') perfil.esMayorista=true;
+      cargando=false; volcarPerfil(); pintar();
+    }).catch(function(){ cargando=false; perfil=null; pintar(); });
+  };
+
+  // Carteles de la página
+  var sub=document.querySelector('.hdr .sub'); if(sub) sub.textContent='Precios por mayor · envío o retiro';
+  [].forEach.call(document.querySelectorAll('.envnote'), function(e){ e.style.display='none'; });
+  var ln=$('lblName'); if(ln) ln.innerHTML='Nombre y apellido (contacto) <span class="req">*</span>';
+  var ta=$('cNotes'); if(ta) ta.placeholder='Horario de recepción, accesos, comentarios...';
   var nt=document.querySelector('#cartForm .note');
-  if(nt) nt.innerHTML='El pedido <b>no es una compra cerrada</b>: será confirmado por '+(VEND.nombre?'<b>'+VEND.nombre+'</b> o ':'')+'un miembro del equipo en horario comercial (Lun&#8209;Sáb 6:00 a 13:30) para coordinar el <b>día de entrega</b>. Los precios pueden estar sujetos a modificaciones.';
-  var ta=document.getElementById('cNotes'); if(ta) ta.placeholder='Horario de recepción, accesos, comentarios...';
+  if(nt) nt.innerHTML='El pedido <b>no es una compra cerrada</b>: será confirmado por '+(VEND.nombre?'<b>'+escH(VEND.nombre)+'</b> o ':'')+'un miembro del equipo en horario comercial (Lun&#8209;Sáb 6:00 a 13:30). Los precios pueden estar sujetos a modificaciones.';
+  pintar();
 })();
 </script>
 <script>
@@ -1441,6 +1655,7 @@ window.GDO = window.GDO || {};
       }
     }
     try { if (window.GDO && GDO.clubUI) GDO.clubUI(user && !user.isAnonymous ? user : null); } catch (e) {}
+    try { if (window.GDO && GDO.vendAuth) GDO.vendAuth(user); } catch (e) {}
   });
 
   // Red de seguridad: si nada respondió (offline), seguimos en modo local.
@@ -1975,6 +2190,7 @@ window.GDO = window.GDO || {};
       GDO.Geo.attachAutocomplete(inp, function(it){
         if(it && it.lat!=null){
           picked={ direccion: it.direccion||it.label, lat: it.lat, lng: it.lng, localidad: it.localidad||'' };
+          window.vendPick=picked;   // link de vendedor: coordenadas para el perfil del cliente
           geoCoords={ lat: it.lat, lon: it.lng }; // para el link al mapa del WhatsApp
           var lc=document.getElementById('cLoc'); if(it.localidad && lc && !lc.value.trim()){ lc.value=it.localidad; }
           if(typeof saveForm==='function') saveForm();
@@ -2096,18 +2312,29 @@ window.GDO = window.GDO || {};
     // la regla de Firestore para los pedidos de la tienda): el vendedor va aparte.
     if(window.VEND){
       var fant=val2('cFant').trim();
+      var esRet = window.vendMod==='retiro';
+      // Las coordenadas vienen del perfil (o del autocompletado al registrarse).
+      var vp=window.vendPick;
+      if(lat==null && vp && vp.lat!=null && vp.direccion && addr && vp.direccion.toLowerCase()===addr.toLowerCase()){ lat=vp.lat; lng=vp.lng; }
       guardar({
         id: nid(), origen:'tienda', canal:'vendedor', lista:'mayorista',
         vendedorId: VEND.id, vendedorNombre: VEND.nombre || '',
         cliente: fant || name, contacto: name, telefono: tel,
         fantasia: fant, razonSocial: val2('cRS').trim(), cuit: val2('cCuit').trim(), email: val2('cMail').trim(),
-        modalidad:'envio',
+        // ENVÍO: sin fecha (se la pone la ruta). RETIRO: el día y la franja que
+        // eligió, igual que un pedido de la lista común.
+        modalidad: esRet ? 'retiro' : 'envio',
         direccion:addr, localidad:localidad, entrecalles:entrecalles, lat:lat, lng:lng,
-        items:items, fechaEntrega:'', ventana:'',
+        items:items,
+        fechaEntrega: (esRet && diaRetiro && diaRetiro.iso) ? diaRetiro.iso : '',
+        diaEntrega: (esRet && diaRetiro && diaRetiro.nombre) ? diaRetiro.nombre : '',
+        ventana: (esRet && horaRetiro && !horaRetiro.libre && horaRetiro.txt) ? horaRetiro.txt : '',
         especificaciones: esp.join(' · '),
         formaPago: pay || '',
         prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
-        clienteUid: socioUid, totalEstimado: totalEst, descuento: descuento,
+        // La cuenta mayorista NO es socio del Club: el pedido va vinculado a la
+        // cuenta (cuentaUid) pero sin clienteUid, que es lo que suma puntos.
+        clienteUid: null, cuentaUid: socioUid, totalEstimado: totalEst, descuento: descuento,
         historia:[], creado:Date.now(), ts:Date.now()
       });
       return;
@@ -2136,7 +2363,7 @@ window.GDO = window.GDO || {};
   // Pinta el CTA del Club y la nota del checkout según el cliente esté logueado
   // como socio o no. La llama onAuthStateChanged (arriba) cuando cambia la sesión.
   (window.GDO = window.GDO || {}).clubUI = function (user) {
-    if (!GDO.clubActivo) { var n0 = document.getElementById('clubNote'); if (n0) n0.style.display = 'none'; return; }
+    if (!GDO.clubActivo || window.VEND) { var n0 = document.getElementById('clubNote'); if (n0) n0.style.display = 'none'; return; }
     var cta = document.getElementById('clubCtaTxt');
     var note = document.getElementById('clubNote');
     var fmt = function (n) { return Number(n || 0).toLocaleString('es-AR'); };
@@ -2224,7 +2451,8 @@ window.GDO = window.GDO || {};
       // En el link de vendedor no hay día de retiro: lo que se exige son los
       // datos del negocio y la dirección.
       var valido=window.cart && cart.length && nombre && tel &&
-        (window.VEND ? datosVendOk(false) : (window.diaRetiro && window.horaRetiro));
+        (!window.VEND || datosVendOk(false)) &&
+        ((window.VEND && window.vendMod!=='retiro') || (window.diaRetiro && window.horaRetiro));
       // Si _send va a frenar el envío (un producto por debajo de su mínimo, o un
       // código de descuento que no vale), NO hay que registrar el pedido: si no,
       // quedaba cargado en el panel un pedido que el cliente nunca mandó, y al

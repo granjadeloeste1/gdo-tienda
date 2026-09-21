@@ -186,6 +186,9 @@ td.l{color:#e0e0e0;font-family:inherit;font-size:12px;font-weight:400;white-spac
 .vlink{background:none;border:0;color:#F58220;font-weight:700;cursor:pointer;padding:4px 0;font-size:13px}
 .vmsg{font-size:12.5px;margin:4px 0 10px;line-height:1.45;color:#d9534f}
 .vmsg.ok{color:#1e8449}
+.vsesion{background:#fff7ef;border:1px solid #f3cda0;color:#6a5436;border-radius:10px;padding:8px 12px;margin:10px 12px 0;font:13px/1.4 system-ui,Segoe UI,Arial,sans-serif;text-align:center}
+.vsesion b{color:#111;word-break:break-all}
+#gdoChooser .vsesion{margin:0 0 14px}
 .wa{bottom:84px}
 .iabnr{display:none;background:#F58220;color:#1a0f02;font-size:12.5px;font-weight:600;padding:11px 38px 11px 14px;text-align:center;line-height:1.45;position:relative}
 .iabnr.show{display:block}
@@ -387,7 +390,7 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v2.6<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v2.7<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -443,7 +446,7 @@ if(window.VEND){
   <input class="search" id="s" type="text" placeholder="Buscar producto..." oninput="filt()">
   <button type="button" class="expand-all" id="toggleAll" onclick="toggleAllCats()">📂 Abrir todo</button>
   <div id="root"></div>
-  <div style="text-align:center;font-size:10.5px;color:#9aa1aa;padding:10px 10px 16px;opacity:.85;line-height:1.4">Propiedad de Granja del Oeste<sup style="font-size:8px">&reg;</sup> · v26</div>
+  <div style="text-align:center;font-size:10.5px;color:#9aa1aa;padding:10px 10px 16px;opacity:.85;line-height:1.4">Propiedad de Granja del Oeste<sup style="font-size:8px">&reg;</sup> · v27</div>
 </div>
 <a class="wa" href="https://wa.me/5491135800164" target="_blank">
   <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -1367,7 +1370,7 @@ function pedidoEnviado(){
 window.vendMod='envio';
 (function(){
   if(!window.VEND) return;
-  var perfil=null, perfilExiste=false, cargando=false, creando=false, modo='crear', editando=false;
+  var perfil=null, perfilExiste=false, cargando=false, creando=false, modo='crear', editando=false, saliendo=false;
   function $(id){ return document.getElementById(id); }
   function v(id){ var e=$(id); return e?(e.value||'').trim():''; }
   function show(id,on){ var e=$(id); if(e) e.style.display=on?'':'none'; }
@@ -1375,6 +1378,7 @@ window.vendMod='envio';
   function usuario(){ var u=window.GDO&&GDO.FB&&GDO.FB.user; return (u && !u.isAnonymous) ? u : null; }
   function estado(){
     var u=usuario();
+    if(saliendo) return 'saliendo';
     if(u){ if(cargando) return 'cargando';
       // Una cuenta de SOCIO del Club no se convierte en mayorista: el Club es solo
       // minorista y las cuentas mayoristas no tienen acceso a él. Va con otro mail.
@@ -1406,6 +1410,7 @@ window.vendMod='envio';
   }
 
   function pintar(){
+    pintarSesion();
     var s=estado(), f=$('cartForm');
     if(!f) return;
     var formDatos = (s==='crear'||s==='completar'||s==='editar');
@@ -1425,7 +1430,9 @@ window.vendMod='envio';
           ? 'Para hacer pedidos mayoristas creá tu cuenta <b>una sola vez</b>. Después entrás con tu mail y pedís sin volver a cargar nada.'
           : 'Entrá con el mail y la contraseña con los que te registraste.')+'</div>';
     } else if(s==='cargando'){
-      h='<div class="vcard">Cargando tu cuenta…</div>';
+      h='<div class="vcard">Cargando tu cuenta… <button type="button" class="vlink" data-vsalir>Cerrar sesión</button></div>';
+    } else if(s==='saliendo'){
+      h='<div class="vcard">Cerrando sesión…</div>';
     } else if(s==='socio'){
       h='<div class="vcard">La cuenta <b>'+escH(usuario().email)+'</b> es de <b>socio del GDO CLUB</b>. Para pedir <b>a través de un vendedor</b> creá una cuenta aparte con <b>otro mail</b>: las cuentas mayoristas de vendedores no participan del Club. <button type="button" class="vlink" data-vsalir>Salir y crear cuenta mayorista</button></div>';
     } else if(s==='completar'){
@@ -1449,9 +1456,59 @@ window.vendMod='envio';
     if(s==='crear') b+='<button type="button" class="vbtn" id="vCrear">Crear mi cuenta</button>';
     else if(s==='entrar') b+='<button type="button" class="vbtn" id="vEntrar">Entrar</button><button type="button" class="vlink" id="vReset">Olvidé mi contraseña</button>';
     else if(s==='completar'||s==='editar') b+='<button type="button" class="vbtn" id="vGuardar">Guardar mis datos</button>'+(s==='editar'?'<button type="button" class="vlink" id="vCancelar">Cancelar</button>':'');
-    var va=$('vendAcc'); if(va){ va.style.display=(s==='ok'||s==='cargando'||s==='socio')?'none':''; va.innerHTML=b; }
+    var va=$('vendAcc'); if(va){ va.style.display=(s==='ok'||s==='cargando'||s==='socio'||s==='saliendo')?'none':''; va.innerHTML=b; }
     enganchar();
   }
+
+  /* Cerrar sesión. OJO: hay que ESPERAR a que Firebase cierre antes de repintar;
+     si se repinta antes, el usuario viejo (p. ej. un socio del Club) sigue
+     logueado y el formulario quedaba en "Completá los datos", sin salida. */
+  function salir(){
+    if(saliendo) return;
+    var eraSocio = estado()==='socio';
+    saliendo=true; editando=false; pintar();
+    function fin(){
+      saliendo=false; perfil=null; perfilExiste=false; cargando=false;
+      modo = eraSocio ? 'crear' : 'entrar';
+      ['cFant','cRS','cCuit','cMail','cName','cTel','cAddr','cLoc','cEntre','cPass'].forEach(function(id){ var e=$(id); if(e) e.value=''; });
+      pintar();
+    }
+    var auth=window.GDO&&GDO.FB&&GDO.FB.auth;
+    if(!auth){ fin(); return; }
+    auth.signOut().then(function(){
+      fin();
+      // Sesión anónima de nuevo: la necesitan las reglas para guardar el pedido.
+      return auth.signInAnonymously().catch(function(){});
+    }).catch(function(){ saliendo=false; pintar(); msg('No se pudo cerrar la sesión. Revisá tu conexión y probá de nuevo.'); });
+  }
+  GDO.vendSalir=salir;
+
+  /* Barra fija "👤 mail · Cerrar sesión" arriba de la lista y en la pantalla de
+     inicio: así la salida está siempre a mano, no solo adentro del carrito. */
+  function pintarSesion(){
+    var u=usuario();
+    var txt = (u && !saliendo)
+      ? '👤 Sesión iniciada: <b>'+escH(u.email||'')+'</b> <button type="button" class="vlink" data-vsalir2 style="margin-left:6px">Cerrar sesión</button>'
+      : '';
+    ['vendSesion','vendSesionCh'].forEach(function(id){
+      var e=$(id); if(!e) return;
+      e.style.display = txt ? '' : 'none';
+      e.innerHTML = txt;
+    });
+    [].forEach.call(document.querySelectorAll('[data-vsalir2]'), function(x){ x.onclick=salir; });
+  }
+  (function montarSesion(){
+    var hdr=document.querySelector('.hdr');
+    if(hdr && !$('vendSesion')){
+      var d=document.createElement('div'); d.id='vendSesion'; d.className='vsesion'; d.style.display='none';
+      hdr.parentNode.insertBefore(d, hdr.nextSibling);
+    }
+    var lead=document.querySelector('#gdoChooser .gc-lead');
+    if(lead && !$('vendSesionCh')){
+      var c=document.createElement('div'); c.id='vendSesionCh'; c.className='vsesion'; c.style.display='none';
+      lead.parentNode.insertBefore(c, lead.nextSibling);
+    }
+  })();
 
   function datosForm(){
     return { fantasia:v('cFant'), razonSocial:v('cRS'), cuit:v('cCuit'), nombre:v('cName'), telefono:v('cTel'),
@@ -1486,12 +1543,7 @@ window.vendMod='envio';
   function enganchar(){
     [].forEach.call(document.querySelectorAll('[data-vm]'), function(x){ x.onclick=function(){ modo=x.getAttribute('data-vm'); pintar(); }; });
     [].forEach.call(document.querySelectorAll('[data-vmod]'), function(x){ x.onclick=function(){ window.vendMod=x.getAttribute('data-vmod'); if(typeof pintarDiasRetiro==='function') pintarDiasRetiro(); pintar(); }; });
-    [].forEach.call(document.querySelectorAll('[data-vsalir]'), function(x){ x.onclick=function(){
-      modo = estado()==='socio' ? 'crear' : 'entrar'; perfil=null; editando=false;
-      try{ GDO.FB.auth.signOut().then(function(){ return GDO.FB.auth.signInAnonymously(); }).catch(function(){}); }catch(e){}
-      ['cFant','cRS','cCuit','cMail','cName','cTel','cAddr','cLoc','cEntre','cPass'].forEach(function(id){ var e=$(id); if(e) e.value=''; });
-      pintar();
-    }; });
+    [].forEach.call(document.querySelectorAll('[data-vsalir]'), function(x){ x.onclick=salir; });
     [].forEach.call(document.querySelectorAll('[data-veditar]'), function(x){ x.onclick=function(){ editando=true; pintar(); }; });
     var bc=$('vCancelar'); if(bc) bc.onclick=function(){ editando=false; volcarPerfil(); pintar(); };
     var bCrear=$('vCrear');

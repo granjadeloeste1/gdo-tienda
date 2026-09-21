@@ -374,13 +374,42 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v2.3<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v2.4<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
     <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>
   </a>
 </div>
+<script>
+/* ===== LINK DE VENDEDOR =====
+   lista.granjadeloeste.com/?v=<id del vendedor>&vn=<nombre>
+   Es la MISMA lista mayorista, pero el pedido es con ENVÍO (entra al armado de
+   rutas) y queda a nombre del vendedor. En el inicio solo se ofrece la lista
+   mayorista, y el formulario pide los datos del negocio (fantasía, razón social,
+   CUIT, mail, teléfono y dirección con localizador). El link lo copia cada
+   vendedor desde su panel en rutas.granjadeloeste.com. */
+window.VEND=(function(){
+  try{
+    var q=new URLSearchParams(location.search), id=(q.get('v')||'').trim();
+    if(!/^[\w-]{1,60}$/.test(id)) return null;
+    var nom=(q.get('vn')||'').replace(/[<>&"]/g,'').trim().slice(0,60);
+    return { id:id, nombre:nom };
+  }catch(e){ return null; }
+})();
+if(window.VEND){
+  (function(){
+    var ch=document.getElementById('gdoChooser');
+    if(!ch) return;
+    // Solo la lista mayorista: fuera minorista, Club y juego.
+    [].forEach.call(ch.querySelectorAll('a.gc-opt[href="vista-minorista.html"], #clubChooserBox'), function(el){ el.parentNode.removeChild(el); });
+    var lead=ch.querySelector('.gc-lead');
+    if(lead) lead.innerHTML='Hacé tu pedido mayorista'+(VEND.nombre?'<br><small style="font-weight:500;color:#888;font-size:13px">Te atiende <b style="color:#F58220">'+VEND.nombre+'</b></small>':'');
+    var sm=ch.querySelector('.gc-opt small');
+    if(sm) sm.innerHTML='Precios por mayor &middot; env&iacute;o a tu negocio';
+  })();
+}
+</script>
 <script>/* Si ya se eligió la lista Mayorista, al refrescar (F5) NO volver al chooser. */try{if(sessionStorage.getItem('gdoLista')==='may'){var _gc=document.getElementById('gdoChooser');if(_gc)_gc.style.display='none';}}catch(e){}</script>
 <div class="iabnr" id="iabnr">
   <span class="xclose" onclick="document.getElementById('iabnr').classList.remove('show')">&times;</span>
@@ -401,7 +430,7 @@ td.l{color:#3a4048}
   <input class="search" id="s" type="text" placeholder="Buscar producto..." oninput="filt()">
   <button type="button" class="expand-all" id="toggleAll" onclick="toggleAllCats()">📂 Abrir todo</button>
   <div id="root"></div>
-  <div style="text-align:center;font-size:10.5px;color:#9aa1aa;padding:10px 10px 16px;opacity:.85;line-height:1.4">Propiedad de Granja del Oeste<sup style="font-size:8px">&reg;</sup> · v23</div>
+  <div style="text-align:center;font-size:10.5px;color:#9aa1aa;padding:10px 10px 16px;opacity:.85;line-height:1.4">Propiedad de Granja del Oeste<sup style="font-size:8px">&reg;</sup> · v24</div>
 </div>
 <a class="wa" href="https://wa.me/5491135800164" target="_blank">
   <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -994,7 +1023,7 @@ function pintarHorarios(){
   });
 }
 
-function saveForm(){ try{ localStorage.setItem("gdo_form", JSON.stringify({ n:val("cName"), t:val("cTel"), a:val("cAddr"), l:val("cLoc"), e:val("cEntre"), p:val("cPay"), o:val("cNotes"), g:geoCoords, dr:diaRetiro, hr:horaRetiro })); }catch(e){} }
+function saveForm(){ try{ localStorage.setItem("gdo_form", JSON.stringify({ n:val("cName"), t:val("cTel"), a:val("cAddr"), l:val("cLoc"), e:val("cEntre"), p:val("cPay"), o:val("cNotes"), g:geoCoords, dr:diaRetiro, hr:horaRetiro, fa:val("cFant"), rs:val("cRS"), cu:val("cCuit"), em:val("cMail") })); }catch(e){} }
 function restoreForm(){
   // OJO: nada de `return` acá adentro — al final hay que pintar los días de retiro.
   try{ var f=JSON.parse(localStorage.getItem("gdo_form")||"null"); if(f){
@@ -1005,6 +1034,12 @@ function restoreForm(){
     if(f.g && f.g.lat) geoCoords=f.g;
     if(f.dr && !diaRetiro) diaRetiro=f.dr;
     if(f.hr && !horaRetiro) horaRetiro=f.hr;
+    // Link de vendedor: el negocio que ya pidió no vuelve a cargar sus datos.
+    if(window.VEND){
+      [["cFant","fa"],["cRS","rs"],["cCuit","cu"],["cMail","em"],["cAddr","a"],["cLoc","l"],["cEntre","e"]].forEach(function(x){
+        var el=document.getElementById(x[0]); if(el && !el.value) el.value=f[x[1]]||"";
+      });
+    }
   } }catch(e){}
   pintarDiasRetiro();
 }
@@ -1014,11 +1049,30 @@ function restoreForm(){
    botón "Usar mi ubicación actual". Se usan para el link al mapa en el WhatsApp
    y para fijar el punto exacto del pedido en la app de reparto. */
 var geoCoords=null;
+/* Link de vendedor: datos del negocio obligatorios. `marcar` pinta los errores
+   (el wrapper que registra el pedido la llama sin marcar, solo para saber). */
+function cuitOk(s){ return String(s||"").replace(/\D/g,"").length===11; }
+function mailOk(s){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s||"").trim()); }
+function datosVendOk(marcar){
+  if(!window.VEND) return true;
+  var ok=true;
+  [["fgFant", !!val("cFant").trim()], ["fgRS", !!val("cRS").trim()], ["fgCuit", cuitOk(val("cCuit"))],
+   ["fgMail", mailOk(val("cMail"))], ["fgAddr", !!val("cAddr").trim()]].forEach(function(x){
+    if(!x[1]) ok=false;
+    if(marcar){ var fg=document.getElementById(x[0]); if(fg) fg.classList.toggle("err", !x[1]); }
+  });
+  return ok;
+}
 function sendWhatsApp(){
   var name=val("cName").trim(), tel=val("cTel").trim(), ok=true;
   var fgN=document.getElementById("fgName"), fgT=document.getElementById("fgTel");
   if(!name){ fgN.classList.add("err"); ok=false; } else fgN.classList.remove("err");
   if(!tel){ fgT.classList.add("err"); ok=false; } else fgT.classList.remove("err");
+  if(window.VEND){
+    // Pedido de vendedor: va con ENVÍO. El día de entrega lo pone el armado de
+    // rutas, así que acá no se pide día ni horario de retiro.
+    if(!datosVendOk(true)) ok=false;
+  } else {
   // Día y horario de retiro: es lo que le falta al local para saber cuándo
   // preparar el pedido. El día es obligatorio; en el horario, el que no sabe
   // todavía elige "A coordinar".
@@ -1026,6 +1080,7 @@ function sendWhatsApp(){
   if(!diaRetiro){ if(fgD) fgD.classList.add("err"); ok=false; } else if(fgD) fgD.classList.remove("err");
   var fgH=document.getElementById("fgHora");
   if(diaRetiro && !horaRetiro){ if(fgH) fgH.classList.add("err"); ok=false; } else if(fgH) fgH.classList.remove("err");
+  }
   if(!cart.length){ alert("Tu pedido está vacío."); return; }
   // Mínimo por producto (el trozado va por 5 kg), medido sobre el TOTAL de la
   // línea: se avisa recién acá para no corregirle los números al cliente
@@ -1058,6 +1113,20 @@ function sendWhatsApp(){
   L.push("━━━━━━━━━━━━━━");
   L.push("👤 *DATOS DEL CLIENTE*");
   L.push("");
+  if(window.VEND){
+    L.push("• *Negocio:* "+val("cFant").trim());
+    L.push("• *Razón social:* "+val("cRS").trim());
+    L.push("• *CUIT:* "+val("cCuit").trim());
+    L.push("• *Mail:* "+val("cMail").trim());
+    L.push("• *Contacto:* "+name);
+    L.push("• *Teléfono:* "+tel);
+    L.push("• *Modalidad:* Envío a domicilio");
+    var dirTxt=val("cAddr").trim(), locTxt=val("cLoc").trim(), entTxt=val("cEntre").trim();
+    L.push("• *Dirección:* "+dirTxt+(locTxt?", "+locTxt:""));
+    if(entTxt) L.push("• *Entre calles:* "+entTxt);
+    if(geoCoords && geoCoords.lat!=null) L.push("• *Ubicación:* https://www.google.com/maps?q="+geoCoords.lat+","+geoCoords.lon);
+    if(VEND.nombre) L.push("• *Vendedor:* "+VEND.nombre);
+  } else {
   L.push("• *Nombre:* "+name);
   L.push("• *Teléfono:* "+tel);
   L.push("• *Modalidad:* Retiro en sucursal");
@@ -1065,6 +1134,7 @@ function sendWhatsApp(){
   L.push("• *Horario:* "+(horaRetiro && horaRetiro.txt ? horaRetiro.txt : "A coordinar"));
   L.push("• *Retiro en:* Acuña 1334, Villa Tesei");
   L.push("• *Cómo llegar:* "+mapsLink);
+  }
   L.push("• *Forma de pago:* "+pay);
   if(notes) L.push("• *Notas generales:* "+notes);
   L.push("");
@@ -1102,7 +1172,9 @@ function sendWhatsApp(){
   L.push("💰 *TOTAL ESTIMADO: "+$n(subT-desT)+"*");
   L.push("━━━━━━━━━━━━━━");
   L.push("");
-  L.push("_El pedido será confirmado por un miembro del equipo en horario comercial para coordinar el retiro en sucursal._");
+  L.push(window.VEND
+    ? "_El pedido será confirmado por un miembro del equipo en horario comercial para coordinar el día de entrega._"
+    : "_El pedido será confirmado por un miembro del equipo en horario comercial para coordinar el retiro en sucursal._");
   var url="https://wa.me/5491135800164?text="+encodeURIComponent(L.join("\n"));
   gdoPx("Purchase",{value:subT-desT,currency:"ARS",num_items:cart.length,content_type:"product",contents:cart.map(function(l){return {id:l.name,quantity:l.qty};})});
   window.open(url, "_blank");
@@ -1160,8 +1232,31 @@ function pedidoEnviado(){
       <div class="form" id="cartForm" style="display:none">
         <div id="clubNote" style="display:none;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;line-height:1.4"></div>
         <h3>Tus datos</h3>
+        <!-- Solo en el LINK DE VENDEDOR (?v=…): datos del negocio. -->
+        <div id="vendBox" style="display:none">
+          <div class="fg" id="fgFant">
+            <label>Nombre de fantas&iacute;a del negocio <span class="req">*</span></label>
+            <input id="cFant" type="text" placeholder="Ej: Almac&eacute;n Don Jos&eacute;" oninput="saveForm()">
+            <div class="ferr">Ingres&aacute; el nombre del negocio</div>
+          </div>
+          <div class="fg" id="fgRS">
+            <label>Raz&oacute;n social <span class="req">*</span></label>
+            <input id="cRS" type="text" placeholder="Como figura en AFIP / ARCA" oninput="saveForm()">
+            <div class="ferr">Ingres&aacute; la raz&oacute;n social</div>
+          </div>
+          <div class="fg" id="fgCuit">
+            <label>CUIT <span class="req">*</span></label>
+            <input id="cCuit" type="text" inputmode="numeric" placeholder="20-12345678-9" oninput="saveForm()">
+            <div class="ferr">El CUIT tiene 11 n&uacute;meros</div>
+          </div>
+          <div class="fg" id="fgMail">
+            <label>Mail <span class="req">*</span></label>
+            <input id="cMail" type="email" inputmode="email" placeholder="nombre@correo.com" oninput="saveForm()">
+            <div class="ferr">Ingres&aacute; un mail v&aacute;lido</div>
+          </div>
+        </div>
         <div class="fg" id="fgName">
-          <label>Nombre y apellido <span class="req">*</span></label>
+          <label id="lblName">Nombre y apellido <span class="req">*</span></label>
           <input id="cName" type="text" placeholder="Tu nombre" oninput="saveForm()">
           <div class="ferr">Ingresá tu nombre</div>
         </div>
@@ -1170,7 +1265,25 @@ function pedidoEnviado(){
           <input id="cTel" type="tel" inputmode="tel" placeholder="11 1234-5678" oninput="saveForm()">
           <div class="ferr">Ingresá un teléfono</div>
         </div>
-        <div class="fg">
+        <!-- Solo en el LINK DE VENDEDOR: el pedido va con envío, así que se pide
+             la dirección con el localizador (el mismo de siempre). -->
+        <div id="vendDir" style="display:none">
+          <div class="fg" id="fgAddr">
+            <label>Direcci&oacute;n de entrega <span class="req">*</span></label>
+            <input id="cAddr" type="text" autocomplete="off" placeholder="Empez&aacute; a escribir y eleg&iacute; de la lista" oninput="saveForm()">
+            <div class="geomsg" id="geoMsg"></div>
+            <div class="ferr">Ingres&aacute; la direcci&oacute;n de entrega</div>
+          </div>
+          <div class="fg">
+            <label>Localidad</label>
+            <input id="cLoc" type="text" placeholder="Se completa al elegir la direcci&oacute;n" oninput="saveForm()">
+          </div>
+          <div class="fg">
+            <label>Entre calles</label>
+            <input id="cEntre" type="text" placeholder="Calle A y Calle B" oninput="saveForm()">
+          </div>
+        </div>
+        <div class="fg" id="fgPickup">
           <div class="pickup">🏪 <b>Retiro en sucursal</b><br>Acu&#xF1;a 1334, Villa Tesei · Lun&#8209;S&#xE1;b 6:00 a 13:30 hs<br>
             <a href="https://www.google.com/maps/dir/?api=1&amp;destination=Acu%C3%B1a%201334%2C%20Villa%20Tesei%2C%20Buenos%20Aires" target="_blank" rel="noopener">&#x1F4CD; C&#xF3;mo llegar (Google Maps)</a></div>
         </div>
@@ -1211,6 +1324,22 @@ function pedidoEnviado(){
   </div>
 </div>
 
+<script>
+/* Link de vendedor: la lista y el carrito son los de siempre; cambian los
+   carteles de "retiro" por "envío" y el formulario pide los datos del negocio. */
+(function(){
+  if(!window.VEND) return;
+  function show(id,on){ var e=document.getElementById(id); if(e) e.style.display=on?'':'none'; }
+  show('vendBox',true); show('vendDir',true);
+  show('fgPickup',false); show('fgDia',false); show('fgHora',false);
+  var ln=document.getElementById('lblName'); if(ln) ln.innerHTML='Nombre y apellido (usuario) <span class="req">*</span>';
+  var sub=document.querySelector('.hdr .sub'); if(sub) sub.textContent='Precios por mayor · envío a tu negocio';
+  [].forEach.call(document.querySelectorAll('.infostrip, .envnote'), function(e){ e.style.display='none'; });
+  var nt=document.querySelector('#cartForm .note');
+  if(nt) nt.innerHTML='El pedido <b>no es una compra cerrada</b>: será confirmado por '+(VEND.nombre?'<b>'+VEND.nombre+'</b> o ':'')+'un miembro del equipo en horario comercial (Lun&#8209;Sáb 6:00 a 13:30) para coordinar el <b>día de entrega</b>. Los precios pueden estar sujetos a modificaciones.';
+  var ta=document.getElementById('cNotes'); if(ta) ta.placeholder='Horario de recepción, accesos, comentarios...';
+})();
+</script>
 <script>
 /* Código de descuento (descuentos.js). Los códigos "solo venta minorista" no
    valen acá: el cuadro avisa que son para la lista minorista. Va después del
@@ -1959,6 +2088,30 @@ window.GDO = window.GDO || {};
     // `fechaEntrega` lleva el día que el cliente eligió pasar a buscarlo: es el
     // mismo campo que usa un envío, así el orden de la lista, el CRM y las
     // métricas leen siempre lo mismo y solo cambia la palabra que se muestra.
+    // LINK DE VENDEDOR: mismo pedido mayorista pero con ENVÍO — entra al armado
+    // de rutas como cualquier envío (sin fecha: se la pone la ruta) y lleva el
+    // vendedor, para distinguirlo en el panel y filtrar las rutas por vendedor.
+    // `cliente` es el nombre de fantasía (así lo reconoce el CRM y el chofer) y
+    // la persona queda en `contacto`. `creadoPor` tiene que ir en null (lo exige
+    // la regla de Firestore para los pedidos de la tienda): el vendedor va aparte.
+    if(window.VEND){
+      var fant=val2('cFant').trim();
+      guardar({
+        id: nid(), origen:'tienda', canal:'vendedor', lista:'mayorista',
+        vendedorId: VEND.id, vendedorNombre: VEND.nombre || '',
+        cliente: fant || name, contacto: name, telefono: tel,
+        fantasia: fant, razonSocial: val2('cRS').trim(), cuit: val2('cCuit').trim(), email: val2('cMail').trim(),
+        modalidad:'envio',
+        direccion:addr, localidad:localidad, entrecalles:entrecalles, lat:lat, lng:lng,
+        items:items, fechaEntrega:'', ventana:'',
+        especificaciones: esp.join(' · '),
+        formaPago: pay || '',
+        prioridad:'normal', estado:'pendiente', creadoPor:null, rutaId:null,
+        clienteUid: socioUid, totalEstimado: totalEst, descuento: descuento,
+        historia:[], creado:Date.now(), ts:Date.now()
+      });
+      return;
+    }
     guardar({
       id: nid(), origen:'tienda', cliente:name, telefono:tel,
       modalidad:'retiro',
@@ -2068,7 +2221,10 @@ window.GDO = window.GDO || {};
       var nombre=val2('cName').trim(), tel=val2('cTel').trim();
       // También exigimos el día y el horario de retiro: si falta alguno, _send
       // muestra el error y NO queremos registrar el pedido (está incompleto).
-      var valido=window.cart && cart.length && nombre && tel && window.diaRetiro && window.horaRetiro;
+      // En el link de vendedor no hay día de retiro: lo que se exige son los
+      // datos del negocio y la dirección.
+      var valido=window.cart && cart.length && nombre && tel &&
+        (window.VEND ? datosVendOk(false) : (window.diaRetiro && window.horaRetiro));
       // Si _send va a frenar el envío (un producto por debajo de su mínimo, o un
       // código de descuento que no vale), NO hay que registrar el pedido: si no,
       // quedaba cargado en el panel un pedido que el cliente nunca mandó, y al

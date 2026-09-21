@@ -373,7 +373,7 @@ td.l{color:#3a4048}
         <span class="gc-arr">&rsaquo;</span>
       </a>
       <p style="margin:8px 4px 0;font:11.5px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5;text-align:left">
-        &#8505;&#65039; Solo para <b style="color:#777">compras minoristas y presenciales en el local</b> (las mayoristas no suman). Algunos productos <b style="color:#777">no suman puntos</b>: caj&oacute;n de pollo &middot; caj&oacute;n de huevos.
+        &#8505;&#65039; Solo suman puntos los <b style="color:#777">pedidos minoristas</b> y las <b style="color:#777">compras presenciales en sucursal</b>. Algunos productos <b style="color:#777">no suman puntos</b>: caj&oacute;n de pollo &middot; caj&oacute;n de huevos.
       </p>
       <a class="gc-opt pronto" id="gcJuego" href="juego.html" style="margin-top:14px">
         <span class="gc-ico">&#x23F1;&#xFE0F;</span>
@@ -1427,7 +1427,7 @@ window.vendMod='envio';
     } else if(s==='cargando'){
       h='<div class="vcard">Cargando tu cuenta…</div>';
     } else if(s==='socio'){
-      h='<div class="vcard">La cuenta <b>'+escH(usuario().email)+'</b> es de <b>socio del GDO CLUB</b> (compras minoristas). Para pedidos <b>mayoristas</b> creá una cuenta aparte con <b>otro mail</b>: las cuentas mayoristas no participan del Club. <button type="button" class="vlink" data-vsalir>Salir y crear cuenta mayorista</button></div>';
+      h='<div class="vcard">La cuenta <b>'+escH(usuario().email)+'</b> es de <b>socio del GDO CLUB</b>. Para pedir <b>a través de un vendedor</b> creá una cuenta aparte con <b>otro mail</b>: las cuentas mayoristas de vendedores no participan del Club. <button type="button" class="vlink" data-vsalir>Salir y crear cuenta mayorista</button></div>';
     } else if(s==='completar'){
       h='<div class="vcard">Entraste como <b>'+escH(usuario().email)+'</b>. Completá los datos de tu negocio para poder pedir (una sola vez). <button type="button" class="vlink" data-vsalir>Salir</button></div>';
     } else {

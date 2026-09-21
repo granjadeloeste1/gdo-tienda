@@ -373,7 +373,7 @@ td.l{color:#3a4048}
         <span class="gc-arr">&rsaquo;</span>
       </a>
       <p style="margin:8px 4px 0;font:11.5px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5;text-align:left">
-        &#8505;&#65039; Algunos productos <b style="color:#777">no suman puntos</b>: caj&oacute;n de pollo &middot; caj&oacute;n de huevos.
+        &#8505;&#65039; Solo para <b style="color:#777">compras minoristas y presenciales en el local</b> (las mayoristas no suman). Algunos productos <b style="color:#777">no suman puntos</b>: caj&oacute;n de pollo &middot; caj&oacute;n de huevos.
       </p>
       <a class="gc-opt pronto" id="gcJuego" href="juego.html" style="margin-top:14px">
         <span class="gc-ico">&#x23F1;&#xFE0F;</span>
@@ -387,7 +387,7 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v2.5<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v2.6<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -443,7 +443,7 @@ if(window.VEND){
   <input class="search" id="s" type="text" placeholder="Buscar producto..." oninput="filt()">
   <button type="button" class="expand-all" id="toggleAll" onclick="toggleAllCats()">📂 Abrir todo</button>
   <div id="root"></div>
-  <div style="text-align:center;font-size:10.5px;color:#9aa1aa;padding:10px 10px 16px;opacity:.85;line-height:1.4">Propiedad de Granja del Oeste<sup style="font-size:8px">&reg;</sup> · v25</div>
+  <div style="text-align:center;font-size:10.5px;color:#9aa1aa;padding:10px 10px 16px;opacity:.85;line-height:1.4">Propiedad de Granja del Oeste<sup style="font-size:8px">&reg;</sup> · v26</div>
 </div>
 <a class="wa" href="https://wa.me/5491135800164" target="_blank">
   <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -1375,7 +1375,11 @@ window.vendMod='envio';
   function usuario(){ var u=window.GDO&&GDO.FB&&GDO.FB.user; return (u && !u.isAnonymous) ? u : null; }
   function estado(){
     var u=usuario();
-    if(u){ if(cargando) return 'cargando'; if(editando) return 'editar'; return (perfil && perfil.esMayorista) ? 'ok' : 'completar'; }
+    if(u){ if(cargando) return 'cargando';
+      // Una cuenta de SOCIO del Club no se convierte en mayorista: el Club es solo
+      // minorista y las cuentas mayoristas no tienen acceso a él. Va con otro mail.
+      if(perfil && !perfil.esMayorista && perfil.tipo!=='mayorista' && Number(perfil.nroSocio)>0) return 'socio';
+      if(editando) return 'editar'; return (perfil && perfil.esMayorista) ? 'ok' : 'completar'; }
     return modo==='entrar' ? 'entrar' : 'crear';
   }
   // ¿Puede pedir? (cuenta con datos completos y, si es envío, con dirección)
@@ -1422,6 +1426,8 @@ window.vendMod='envio';
           : 'Entrá con el mail y la contraseña con los que te registraste.')+'</div>';
     } else if(s==='cargando'){
       h='<div class="vcard">Cargando tu cuenta…</div>';
+    } else if(s==='socio'){
+      h='<div class="vcard">La cuenta <b>'+escH(usuario().email)+'</b> es de <b>socio del GDO CLUB</b> (compras minoristas). Para pedidos <b>mayoristas</b> creá una cuenta aparte con <b>otro mail</b>: las cuentas mayoristas no participan del Club. <button type="button" class="vlink" data-vsalir>Salir y crear cuenta mayorista</button></div>';
     } else if(s==='completar'){
       h='<div class="vcard">Entraste como <b>'+escH(usuario().email)+'</b>. Completá los datos de tu negocio para poder pedir (una sola vez). <button type="button" class="vlink" data-vsalir>Salir</button></div>';
     } else {
@@ -1443,7 +1449,7 @@ window.vendMod='envio';
     if(s==='crear') b+='<button type="button" class="vbtn" id="vCrear">Crear mi cuenta</button>';
     else if(s==='entrar') b+='<button type="button" class="vbtn" id="vEntrar">Entrar</button><button type="button" class="vlink" id="vReset">Olvidé mi contraseña</button>';
     else if(s==='completar'||s==='editar') b+='<button type="button" class="vbtn" id="vGuardar">Guardar mis datos</button>'+(s==='editar'?'<button type="button" class="vlink" id="vCancelar">Cancelar</button>':'');
-    var va=$('vendAcc'); if(va){ va.style.display=(s==='ok'||s==='cargando')?'none':''; va.innerHTML=b; }
+    var va=$('vendAcc'); if(va){ va.style.display=(s==='ok'||s==='cargando'||s==='socio')?'none':''; va.innerHTML=b; }
     enganchar();
   }
 
@@ -1481,7 +1487,7 @@ window.vendMod='envio';
     [].forEach.call(document.querySelectorAll('[data-vm]'), function(x){ x.onclick=function(){ modo=x.getAttribute('data-vm'); pintar(); }; });
     [].forEach.call(document.querySelectorAll('[data-vmod]'), function(x){ x.onclick=function(){ window.vendMod=x.getAttribute('data-vmod'); if(typeof pintarDiasRetiro==='function') pintarDiasRetiro(); pintar(); }; });
     [].forEach.call(document.querySelectorAll('[data-vsalir]'), function(x){ x.onclick=function(){
-      perfil=null; editando=false; modo='entrar';
+      modo = estado()==='socio' ? 'crear' : 'entrar'; perfil=null; editando=false;
       try{ GDO.FB.auth.signOut().then(function(){ return GDO.FB.auth.signInAnonymously(); }).catch(function(){}); }catch(e){}
       ['cFant','cRS','cCuit','cMail','cName','cTel','cAddr','cLoc','cEntre','cPass'].forEach(function(id){ var e=$(id); if(e) e.value=''; });
       pintar();

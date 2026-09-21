@@ -192,11 +192,12 @@
   ];
 
   // Versión de los Términos aceptados (subir si cambian, para saber qué aceptó cada socio).
-  var TYC_VERSION = '2026-06';
+  var TYC_VERSION = '2026-09';
   // Términos y Condiciones del GDO CLUB (esquema: $100 = 1 Punto; ~2% de devolución).
   var TYC_HTML =
     '<ol style="margin:8px 0 0 18px;padding:0;font-size:12.5px;line-height:1.6;color:#cdd0d5">'+
       '<li><b>Qué es.</b> GDO CLUB es un programa de fidelización gratuito y voluntario para clientes de Granja del Oeste.</li>'+
+      '<li><b>Alcance.</b> El Club es <b>solo para compras minoristas y presenciales en el local</b>. Las <b>ventas mayoristas</b> —incluidas las cuentas de clientes mayoristas que compran a través de un vendedor— <b>no participan</b>: no suman puntos ni acceden a premios, canjes ni otros beneficios del Club.</li>'+
       '<li><b>Puntos.</b> Se acreditan únicamente sobre compras efectivas, cargados por el personal. Razón vigente: <b>$100 = 1 Punto GDO</b> (puede cambiar). No se acreditan compras anteriores al alta.</li>'+
       '<li><b>Sin valor monetario.</b> Los puntos no son dinero, no se canjean por efectivo, no se transfieren entre socios ni se acumulan con otras promociones salvo aviso.</li>'+
       '<li><b>Productos sin puntos.</b> Algunos productos no acumulan puntos (por ahora: <b>cajón de pollo</b> y <b>cajón de huevos</b>). GDO puede modificar esta lista cuando lo necesite.</li>'+
@@ -215,7 +216,7 @@
   // asociarse (vista pública) y después (cuenta del socio). Acordeón <details> nativo.
   var FAQ = [
     ['¿Cuánto cuesta asociarse al GDO CLUB?', 'Nada, es <b>totalmente gratis</b>. Te asociás en un minuto y empezás a sumar puntos con tus compras.'],
-    ['¿Cómo sumo Puntos GDO?', 'Por cada <b>$100</b> de compra sumás <b>1 Punto GDO</b>. Los carga el personal cuando comprás (en el local o por envío): mostrá tu credencial o escaneá el código del mostrador.'],
+    ['¿Cómo sumo Puntos GDO?', 'Por cada <b>$100</b> de compra <b>minorista</b> sumás <b>1 Punto GDO</b>. Los carga el personal cuando comprás (en el local o por envío): mostrá tu credencial o escaneá el código del mostrador.'],
     ['¿Todos los productos suman puntos?', 'Casi todos. Por ahora <b>NO suman puntos</b> el <b>cajón de pollo</b> ni el <b>cajón de huevos</b>; el resto de tu compra sí. Esta lista puede cambiar.'],
     ['¿Cómo canjeo un premio?', 'En <b>“Premios para canjear”</b> tocás <b>Canjear</b>: se descuentan tus puntos y te generamos un <b>voucher con código</b>. Lo mostrás en el local y te lo entregamos. Queda guardado en <b>“Mis canjes”</b>.'],
     ['¿El premio me lo pueden llevar a domicilio?', 'El premio se canjea y se retira en el <b>local</b>. Si lo querés con <b>envío a domicilio</b>, se entrega junto con tu <b>próxima compra</b> y como un <b>adicional</b> al pedido (no reemplaza la compra). Para tener envío rigen las reglas de siempre: <b>monto mínimo</b> de compra y <b>costo de envío</b> según la zona, si corresponde.'],
@@ -224,7 +225,9 @@
     ['¿Los puntos vencen?', 'Sí: vencen a los <b>12 meses</b> de acreditados si no los usás. Conviene canjearlos antes.'],
     ['¿Puedo pasarle mis puntos a otra persona o cambiarlos por plata?', 'No. Los puntos son <b>personales e intransferibles</b> y no se cambian por dinero ni se acumulan con otras promociones.'],
     ['¿Dónde veo mis puntos?', 'En tu cuenta del Club, arriba en tu credencial. Se actualizan solos cada vez que el local te carga una compra.'],
-    ['¿Sumo puntos en pedidos por envío?', 'Sí, sumás en compras en el <b>local</b> y en <b>pedidos a domicilio</b> por igual.'],
+    ['¿Sumo puntos en pedidos por envío?', 'Sí, en tus compras <b>minoristas</b>: sumás igual en el <b>local</b> y en <b>pedidos minoristas a domicilio</b>.'],
+    ['¿Las compras mayoristas suman puntos?', 'No. El GDO CLUB es <b>solo para compras minoristas y presenciales en el local</b>. Las <b>ventas mayoristas</b> no participan: no suman puntos ni dan acceso a premios ni canjes.'],
+    ['Compro por mayor con un vendedor, ¿puedo ser socio?', 'Las <b>cuentas mayoristas</b> (las que se crean en el link de un vendedor para hacer pedidos por mayor) <b>no tienen acceso al GDO CLUB</b> ni a sus beneficios. El Club es para clientes <b>minoristas</b> y compras <b>presenciales en el local</b>.'],
     ['¿Los premios y los puntos pueden cambiar?', 'Sí. Los premios dependen del <b>stock</b> y GDO puede agregar, sacar o cambiar su costo en puntos. El sistema de puntos también puede ajustarse. Siempre te mostramos los valores vigentes.'],
     ['¿Qué necesito para asociarme?', 'Nombre y apellido, DNI, dirección, teléfono y email. Tenés que ser <b>mayor de 18 años</b> y se permite <b>una cuenta por persona</b>.'],
     ['Olvidé mi contraseña, ¿qué hago?', 'En la pestaña <b>“Ya soy socio”</b> tocá <b>“Olvidé mi contraseña”</b> y te llega un mail para recuperarla.'],
@@ -311,10 +314,32 @@
     checkClubActivo(function (activo) {
       if (!activo && !accesoAnticipado) { vistaProximamente(); return; }   // apagado y sin clave → no mostrar
       if (user.isAnonymous) { vistaPublica(); return; }
-      if (enLocal) checkInLocal(user);
-      else entrarSocio(user);
+      // Las cuentas MAYORISTAS (clientes que se registran en el link de un
+      // vendedor) NO participan del Club: es solo para compras minoristas y
+      // presenciales en el local. Se miran antes de crear nada.
+      db.collection('clientes').doc(user.uid).get().then(function (d) {
+        var x = d.exists ? (d.data() || {}) : {};
+        if (x.tipo === 'mayorista' || x.esMayorista) { vistaMayorista(user); return; }
+        if (enLocal) checkInLocal(user);
+        else entrarSocio(user);
+      }).catch(function () {
+        if (enLocal) checkInLocal(user);
+        else entrarSocio(user);
+      });
     });
   });
+
+  function vistaMayorista(user){
+    document.getElementById('hdrPts').style.display = 'none';
+    app.innerHTML =
+      '<div class="card hero"><h1><span class="marca">GDO CLUB</span></h1>'+
+        '<p>La cuenta <b>'+esc(user.email||'')+'</b> es una <b>cuenta mayorista</b> (pedidos con vendedor).</p></div>'+
+      '<div class="card err">Las cuentas mayoristas <b>no participan del GDO CLUB</b>: el Club es solo para <b>compras minoristas y presenciales en el local</b>, y sus beneficios (puntos, premios y canjes) no aplican a las ventas mayoristas.</div>'+
+      faqCard()+
+      '<div class="card" style="text-align:center"><button class="btn btn-2" id="outMay" type="button">Cerrar sesión</button>'+
+        '<p style="margin-top:12px"><a class="volver" href="index.html">← Volver a la lista de precios</a></p></div>';
+    var o=document.getElementById('outMay'); if(o) o.onclick=function(){ auth.signOut(); };
+  }
 
   // ───────────────── VISTA PÚBLICA (no logueado) ─────────────────
   function vistaPublica(){
@@ -327,7 +352,8 @@
       : '';
     app.innerHTML =
       '<div class="card hero"><h1>Hacete socio de <span class="marca">GDO CLUB</span></h1>'+
-        '<p>Obtené beneficios y descuentos con tus compras. Por cada <b>$100</b> que gastás sumás <b>1 Punto GDO</b>, y los canjeás por premios. 🎁</p></div>'+
+        '<p>Obtené beneficios y descuentos con tus compras. Por cada <b>$100</b> que gastás sumás <b>1 Punto GDO</b>, y los canjeás por premios. 🎁</p>'+
+        '<p style="font-size:12.5px;opacity:.8;margin-top:8px">Válido para <b>compras minoristas y presenciales en el local</b>. Las ventas mayoristas no participan del Club.</p></div>'+
       avisoLocal+
       '<div class="card">'+
         '<div class="tabs"><button id="tLogin" class="on" type="button">Ya soy socio</button><button id="tReg" type="button">Quiero asociarme</button></div>'+

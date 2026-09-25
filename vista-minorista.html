@@ -298,9 +298,12 @@ window.GDO = window.GDO || {};
   function pesoKg(n){ var it=CART[pkey(n)]; return it?it.kg:0; }
   function qtyOf(n,v){ var it=CART[vkey(n,v)]; return it?it.cant:0; }
   // Mínimo de kg por producto: las MILANESAS (cualquier tipo) van por mínimo 2 kg.
+  // Se mira la categoría Y la subcategoría: desde que la lista sale de MOSTRADOR las
+  // milanesas están en ELABORADOS › MILANESAS DE POLLO / DE CARNE / RELLENAS.
+  function esMilanesa(cat, sub){ return /MILANES/i.test((cat||'')+' '+(sub||'')); }
   function minKgDe(nombre){
     var it=(window.MIN_DATA||[]).filter(function(x){ return x.nombre===nombre; })[0];
-    return (it && /MILANES/i.test(it.cat||'')) ? 2 : 1;
+    return (it && esMilanesa(it.cat, it.sub)) ? 2 : 1;
   }
   /* ===== CORTES (cómo quiere el cliente el producto) =====
      Suprema y cuarto trasero se pueden pedir de varias formas, y el mismo pedido
@@ -846,7 +849,7 @@ window.GDO = window.GDO || {};
         '<iframe id="mapaReparto" src="mapa-zona-oeste.html?v=4" title="Zona de reparto Oeste" loading="lazy" style="width:100%;border:0;display:block;min-height:420px"></iframe></details>'+
       '<style>.mapwrap{margin:10px 0;border:1px solid #eee;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)}.mapwrap>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#fff;background:#F58220;padding:13px 16px}.mapwrap>summary::-webkit-details-marker{display:none}.mapwrap .mapchev{margin-left:auto;transition:transform .2s}.mapwrap[open] .mapchev{transform:rotate(180deg)}</style>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+
-      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.0<br>Todos los derechos reservados</p>';
+      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.1<br>Todos los derechos reservados</p>';
     render(cats);
     // Ajusta la altura del mapa (iframe mismo-origen) a su contenido, y al abrir/cerrar el desplegable.
     (function(){ var det=$('#mapaDet'), f=$('#mapaReparto'); if(!f) return;
@@ -882,7 +885,7 @@ window.GDO = window.GDO || {};
       var inner = c.subs.map(function(s){
         var prods = s.prods.map(function(p){
           var multi = p.vars.length>1, body, etq, val;
-          var minK = /MILANES/i.test(c.name||'') ? 2 : 1;
+          var minK = esMilanesa(c.name, s.name) ? 2 : 1;
           if(esPorPeso(p)){
             var tiers=tiersDe(p); TIERMAP[p.nombre]=tiers; var nA=esc(p.nombre);
             var nt=tiers.length, orden=tiers.slice().sort(function(a,b){return a.perkg-b.perkg;}), rank={};

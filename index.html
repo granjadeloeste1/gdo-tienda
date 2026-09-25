@@ -71,6 +71,7 @@ tbody tr{border-bottom:1px solid #161616}
 tbody tr:last-child{border-bottom:none}
 tbody td{padding:7px 8px;color:#fff;font-family:monospace;font-size:13px;font-weight:600;white-space:nowrap}
 td.l{color:#e0e0e0;font-family:inherit;font-size:12px;font-weight:400;white-space:normal}
+td.l .pdesc{font-size:11px;color:#8a8f98;margin-top:2px;line-height:1.3}
 .err{background:#1a0000;border:1px solid #3a0000;border-radius:12px;padding:20px;text-align:center;color:#f87171;font-size:13px}
 .wa{position:fixed;bottom:20px;right:20px;width:56px;height:56px;background:#25D366;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(37,211,102,.4);text-decoration:none;z-index:100;animation:waBob 2.4s ease-in-out infinite}
 .wa svg{width:30px;height:30px;fill:#fff}
@@ -390,7 +391,7 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v2.8<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v2.9<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -566,7 +567,8 @@ function render() {
         var hasData = fr.some(function(r) { var v = (r.v || [])[ci - 1]; return v !== null && v !== undefined && v !== ""; });
         if (hasHdr || hasData) valCols.push(ci);
       }
-      if (tbl.brand) tbH += "<div class=\"br\">" + escAttr(tbl.brand) + "</div>";
+      // Subcategoría (ej. ELABORADOS › MILANESAS DE POLLO): subtítulo arriba de su tabla.
+      if (tbl.sub || tbl.brand) tbH += "<div class=\"br\">" + escAttr(tbl.sub || tbl.brand) + "</div>";
       tbH += "<div class=\"tw\"><table>";
       if (tbl.headers && tbl.headers.length) {
         tbH += "<thead><tr><th class=\"l\">" + escAttr(tbl.headers[0] || "") + "</th>";
@@ -615,7 +617,8 @@ function render() {
           orderCell += "<div class=\"qg-sub\" id=\"sub_" + oi + "\">" + sub + "</div>";
           orderCell += "</div>";
         });
-        tbH += "<tr><td class=\"l\">" + escAttr(row.p) + "</td>";
+        // La descripción es la misma de la lista minorista (columna DESCRIPCIÓN de MOSTRADOR).
+        tbH += "<tr><td class=\"l\">" + escAttr(row.p) + (row.d ? "<div class=\"pdesc\">" + escAttr(row.d) + "</div>" : "") + "</td>";
         valCols.forEach(function(i) { tbH += "<td class=\"r\">" + $n((row.v || [])[i - 1]) + "</td>"; });
         tbH += "<td class=\"r ordcell\">" + orderCell + "</td>";
         tbH += "</tr>";

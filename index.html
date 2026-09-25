@@ -391,7 +391,7 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v2.9<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v3.0<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -603,7 +603,9 @@ function render() {
           // La forma principal (la caja) conserva el nombre de la fila; las sueltas
           // llevan el suyo, que es el que llega al carrito, al WhatsApp y a la comanda.
           var nom = isMain ? row.p : nombreOpcion(row.p, uMostrar, kgPor);
-          var opt = {name:nom, brand:(tbl.brand||""), unit:uMostrar, kgPor:kgPor, tiers:tiers, main:isMain, min:(/TROZADO/i.test(sec.title||"")?5:0)};
+          var opt = {name:nom, brand:(tbl.brand||""), unit:uMostrar, kgPor:kgPor, tiers:tiers, main:isMain, min:(/TROZADO/i.test(sec.title||"")?5:0),
+                     pool:((/ELABORADO/i.test(sec.title||"") && tbl.sub) ? (sec.title+"|"+tbl.sub) : "")};
+          var l0 = findLine(opt); if (l0 && opt.pool && !l0.pool) l0.pool = opt.pool;   // carritos guardados de antes
           var oi = OPTIONS.push(opt) - 1;
           var q = cartQtyFor(nom, (tbl.brand||""), uMostrar);
           var sub = q > 0 ? subHtml(opt, q) : "";
@@ -703,7 +705,18 @@ function findLine(opt){ for(var i=0;i<cart.length;i++){ var l=cart[i]; if(l.name
 // Kilos reales de una línea. Para lo que se vende por pieza (kgPor) la cantidad
 // son PIEZAS, y tanto el escalón de precio como el total van en kilos.
 function lineKg(l){ return l.qty * (l.kgPor || 1); }
-function lineUnitPrice(l){ return priceForTiers(l.tiers, lineKg(l)); }
+/* ESCALA POR SUBCATEGORÍA (solo ELABORADOS): el escalón de precio se decide por el
+   TOTAL de kilos de la subcategoría, aunque sean variedades distintas (2 kg FIT + 2
+   clásica + 1 bondiola = 5 kg de HAMBURGUESAS → todas al precio de 5 kg). `pool`
+   viene de la tabla (categoría|subcategoría); el resto de los productos, por línea. */
+function mismaLinea(a, b){ return a.name===b.name && a.brand===b.brand && a.unit===b.unit; }
+function kgEscala(l){
+  var s = lineKg(l);
+  if (!l.pool) return s;
+  cart.forEach(function(x){ if (x.pool===l.pool && !mismaLinea(x, l)) s += lineKg(x); });
+  return s;
+}
+function lineUnitPrice(l){ return priceForTiers(l.tiers, kgEscala(l)); }
 /* RECARGO POR PREPARACIÓN: filetear, cubetear o trozar cuesta $500 el kilo. Se
    cobra SOLO sobre los kilos que llevan trabajo — el producto tal cual ("Entera"
    / "Entero") no paga nada. Como el pedido se puede repartir entre cortes, el
@@ -722,7 +735,7 @@ function recargoLinea(l){
 function lineTotal(l){ return lineUnitPrice(l)*lineKg(l) + recargoLinea(l); }
 // Detalle bajo el contador: "2 piezas · 6 kg aprox. · $ 7.200 el kilo"
 function subHtml(l, q){
-  var o = {tiers:l.tiers, kgPor:l.kgPor, qty:q};
+  var o = {name:l.name, brand:l.brand, unit:l.unit, pool:l.pool, tiers:l.tiers, kgPor:l.kgPor, qty:q};
   var up = lineUnitPrice(o), kg = lineKg(o);
   var det = q + " " + unitLabel(l.unit, q);
   if (l.kgPor) det += " &middot; " + kg + " kg aprox. &middot; " + $n(up) + " el kilo";
@@ -748,9 +761,11 @@ function rowSet(oi, val){
   else if(l){ l.qty=q; }
   // `prep`: si el producto se puede pedir cortado de varias formas, arranca en
   // la primera opción (el producto tal cual) y el cliente la cambia en el pedido.
-  else { gdoPx("AddToCart",{content_name:opt.name,currency:"ARS"}); cart.push({name:opt.name, brand:opt.brand, unit:opt.unit, tiers:opt.tiers, qty:q, main:opt.main, min:opt.min, kgPor:opt.kgPor,
+  else { gdoPx("AddToCart",{content_name:opt.name,currency:"ARS"}); cart.push({name:opt.name, brand:opt.brand, unit:opt.unit, tiers:opt.tiers, qty:q, main:opt.main, min:opt.min, kgPor:opt.kgPor, pool:opt.pool,
                     prep:((window.GDO&&GDO.Prep)?GDO.Prep.porDefecto(opt.name):'')}); }
   persistCart(); updateRowSub(oi, q); renderCartBar();
+  // Escala por subcategoría: al cambiar un producto, cambia el precio de sus "compañeros".
+  if (opt.pool) OPTIONS.forEach(function(o, i){ if (i!==oi && o.pool===opt.pool){ var qq=cartQtyFor(o.name, o.brand, o.unit); if (qq>0) updateRowSub(i, qq); } });
 }
 function rowStep(oi, d){
   var opt=OPTIONS[oi];

@@ -2506,7 +2506,11 @@ window.GDO = window.GDO || {};
         GDO.FB.ready.then(function () {
           if (!GDO.FB.db) return;
           try {
-            GDO.FB.db.collection('club_config').doc('flags').onSnapshot(function (d) {
+            // includeMetadataChanges: si el dato en caché (IndexedDB) ya era igual al del
+            // servidor, Firestore NO manda un evento nuevo al confirmar desde el servidor;
+            // sin esta opción la tarjeta del juego y el club quedaban trabados en su
+            // estado inicial ("Muy pronto") aunque el panel los hubiera activado.
+            GDO.FB.db.collection('club_config').doc('flags').onSnapshot({ includeMetadataChanges: true }, function (d) {
               if (d.metadata && d.metadata.fromCache) return;   // SOLO datos del servidor
               aplicar(d.exists && d.data().activo === true);
               aplicarJuego(d.exists && d.data().juegoActivo === true);

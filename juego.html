@@ -355,6 +355,7 @@ h1 span{color:var(--nar)}
   var db=null, auth=null, user=null, socio=null, cfg=null;
   var partida=null, unsubPartida=null, unsubCanje=null;
   var t0=0, raf=null, ttlTimer=null, corriendo=false;
+  var arrancando=false, jugadaLocal=null;   // evitan carreras con el listener en vivo
   var CIRC=691.15;
 
   /* ---- pantallas: lock · ready · play · lose · win ---- */
@@ -397,7 +398,7 @@ h1 span{color:var(--nar)}
   function arrancar(){
     if(corriendo || !partida) return;
     var b=$('bStart'); if(b.disabled) return;
-    b.disabled=true; $('startTxt').textContent='…';
+    b.disabled=true; $('startTxt').textContent='…'; arrancando=true;
     db.collection('partidas').doc(partida._id).update({
       estado:'jugando', inicioTs: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function(){
@@ -405,13 +406,14 @@ h1 span{color:var(--nar)}
       // tiempo que declaramos nunca puede ser mayor que el que midió el servidor
       // (la regla rechaza eso), y la latencia siempre juega a favor del socio.
       clearInterval(ttlTimer);
-      corriendo=true;
+      corriendo=true; arrancando=false;
       $('dPlay').innerHTML=fmt(0); $('prog').style.strokeDashoffset=CIRC;
       $('bStop').disabled=false; $('stopTxt').textContent='PARÁ';
       $('playNota').innerHTML='Tocá <b style="color:var(--rojo-cla)">PARÁ</b> cuando marque '+plano(partida.objetivoMs)+'. Sin tolerancia.';
       mostrar('play'); vibrar(20);
       t0=performance.now(); tick();
     }).catch(function(){
+      arrancando=false;
       b.disabled=false; $('startTxt').textContent='DALE';
       $('readyNota').innerHTML='<b>No se pudo arrancar.</b> ¿Se venció la partida? Pedile al cajero que te la habilite de nuevo.';
     });
@@ -426,6 +428,7 @@ h1 span{color:var(--nar)}
     $('bStop').disabled=true; $('stopTxt').textContent='…';
     vibrar(40);
     var gano = Math.floor(ms/10) === Math.floor(partida.objetivoMs/10);
+    jugadaLocal = partida._id;   // el resultado de ESTA jugada lo dibuja resultado(), no el rescate
     db.collection('partidas').doc(partida._id).update({
       estado:'jugada', tiempoMs:ms, gano:gano,
       finTs: firebase.firestore.FieldValue.serverTimestamp()
@@ -535,7 +538,8 @@ h1 span{color:var(--nar)}
                        .catch(function(){ pintarGano(ms, null); });
     }else{
       // Diferencia CON SIGNO: "−0.12" si frenó antes, "+0.12" si se pasó.
-      var d=(ms-partida.objetivoMs)/1000;
+      // En centésimas TRUNCADAS, igual que el tablero: 10.01 → +0.01 (no +0.02).
+      var d=(Math.floor(ms/10)-Math.floor(partida.objetivoMs/10))/100;
       $('dLose').innerHTML=fmt(ms);
       $('objLose').textContent=plano(partida.objetivoMs);
       $('loseTitle').textContent = Math.abs(d)<0.15 ? 'CASI' : (d<0 ? 'MUY RÁPIDO' : 'TE PASASTE');
@@ -555,13 +559,18 @@ h1 span{color:var(--nar)}
         var abierta=null, hoy=null;
         snap.forEach(function(d){
           var x=d.data(); x._id=d.id;
-          if(x.estado==='habilitada' || x.estado==='jugando') abierta=x;
+          // Solo cuenta como abierta si sigue VIGENTE: una habilitada vencida queda
+          // en 'habilitada' para siempre en la base (nadie la cierra), y una
+          // 'jugando' de otro día es una partida vieja. Sin este filtro, el socio
+          // caía directo en la pantalla del reloj cada vez que entraba.
+          if(x.estado==='habilitada' && x.venceMs > Date.now()) abierta=x;
+          if(x.estado==='jugando' && x.fecha===hoyStr()) abierta=x;
           if(x.estado==='jugada' && (!hoy || (x.finTs&&hoy.finTs&&x.finTs.toMillis()>hoy.finTs.toMillis()))) hoy=x;
         });
         // RESCATE DEL PREMIO: si hay una partida GANADA hoy y su voucher no se
         // llegó a emitir (se cortó internet justo ahí, se cerró la pantalla, o la
         // partida es anterior a que existiera el voucher), lo emitimos ahora.
-        if(!abierta && hoy && hoy.gano && hoy.fecha===hoyStr()){
+        if(!abierta && hoy && hoy.gano && hoy.fecha===hoyStr() && hoy._id!==jugadaLocal){
           partida=hoy;
           db.collection('canjes').doc(hoy._id).get().then(function(v){
             if(v.exists){
@@ -577,16 +586,19 @@ h1 span{color:var(--nar)}
         }
         if(abierta){
           partida=abierta;
-          if(abierta.estado==='jugando' && !corriendo){
+          if(abierta.estado==='jugando' && !corriendo && !arrancando){
             // Recargó la página con la partida arrancada: no se puede volver a jugar.
-            pintarPartida();
+            $('objReady').textContent=plano(abierta.objetivoMs);
+            $('chipSocio').textContent='Socio '+nroSocio();
+            $('premioReady').textContent=abierta.premioNombre||'Premio del día';
+            mostrar('ready');
             clearInterval(ttlTimer);
             $('bStart').disabled=true; $('startTxt').textContent='—';
             $('readyNota').innerHTML='<b>Esta partida ya estaba arrancada.</b> Se cuenta como jugada (bases, punto 9).';
             $('vence').hidden=true;
             return;
           }
-          if(!corriendo) pintarPartida();
+          if(!corriendo && !arrancando && abierta.estado==='habilitada') pintarPartida();
         }
       }, function(){});
   }
@@ -607,8 +619,11 @@ h1 span{color:var(--nar)}
       $('ttl').textContent = q+' s';
       $('ttlBar').style.width = Math.min(100, q/60*100)+'%';
       if(q<=0){
-        clearInterval(ttlTimer); $('bStart').disabled=true; $('startTxt').textContent='—';
-        $('readyNota').innerHTML='<b>Se venció.</b> Pedile al cajero que te la habilite otra vez.';
+        // Venció sin arrancar: vuelve a la bienvenida con el aviso.
+        clearInterval(ttlTimer); partida=null;
+        $('notaLock').innerHTML='<b>Tu partida venció sin jugar.</b> Pedile al cajero que te la habilite otra vez.';
+        $('notaLock').hidden=false;
+        mostrar('lock');
       }
     };
     pint(); ttlTimer=setInterval(pint,250);

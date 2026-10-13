@@ -428,10 +428,6 @@ if(window.VEND){
 }
 </script>
 <script>/* Si ya se eligió la lista Mayorista, al refrescar (F5) NO volver al chooser. */try{if(sessionStorage.getItem('gdoLista')==='may'){var _gc=document.getElementById('gdoChooser');if(_gc)_gc.style.display='none';}}catch(e){}</script>
-<div class="iabnr" id="iabnr">
-  <span class="xclose" onclick="document.getElementById('iabnr').classList.remove('show')">&times;</span>
-  Estás viendo esto dentro de <b>TikTok / Instagram</b>. Para ver la <b>lista completa y actualizada</b>, tocá el menú <b>&#8943;</b> (arriba a la derecha) y elegí <b>&laquo;Abrir en el navegador&raquo;</b>.
-</div>
 <header class="hdr">
   <button class="back" onclick="try{sessionStorage.removeItem('gdoLista')}catch(e){};document.getElementById('gdoChooser').style.display='flex'" aria-label="Volver">←</button>
   <span class="lg"><img src="assets/isotipo-color.svg" alt="GDO"/></span>
@@ -684,14 +680,6 @@ if (_px) { sections = _px.data; estado = "ok"; }
 render();
 recargar();
 
-/* Aviso si se abre dentro de un navegador interno (TikTok, Instagram, Facebook, etc.) */
-(function detectInApp(){
-  try{
-    var ua = navigator.userAgent || "";
-    var inApp = /(BytedanceWebview|musical_ly|TikTok|Bytedance|Instagram|FBAN|FBAV|FB_IAB|Line\/|; wv\)|GSA\/)/i.test(ua);
-    if(inApp){ var b=document.getElementById("iabnr"); if(b) b.classList.add("show"); }
-  }catch(e){}
-})();
 
 /* ===== Pedido / carrito ===== */
 function loadCart(){ try{ var c=JSON.parse(localStorage.getItem("gdo_cart")||"[]"); if(Array.isArray(c)) cart=c; }catch(e){}

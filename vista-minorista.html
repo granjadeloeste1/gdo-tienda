@@ -323,6 +323,11 @@ window.GDO = window.GDO || {};
     var t=TIERMAP[nombre]; return Math.max(base, (t && t.length) ? t[0].min : 1);
   }
   function kgTxt(n){ return String(n).replace('.', ','); }
+  // Productos por PIEZA (nombre con "PIEZA", ej. bondiola entera): se piden por pieza y cada
+  // pieza se estima con el escalón de la hoja ("2,5 kg"). Se cobra al peso exacto, que va en el ticket.
+  function kgPieza(nombre){ var t=TIERMAP[nombre]; return (/PIEZA/i.test(nombre||'') && t && t.length) ? t[0].min : 0; }
+  function piezas(nombre, kg){ var u=kgPieza(nombre); return u ? Math.round(kg/u) : 0; }
+  function piezasTxt(n){ return n+(n===1?' pieza':' piezas'); }
   /* ===== CORTES (cómo quiere el cliente el producto) =====
      Suprema y cuarto trasero se pueden pedir de varias formas, y el mismo pedido
      puede llevar PARTE de cada una: 3 kg fileteados y 7 enteros. Por eso, en vez
@@ -390,7 +395,7 @@ window.GDO = window.GDO || {};
 
   function setPeso(nombre, tiers, delta){
     var k=pkey(nombre), it=CART[k]||{tipo:'peso',nombre:nombre,tiers:tiers,kg:0,nota:''};
-    var min=minKgDe(nombre), step=(min%1)?0.5:1, nv=Math.round((it.kg+delta*step)*10)/10;
+    var min=minKgDe(nombre), step=kgPieza(nombre)||((min%1)?0.5:1), nv=Math.round((it.kg+delta*step)*10)/10;
     if(nv>0 && nv<min) nv=(delta<0?0:min);   // al subir salta al mínimo; al bajar, a 0
     it.kg=Math.max(0,nv); it.tiers=tiers;
     if(it.kg===0) delete CART[k]; else { if(!CART[k]) gdoPx("AddToCart",{content_name:nombre,currency:"ARS"}); CART[k]=it; }
@@ -405,10 +410,10 @@ window.GDO = window.GDO || {};
   function delLine(k){ delete CART[k]; sync(); drawCart(); }
   function refreshSteppers(){
     document.querySelectorAll('[data-q]').forEach(function(s){ var p=s.dataset.q.split('||'),q=qtyOf(p[0],p[1]); s.textContent=q; var r=s.closest('.var'); if(r) r.classList.toggle('incart',q>0); });
-    document.querySelectorAll('[data-qk]').forEach(function(s){ s.textContent=kgTxt(pesoKg(s.dataset.qk)); });
+    document.querySelectorAll('[data-qk]').forEach(function(s){ var n=s.dataset.qk, kg=pesoKg(n); s.textContent = kgPieza(n) ? piezas(n,kg) : kgTxt(kg); });
     // kilos de cada corte
     document.querySelectorAll('[data-ck]').forEach(function(s){ var p=s.dataset.ck.split('||'); s.textContent=kgCorte(p[0],p[1]); });
-    document.querySelectorAll('[data-tot]').forEach(function(s){ var it=CART[pkey(s.dataset.tot)]; s.textContent = it ? money(lineTotal(it)) : ''; });
+    document.querySelectorAll('[data-tot]').forEach(function(s){ var it=CART[pkey(s.dataset.tot)]; s.textContent = it ? (kgPieza(it.nombre)?'≈ ':'')+money(lineTotal(it)) : ''; });
     document.querySelectorAll('[data-pk]').forEach(function(r){ r.classList.toggle('incart', pesoKg(r.dataset.pk)>0); });
   }
   function sync(){
@@ -486,6 +491,7 @@ window.GDO = window.GDO || {};
             items.push({ producto: it.nombre, cantidad: x.kg, unidad:'kg', precio: pk, preparacion: x.corte, nota: nota });
           });
         } else {
+          if(kgPieza(it.nombre)) nota=piezasTxt(piezas(it.nombre,it.kg))+' (peso estimado, se cobra al peso exacto)'+(nota?' · '+nota:'');
           items.push({ producto: it.nombre, cantidad: it.kg, unidad:'kg', precio: precioKg(it), preparacion:'', nota: nota });
         }
       }
@@ -689,7 +695,10 @@ window.GDO = window.GDO || {};
       for(var k in CART){ var it=CART[k]; i++;
         if(it.tipo==='peso'){
           L.push('*'+i+') '+it.nombre+'*');
-          L.push('    '+it.kg+' kg × '+money(precioKg(it))+' = *'+money(lineTotal(it))+'*');
+          if(kgPieza(it.nombre)){
+            L.push('    '+piezasTxt(piezas(it.nombre,it.kg))+' (≈ '+kgTxt(it.kg)+' kg) × '+money(precioKg(it))+'/kg = *≈ '+money(lineTotal(it))+'*');
+            L.push('    ⚖️ _Se cobra al peso exacto (va en el ticket)_');
+          } else L.push('    '+it.kg+' kg × '+money(precioKg(it))+' = *'+money(lineTotal(it))+'*');
         } else {
           L.push('*'+i+') '+it.nombre+' ('+it.variedad+')*');
           L.push('    '+it.cant+' un × '+money(it.precio)+' = *'+money(lineTotal(it))+'*');
@@ -782,9 +791,10 @@ window.GDO = window.GDO || {};
       var nota = '<input class="ci-note'+(it.nota?' has':'')+'" data-nota="'+esc(k)+'" value="'+esc(it.nota||'')+'" placeholder="📝 Aclaración para este producto (opcional)" maxlength="120"/>';
       var fila;
       if(it.tipo==='peso'){
-        fila='<div class="ci"><div class="cinfo"><b>'+esc(it.nombre)+'</b><span>'+kgTxt(it.kg)+' kg · '+money(precioKg(it))+' /kg</span>'+prep+'</div>'+
-          '<div class="stp"><button data-pdec="'+esc(it.nombre)+'">−</button><input value="'+it.kg+' kg" readonly style="width:56px"><button data-pinc="'+esc(it.nombre)+'">+</button></div>'+
-          '<div class="cprice">'+money(lineTotal(it))+'</div><button class="rm" data-rm="'+esc(k)+'">🗑</button></div>';
+        var pzC=kgPieza(it.nombre), nPz=piezas(it.nombre,it.kg);
+        fila='<div class="ci"><div class="cinfo"><b>'+esc(it.nombre)+'</b><span>'+(pzC? piezasTxt(nPz)+' (≈ '+kgTxt(it.kg)+' kg) · '+money(precioKg(it))+' /kg · peso exacto en el ticket' : kgTxt(it.kg)+' kg · '+money(precioKg(it))+' /kg')+'</span>'+prep+'</div>'+
+          '<div class="stp"><button data-pdec="'+esc(it.nombre)+'">−</button><input value="'+(pzC? piezasTxt(nPz) : it.kg+' kg')+'" readonly style="width:'+(pzC?70:56)+'px"><button data-pinc="'+esc(it.nombre)+'">+</button></div>'+
+          '<div class="cprice">'+(pzC?'≈ ':'')+money(lineTotal(it))+'</div><button class="rm" data-rm="'+esc(k)+'">🗑</button></div>';
       } else {
         fila='<div class="ci"><div class="cinfo"><b>'+esc(it.nombre)+'</b><span>'+esc(it.variedad)+' · '+money(it.precio)+' c/u</span>'+prep+'</div>'+
           '<div class="stp"><button data-cdec="'+esc(k)+'">−</button><input value="'+it.cant+'" readonly style="width:40px"><button data-cinc="'+esc(k)+'">+</button></div>'+
@@ -904,13 +914,13 @@ window.GDO = window.GDO || {};
         var prods = s.prods.map(function(p){
           var multi = p.vars.length>1, body, etq, val;
           if(esPorPeso(p)){
-            var tiers=tiersDe(p); TIERMAP[p.nombre]=tiers; var nA=esc(p.nombre), minK=minKgDe(p.nombre);
+            var tiers=tiersDe(p); TIERMAP[p.nombre]=tiers; var nA=esc(p.nombre), minK=minKgDe(p.nombre), pz=kgPieza(p.nombre);
             var nt=tiers.length, orden=tiers.slice().sort(function(a,b){return a.perkg-b.perkg;}), rank={};
             orden.forEach(function(t,i){ rank[t.min]=i; });
             var tabla='<div class="tiers">'+tiers.map(function(t){
               var cls = nt>1 ? (rank[t.min]===0?' of2':(rank[t.min]===1?' of1':'')) : '';
               var bdg = (nt>1 && rank[t.min]===0) ? '<span class="ofb">★ MÁS CONVENIENTE</span>' : '';
-              return '<div class="tr'+cls+'">'+bdg+'<span class="tk">'+kgTxt(t.min)+' kg</span><b>'+money(t.min*t.perkg)+'</b><small>'+money(t.perkg)+'/kg</small></div>';
+              return '<div class="tr'+cls+'">'+bdg+'<span class="tk">'+(pz?'1 pieza ≈ ':'')+kgTxt(t.min)+' kg</span><b>'+money(t.min*t.perkg)+'</b><small>'+money(t.perkg)+'/kg</small></div>';
             }).join('')+'</div>';
             // Si el producto se puede pedir cortado de varias formas, en vez de
             // un solo "¿cuántos kg?" va un contador POR CORTE y abajo el total,
@@ -918,17 +928,18 @@ window.GDO = window.GDO || {};
             // 5 kg y pagan el escalón de 5 kg.
             var conCortes = !!prepDe(p.nombre);
             body='<div class="kgsel" data-pk="'+nA+'">'+tabla+
-              (minK>1?'<div class="kgmin">📦 Mínimo '+kgTxt(minK)+' kg por pedido</div>':'')+
+              (pz ? '<div class="kgmin">📦 Mínimo 1 pieza (≈ '+kgTxt(pz)+' kg). Se vende al peso: el peso exacto se informa en el ticket</div>'
+                  : (minK>1?'<div class="kgmin">📦 Mínimo '+kgTxt(minK)+' kg por pedido</div>':''))+
               (/ELABORADO/i.test(c.name||'')?'<div class="kgmin">🔀 Combiná variedades de '+esc(s.name)+': el precio por cantidad es por el total de kilos</div>':'')+
               (conCortes
                 ? prepHTML(p.nombre)+
                   '<div class="kgrow kgtotal"><span class="lbl">Total del producto</span>'+
                     '<b><span data-qk="'+nA+'">'+kgTxt(pesoKg(p.nombre))+'</span> kg</b>'+
                     '<span class="ktot" data-tot="'+nA+'"></span></div>'
-                : '<div class="kgrow"><span class="lbl">¿Cuántos kg?</span>'+
+                : '<div class="kgrow"><span class="lbl">'+(pz?'¿Cuántas piezas?':'¿Cuántos kg?')+'</span>'+
                     '<span class="stp"><button class="pdec" data-n="'+nA+'">−</button>'+
-                      '<span class="qn" data-qk="'+nA+'">'+kgTxt(pesoKg(p.nombre))+'</span>'+
-                      '<button class="pinc" data-n="'+nA+'">+</button></span><span class="lbl">kg</span>'+
+                      '<span class="qn" data-qk="'+nA+'">'+(pz?piezas(p.nombre,pesoKg(p.nombre)):kgTxt(pesoKg(p.nombre)))+'</span>'+
+                      '<button class="pinc" data-n="'+nA+'">+</button></span><span class="lbl">'+(pz?'piezas':'kg')+'</span>'+
                     '<span class="ktot" data-tot="'+nA+'"></span></div>')+
               '</div>';
             etq='DESDE'; val=money(tiers[0].min*tiers[0].perkg);

@@ -173,7 +173,7 @@ window.GDO = window.GDO || {};
 <script src="geo.js"></script>
 <script>
 (function(){
-  var VERSION='combo v1.7';
+  var VERSION='combo v1.8';
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
   // el monto calculado allá con la lista en vivo. (Los links de pago de Nave son de un solo uso.)
   // Si el servidor dice que está apagado o no responde, se ofrece solo pagar al recibir.
@@ -218,7 +218,8 @@ window.GDO = window.GDO || {};
   function nid(){ var a=new Uint8Array(16); crypto.getRandomValues(a); var s=''; for(var i=0;i<a.length;i++) s+=('0'+a[i].toString(36)).slice(-2); return 'p_'+s; }
 
   var CFG=null, COMBO=null, TARTAS=[], TARTA_PRECIO=0;
-  var st={ cant:1, modo:'envio', zona:null, dia:null, diaF:'', diaIso:'', tartas:[''], extras:{} };
+  // Arranca en RETIRO: el precio que ve primero es el del combo solo ($50.000); el envío se suma si lo elige.
+  var st={ cant:1, modo:'retiro', zona:null, dia:null, diaF:'', diaIso:'', tartas:[], extras:{} };
 
   // ¿Está prendido el cobro online? (no frena la carga: si contesta tarde, se suma la opción).
   fetch(NAVE_API+'/estado').then(function(r){ return r.json(); }).then(function(j){ NAVE_ON=!!(j&&j.activo); if(COMBO && $('pago')) upd(); }).catch(function(){});
@@ -296,11 +297,11 @@ window.GDO = window.GDO || {};
         '<label class="fl">Cantidad de combos</label><div class="qty"><button type="button" id="qm" aria-label="Uno menos">−</button><span id="qn">1</span><button type="button" id="qp" aria-label="Uno más">+</button></div>'+
         '<div id="tartasBox"></div></div></div>'+
       '<div class="sec"><div class="h2">Paso 2</div><h3>¿Cómo lo recibís?</h3><div class="box pad">'+
-        '<div class="seg"><button type="button" class="opt on" data-m="envio">Envío a domicilio<small id="envSmall">Solo '+money(ENVIO_FIJO)+'</small></button><button type="button" class="opt" data-m="retiro">Retiro en el local<small>Lunes a sábado</small></button></div>'+
-        '<div id="envBox"><div class="hint" id="envHint"></div><a class="linkmapa linkm" role="button">📍 Tocá acá y fijate si llegamos a tu zona</a><label class="fl">Zona</label><select id="zona" class="fin"><option value="">Elegí tu zona</option>'+zonas+'</select><div id="diasBox"></div>'+
+        '<div class="seg"><button type="button" class="opt" data-m="envio">Envío a domicilio<small id="envSmall">Solo '+money(ENVIO_FIJO)+'</small></button><button type="button" class="opt on" data-m="retiro">Retiro en el local<small>Lunes a sábado</small></button></div>'+
+        '<div id="envBox" style="display:none"><div class="hint" id="envHint"></div><a class="linkmapa linkm" role="button">📍 Tocá acá y fijate si llegamos a tu zona</a><label class="fl">Zona</label><select id="zona" class="fin"><option value="">Elegí tu zona</option>'+zonas+'</select><div id="diasBox"></div>'+
           '<label class="fl">Dirección</label><input id="dir" class="fin" autocomplete="street-address" placeholder="Calle y número">'+
           '<label class="fl">Entre calles <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="entre" class="fin" placeholder="Ayuda al repartidor"></div>'+
-        '<div id="retBox" style="display:none"><div class="hint">Retiralo en <b>'+esc(CFG.sucursal)+'</b>, de '+HORARIO_RETIRO+'.</div><label class="fl">¿Qué día pasás? <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="diaR" class="fin" placeholder="Por ejemplo, jueves"></div>'+
+        '<div id="retBox"><div class="hint">Retiralo en <b>'+esc(CFG.sucursal)+'</b>, de '+HORARIO_RETIRO+'.</div><label class="fl">¿Qué día pasás? <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="diaR" class="fin" placeholder="Por ejemplo, jueves"></div>'+
       '</div></div>'+
       '<div class="sec"><div class="h2">Paso 3</div><h3>Tus datos</h3><div class="box pad">'+
         '<label class="fl">Nombre y apellido</label><input id="nom" class="fin" autocomplete="name" placeholder="Cómo te llamás">'+

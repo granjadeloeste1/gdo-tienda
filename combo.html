@@ -91,6 +91,7 @@ select.fin{background-image:linear-gradient(45deg,transparent 50%,#999 50%),line
 .gratis{position:fixed;inset:0;z-index:35;display:flex;align-items:center;justify-content:center;background:rgba(17,17,17,.45)}
 .gratis div{background:#1fa855;color:#fff;border-radius:22px;padding:26px 24px;max-width:320px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35);animation:pop .5s ease}
 .gratis b{display:block;font:800 28px/1.1 var(--slab);margin:6px 0}
+.gratis .gb{display:block;width:100%;margin-top:12px;font:800 16px var(--sans);color:#1fa855;background:#fff;border:0;border-radius:12px;padding:13px}
 .gratis small{display:block;margin-top:12px;opacity:.85;font-size:13px}
 .linkmapa{display:inline-block;margin-top:8px;font-weight:700;color:var(--or-d);text-decoration:underline;cursor:pointer}
 .dias{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
@@ -194,7 +195,7 @@ window.GDO = window.GDO || {};
 <script src="geo.js"></script>
 <script>
 (function(){
-  var VERSION='combo v2.1';
+  var VERSION='combo v2.2';
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
   // el monto calculado allá con la lista en vivo. (Los links de pago de Nave son de un solo uso.)
   // Si el servidor dice que está apagado o no responde, se ofrece solo pagar al recibir.
@@ -428,8 +429,9 @@ window.GDO = window.GDO || {};
     $('envHint').innerHTML=gratis?'🎉 <b>¡Ya tenés envío gratis!</b> Te lo llevamos sin cargo.':'Te lo llevamos por solo <b>'+money(ENVIO_FIJO)+'</b>, sin que te muevas de tu casa. Sumando '+money(CFG.envioGratisDesde)+' en productos, el envío es sin cargo.';
     if(st.modo!=='envio'){ tn.style.display='none'; }
     else { tn.style.display='block'; var falta=CFG.envioGratisDesde-pr; tn.className='free'+(falta>0?' no':' fiesta'); tn.textContent=falta>0?'Sumando '+money(falta)+' más en productos, el envío es sin cargo.':'🎉 ¡Ya tenés envío gratis!'; }
-    if(gratis && !st.gratis) festejo();
-    st.gratis=gratis;
+    var supera=CFG.envioGratis && pr>=CFG.envioGratisDesde;
+    if(supera && !st.supera) festejo();
+    st.supera=supera;
     // Formas de pago: el pago online aparece primero (y elegido) cuando hay link para este total.
     var ps=$('pago'), antes=ps.value, link=hayOnline();
     var ops=(link?[ONLINE]:[]).concat((CFG.formasPago||['Efectivo']).map(function(f){ return f.length<=3?f:cap(f); }));
@@ -463,8 +465,15 @@ window.GDO = window.GDO || {};
   // Envío gratis: cartel verde, papelitos y un "tarará" corto de corneta.
   function festejo(){
     var c=document.createElement('div'); c.className='gratis';
-    c.innerHTML='<div><span style="font-size:42px">🎉</span><b>¡Ahora tenés envío gratis!</b>Tu pedido supera los '+money(CFG.envioGratisDesde)+'.<small>Tocá para seguir</small></div>';
-    c.onclick=function(){ c.remove(); }; document.body.appendChild(c);
+    var env=st.modo==='envio';
+    c.innerHTML='<div><span style="font-size:42px">🎉</span><b>¡Ahora tenés envío gratis!</b>Tu pedido supera los '+money(CFG.envioGratisDesde)+'.'+
+      (env?'':' Si querés, te lo llevamos a tu casa sin cargo.<button type="button" class="gb">🚚 Quiero que me lo envíen</button>')+
+      '<small>'+(env?'Tocá para seguir':'O tocá afuera para seguir con retiro')+'</small></div>';
+    c.onclick=function(ev){
+      if(ev.target.classList.contains('gb')){ var b=document.querySelector('[data-m=envio]'); if(b) b.click(); }
+      c.remove();
+    };
+    document.body.appendChild(c);
     var cols=['#F58220','#FBC02D','#E53935','#1fa855','#111'];
     for(var i=0;i<40;i++){ var d=document.createElement('div'); d.className='confeti'; d.style.left=Math.random()*100+'vw'; d.style.background=cols[i%cols.length]; d.style.animationDelay=(Math.random()*.4)+'s'; document.body.appendChild(d); setTimeout(function(x){ return function(){ x.remove(); }; }(d),2200); }
     try{ var A=window.AudioContext||window.webkitAudioContext, ctx=new A(), t0=ctx.currentTime;

@@ -99,6 +99,22 @@ select.fin{background-image:linear-gradient(45deg,transparent 50%,#999 50%),line
 .ok .card{background:#fff;border-radius:16px;padding:16px;margin:20px 0 6px;text-align:left;box-shadow:0 1px 0 var(--li)}
 .btn2{display:block;margin:12px auto 0;max-width:360px;font:700 16px var(--sans);padding:15px;border-radius:14px;text-decoration:none;color:#fff;background:#1fa855}
 .btn2.pay{background:var(--ne)}
+/* Cartel "sumá productos y el envío te sale sin cargo" (antes de confirmar un envío) */
+.up{position:fixed;inset:0;z-index:20;background:rgba(17,17,17,.55);display:flex;align-items:flex-end;justify-content:center}
+.upbox{background:var(--cr);width:100%;max-width:520px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:22px 18px 0}
+.upbox h3{font:800 24px/1.15 var(--slab);margin:4px 0 10px}
+.prog{height:10px;background:#e8e1d8;border-radius:99px;overflow:hidden}.prog i{display:block;height:100%;background:var(--or);border-radius:99px;transition:width .25s}
+.uprow{background:#fff;border-radius:14px;padding:12px;margin-top:10px;box-shadow:0 1px 0 var(--li)}
+.uprow b.t{display:block;font:700 15px var(--sans);margin-bottom:8px}
+.uprow .l2{display:flex;gap:8px;align-items:center}
+.uprow select{flex:1;min-width:0;font:500 14px var(--sans);padding:10px;border:1.5px solid var(--li);border-radius:10px;background:#fff}
+.mini{display:flex;align-items:center;gap:6px}.mini button{width:36px;height:36px;border-radius:9px;border:0;background:var(--cr);font:700 20px var(--sans)}
+.mini span{min-width:44px;text-align:center;font:800 15px var(--sans)}
+.uprow .pr{font-size:13px;color:var(--mu);margin-top:6px}
+.upfoot{position:sticky;bottom:0;background:var(--cr);padding:12px 0 calc(14px + env(safe-area-inset-bottom));margin-top:12px;border-top:1px solid var(--li)}
+.upfoot button{width:100%;font:700 17px var(--sans);color:#fff;background:var(--ne);border:0;border-radius:14px;padding:16px;display:flex;justify-content:space-between}
+.upfoot button b{font:800 18px var(--slab);color:var(--am)}
+.upfoot a{display:block;text-align:center;margin-top:10px;color:var(--mu);font-size:14px;text-decoration:underline}
 </style></head>
 <body><div class="wrap" id="app"><div class="top"><img src="assets/logo-horizontal-blanco.svg" alt="Granja del Oeste"></div><div class="off">Preparando tu combo…</div></div>
 
@@ -133,13 +149,29 @@ window.GDO = window.GDO || {};
 <script src="geo.js"></script>
 <script>
 (function(){
-  var VERSION='combo v1.4';
+  var VERSION='combo v1.5';
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
   // el monto calculado allá con la lista en vivo. (Los links de pago de Nave son de un solo uso.)
   // Si el servidor dice que está apagado o no responde, se ofrece solo pagar al recibir.
   var NAVE_API='https://gdo-bot-whatsapp-production.up.railway.app/nave';
   var ONLINE='Pago online (dinero en cuenta, desde tu banco o billetera)';
   var NAVE_ON=false;
+  // Solo para este combo: envío FIJO a cualquier zona (sin cargo desde el monto de envío gratis de la
+  // hoja) y retiro en el local en el horario de mostrador.
+  var ENVIO_FIJO=7000;
+  var HORARIO_RETIRO='lunes a sábado de 6 a 13:30';
+  // Productos que se ofrecen para llegar al envío sin cargo (precios EN VIVO de la lista minorista).
+  var GRUPOS=[
+    ['Milanesas de pollo', function(p){ return p.sub==='MILANESAS DE POLLO'; }],
+    ['Milanesas rellenas', function(p){ return p.sub==='MILANESAS RELLENAS'; }],
+    ['Supremas rellenas', function(p){ return p.sub==='SUPREMAS RELLENAS'; }],
+    ['Hamburguesas', function(p){ return p.sub==='HAMBURGUESAS'; }],
+    ['Trozado de pollo fresco', function(p){ return /TROZADO DE POLLO FRESCO/.test(p.cat); }],
+    ['Albóndigas', function(p){ return /ALB[OÓ]NDIGAS/.test(p.sub); }],
+    ['Arrollados de pollo', function(p){ return p.sub==='ARROLLADOS'; }],
+    ['Huevos', function(p){ return p.cat==='HUEVO'; }]
+  ];
+  var EXTRA={}, UPG=[];
   // El total solo está definido si ya eligió zona (envío) o retiro.
   function hayOnline(){ return NAVE_ON && !(st.modo==='envio' && st.zona==null); }
   var API='https://script.google.com/macros/s/AKfycbwH6JW35BRYcBk958OEr4sEvfVIfzgqzQeGwvz63xZYgukwxik8EsIego4d9O456bHURg/exec';
@@ -162,7 +194,7 @@ window.GDO = window.GDO || {};
   function nid(){ var a=new Uint8Array(16); crypto.getRandomValues(a); var s=''; for(var i=0;i<a.length;i++) s+=('0'+a[i].toString(36)).slice(-2); return 'p_'+s; }
 
   var CFG=null, COMBO=null, TARTAS=[], TARTA_PRECIO=0;
-  var st={ cant:1, modo:'envio', zona:null, dia:null, diaF:'', diaIso:'', tartas:[''] };
+  var st={ cant:1, modo:'envio', zona:null, dia:null, diaF:'', diaIso:'', tartas:[''], extras:{} };
 
   // ¿Está prendido el cobro online? (no frena la carga: si contesta tarde, se suma la opción).
   fetch(NAVE_API+'/estado').then(function(r){ return r.json(); }).then(function(j){ NAVE_ON=!!(j&&j.activo); if(COMBO && $('pago')) upd(); }).catch(function(){});
@@ -190,6 +222,22 @@ window.GDO = window.GDO || {};
     var ts=ps.filter(function(p){ return /TARTAS INDIVIDUALES/i.test(p.cat); });
     TARTAS=ts.map(function(p){ return cap(String(p.nombre).replace(/^TARTA INDIVIDUAL DE\s*/i,'')); });
     TARTA_PRECIO=ts.length?ts[0].precio:0;
+    // Extras: un producto por nombre; si todas sus variedades son "N kg" se vende por kg con escala.
+    GRUPOS.forEach(function(g){
+      var noms=[];
+      ps.filter(g[1]).forEach(function(p){
+        var e=EXTRA[p.nombre];
+        if(!e){ e=EXTRA[p.nombre]={ nombre:p.nombre, label:cap(String(p.nombre).replace(/\s+X\s+(KG|UNIDAD)$/i,'').replace(/\s+/g,' ')).replace(/^Maple b1$/,'Maple de huevos'), vars:[] }; noms.push(p.nombre); }
+        e.vars.push({ variedad:p.variedad, precio:p.precio });
+      });
+      noms.forEach(function(n){
+        var e=EXTRA[n], kg=e.vars.map(function(v){ var m=/^(\d+(?:[.,]\d+)?)\s*kg$/i.exec(String(v.variedad).trim()); return m?parseFloat(m[1].replace(',','.')):null; });
+        e.porKg=kg.every(function(x){ return x!=null; });
+        if(e.porKg) e.tiers=e.vars.map(function(v,i){ return { min:kg[i], perkg:v.precio }; }).sort(function(a,b){ return a.min-b.min; });
+        e.min=e.porKg && /MILANES/i.test(g[0])?2:1;   // las milanesas van por mínimo 2 kg, como en la tienda
+      });
+      if(noms.length) UPG.push({ titulo:g[0], noms:noms });
+    });
     if(VUELTA) return;
     if(!COMBO){ app.innerHTML=TOP+'<div class="off">El combo no está disponible en este momento.<a class="mas" href="vista-minorista.html"><span>Ver la lista completa</span></a></div>'; return; }
     gdoPx('ViewContent',{content_name:'Combo fin de mes',value:COMBO.precio,currency:'ARS',content_type:'product'});
@@ -200,7 +248,11 @@ window.GDO = window.GDO || {};
   });
 
   function sub(){ return COMBO.precio*st.cant; }
-  function envio(){ if(st.modo!=='envio'||st.zona==null) return 0; if(CFG.envioGratis && sub()>=CFG.envioGratisDesde) return 0; return CFG.zonas[st.zona].costo||0; }
+  function precioExtra(e,q){ if(!e.porKg) return e.vars[0].precio; var t=e.tiers[0]; e.tiers.forEach(function(x){ if(q>=x.min) t=x; }); return t.perkg; }
+  function extrasTotal(){ var t=0; for(var n in st.extras){ var q=st.extras[n]; if(q>0 && EXTRA[n]) t+=precioExtra(EXTRA[n],q)*q; } return t; }
+  function productos(){ return sub()+extrasTotal(); }
+  function envio(){ if(st.modo!=='envio') return 0; if(CFG.envioGratis && productos()>=CFG.envioGratisDesde) return 0; return ENVIO_FIJO; }
+  function uniExtra(e,q){ return e.porKg?q+' kg':q+' u.'; }
 
   function render(){
     var zonas=(CFG.zonas||[]).map(function(z,i){ return '<option value="'+i+'">'+esc(String(z.nombre).toLowerCase().replace(/[a-záéíóúñ]+/g,function(w){ return /^(de|del|y)$/.test(w)?w:w.charAt(0).toUpperCase()+w.slice(1); }))+'</option>'; }).join('');
@@ -215,16 +267,16 @@ window.GDO = window.GDO || {};
       '<div class="sec"><div class="h2">Qué incluye</div><h3>Una semana de comidas, resuelta.</h3><div class="box">'+
         ITEMS.map(function(x){ return '<div class="it"><img src="assets/combo/'+x[2]+'.jpg" alt=""><span class="q">'+x[0]+'</span><span class="d">'+x[1]+'</span></div>'; }).join('')+
         '<div class="it gift"><img src="assets/combo/tarta.png" alt=""><span class="q">+1</span><span class="d">Tarta individual a elección<span class="tag">REGALO</span></span></div></div></div>'+
-      '<div class="trust"><div><b>Precio de distribuidor</b>Directo de nuestro depósito</div><div><b>Entrega a domicilio</b>Lunes a sábado en zona oeste</div><div><b>Sin vueltas</b>Pagás al recibir</div></div>'+
+      '<div class="trust"><div><b>Precio de distribuidor</b>Directo de nuestro depósito</div><div><b>Envío $7.000</b>A toda la zona oeste</div><div><b>Sin vueltas</b>Pagás al recibir</div></div>'+
       '<div class="sec"><div class="h2">Paso 1</div><h3>Armá tu pedido</h3><div class="box pad">'+
         '<label class="fl">Cantidad de combos</label><div class="qty"><button type="button" id="qm" aria-label="Uno menos">−</button><span id="qn">1</span><button type="button" id="qp" aria-label="Uno más">+</button></div>'+
         '<div id="tartasBox"></div></div></div>'+
       '<div class="sec"><div class="h2">Paso 2</div><h3>¿Cómo lo recibís?</h3><div class="box pad">'+
-        '<div class="seg"><button type="button" class="opt on" data-m="envio">Envío a domicilio<small>Te lo llevamos</small></button><button type="button" class="opt" data-m="retiro">Retiro en el local<small>Sin costo de envío</small></button></div>'+
-        '<div id="envBox"><label class="fl">Zona</label><select id="zona" class="fin"><option value="">Elegí tu zona</option>'+zonas+'</select><div id="diasBox"></div>'+
+        '<div class="seg"><button type="button" class="opt on" data-m="envio">Envío a domicilio<small>Solo '+money(ENVIO_FIJO)+'</small></button><button type="button" class="opt" data-m="retiro">Retiro en el local<small>Lunes a sábado</small></button></div>'+
+        '<div id="envBox"><div class="hint">Te lo llevamos por solo <b>'+money(ENVIO_FIJO)+'</b>, sin que te muevas de tu casa. Sumando '+money(CFG.envioGratisDesde)+' en productos, el envío es sin cargo.</div><label class="fl">Zona</label><select id="zona" class="fin"><option value="">Elegí tu zona</option>'+zonas+'</select><div id="diasBox"></div>'+
           '<label class="fl">Dirección</label><input id="dir" class="fin" autocomplete="street-address" placeholder="Calle y número">'+
           '<label class="fl">Entre calles <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="entre" class="fin" placeholder="Ayuda al repartidor"></div>'+
-        '<div id="retBox" style="display:none"><div class="hint">Te esperamos en <b>'+esc(CFG.sucursal)+'</b>. '+esc(CFG.horario||'')+'.</div><label class="fl">¿Qué día pasás? <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="diaR" class="fin" placeholder="Por ejemplo, jueves"></div>'+
+        '<div id="retBox" style="display:none"><div class="hint">Retiralo en <b>'+esc(CFG.sucursal)+'</b>, de '+HORARIO_RETIRO+'.</div><label class="fl">¿Qué día pasás? <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="diaR" class="fin" placeholder="Por ejemplo, jueves"></div>'+
       '</div></div>'+
       '<div class="sec"><div class="h2">Paso 3</div><h3>Tus datos</h3><div class="box pad">'+
         '<label class="fl">Nombre y apellido</label><input id="nom" class="fin" autocomplete="name" placeholder="Cómo te llamás">'+
@@ -234,7 +286,7 @@ window.GDO = window.GDO || {};
       '</div></div>'+
       '<div class="sec"><div class="h2">Resumen</div><div class="box pad sum">'+
         '<div class="ln"><span>Combo fin de mes × <span id="tc">1</span></span><span id="ts"></span></div>'+
-        '<div class="ln"><span>Tarta individual de regalo</span><span>$0</span></div>'+
+        '<div class="ln"><span>Tarta individual de regalo</span><span>$0</span></div><div id="exL"></div>'+
         '<div class="ln" id="teL"><span>Envío</span><span id="te"></span></div>'+
         '<div class="ln big"><span>Total</span><span id="tt"></span></div><div class="free" id="tn"></div></div></div>'+
       '<div class="err" id="err"></div>'+
@@ -269,13 +321,14 @@ window.GDO = window.GDO || {};
     }).join('');
     app.querySelectorAll('.chips').forEach(function(c){ c.querySelectorAll('.chip').forEach(function(b){ b.onclick=function(){ st.tartas[+c.dataset.i]=b.dataset.t; c.querySelectorAll('.chip').forEach(function(x){ x.classList.toggle('on',x===b); }); }; }); });
     $('qn').textContent=st.cant; $('tc').textContent=st.cant;
-    var e=envio(), s=sub(), tn=$('tn');
+    var e=envio(), s=sub(), pr=productos(), tn=$('tn');
     $('ts').textContent=money(s);
+    $('exL').innerHTML=Object.keys(st.extras).filter(function(n){ return st.extras[n]>0; }).map(function(n){ var x=EXTRA[n], q=st.extras[n]; return '<div class="ln"><span>'+esc(x.label)+' · '+uniExtra(x,q)+'</span><span>'+money(precioExtra(x,q)*q)+'</span></div>'; }).join('');
     $('teL').style.display=st.modo==='envio'?'flex':'none';
-    $('te').textContent=st.zona==null?'Elegí tu zona':(e===0?'Sin cargo':money(e));
-    $('tt').textContent=money(s+e); $('gt').textContent=money(s+e);
+    $('te').textContent=e===0?'Sin cargo':money(e);
+    $('tt').textContent=money(pr+e); $('gt').textContent=money(pr+e);
     if(st.modo!=='envio'){ tn.style.display='none'; }
-    else { tn.style.display='block'; var falta=CFG.envioGratisDesde-s; tn.className='free'+(falta>0?' no':''); tn.textContent=falta>0?'Llevando 2 combos el envío es sin cargo.':'Tu envío es sin cargo.'; }
+    else { tn.style.display='block'; var falta=CFG.envioGratisDesde-pr; tn.className='free'+(falta>0?' no':''); tn.textContent=falta>0?'Sumando '+money(falta)+' más en productos, el envío es sin cargo.':'Tu envío es sin cargo.'; }
     // Formas de pago: el pago online aparece primero (y elegido) cuando hay link para este total.
     var ps=$('pago'), antes=ps.value, link=hayOnline();
     var ops=(link?[ONLINE]:[]).concat((CFG.formasPago||['Efectivo']).map(function(f){ return f.length<=3?f:cap(f); }));
@@ -289,7 +342,7 @@ window.GDO = window.GDO || {};
     h.textContent=on?'Al confirmar te llevamos al pago seguro de Nave (Banco Galicia).':(NAVE_ON&&st.modo==='envio'&&st.zona==null?'Elegí tu zona para ver si podés pagar online.':'Pagás '+(st.modo==='envio'?'al recibir':'al retirar')+'.');
   }
 
-  function enviar(){
+  function enviar(listo){
     var err=$('err'); err.textContent='';
     var nom=$('nom').value.trim(), tel=$('tel').value.trim(), pago=$('pago').value;
     function falla(t, el){ err.textContent=t; if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); }
@@ -297,13 +350,19 @@ window.GDO = window.GDO || {};
     if(st.modo==='envio'){ if(st.zona==null) return falla('Elegí tu zona de entrega.', $('zona')); if(!st.dia) return falla('Elegí el día de entrega.', $('diasBox')); if(!$('dir').value.trim()) return falla('Completá tu dirección.', $('dir')); }
     if(!nom) return falla('Completá tu nombre.', $('nom'));
     if(tel.replace(/\D/g,'').length<8) return falla('Revisá tu número de WhatsApp.', $('tel'));
-    var s=sub(), e=envio(), total=s+e, esEnv=st.modo==='envio';
+    // Envío por debajo del monto de envío gratis: antes de confirmar se ofrece sumar productos.
+    if(listo!==true && st.modo==='envio' && CFG.envioGratis && productos()<CFG.envioGratisDesde && UPG.length) return sumarMas();
+    var s=sub(), px=extrasTotal(), e=envio(), total=s+px+e, esEnv=st.modo==='envio';
     var dir=esEnv?$('dir').value.trim():'', entre=esEnv?$('entre').value.trim():'', zona=esEnv?CFG.zonas[st.zona].nombre:'';
     var diaR=esEnv?'':$('diaR').value.trim();
     var lat=null,lng=null; if(st.geo && st.geo.lat!=null && st.geo.direccion && st.geo.direccion.toLowerCase()===dir.toLowerCase()){ lat=st.geo.lat; lng=st.geo.lng!=null?st.geo.lng:st.geo.lon; }
     var items=[{ producto:'COMBO FIN DE MES ('+COMBO.desc+')', cantidad:st.cant, unidad:'unidad', precio:COMBO.precio, preparacion:'', nota:'' }];
     var cuenta={}; st.tartas.forEach(function(t){ cuenta[t]=(cuenta[t]||0)+1; });
     Object.keys(cuenta).forEach(function(t){ items.push({ producto:'TARTA INDIVIDUAL DE '+t.toUpperCase()+' (REGALO COMBO)', cantidad:cuenta[t], unidad:'unidad', precio:0, preparacion:'', nota:'' }); });
+    var extras=Object.keys(st.extras).filter(function(n){ return st.extras[n]>0; });
+    extras.forEach(function(n){ var x=EXTRA[n], q=st.extras[n]; items.push(x.porKg
+      ? { producto:x.nombre, cantidad:q, unidad:'kg', precio:precioExtra(x,q), preparacion:'', nota:'' }
+      : { producto:x.nombre+' ('+x.vars[0].variedad+')', cantidad:q, unidad:'unidad', precio:x.vars[0].precio, preparacion:'', nota:'' }); });
     var esp=esEnv?['MINORISTA','COMBO FIN DE MES (anuncio)','Zona: '+zona,'Día de entrega: '+st.dia+' '+st.diaF,'Envío: '+(e===0?'sin cargo':money(e))]
                  :['MINORISTA','COMBO FIN DE MES (anuncio)','Retiro en sucursal: '+CFG.sucursal].concat(diaR?['Día de retiro: '+diaR]:[]);
     var online=(pago===ONLINE)&&hayOnline();
@@ -312,7 +371,7 @@ window.GDO = window.GDO || {};
     var pedido={ id:nid(), origen:'tienda', lista:'minorista', fuente:'landing-combo-fin-de-mes', cliente:nom, telefono:tel,
       modalidad:esEnv?'envio':'retiro', direccion:dir, localidad:'', entrecalles:entre, lat:lat, lng:lng,
       items:items, fechaEntrega:esEnv?st.diaIso:'', especificaciones:esp.join(' · '), formaPago:pago, prioridad:'normal',
-      estado:'pendiente', creadoPor:null, rutaId:null, clienteUid:null, totalEstimado:Math.round(s), descuento:null,
+      estado:'pendiente', creadoPor:null, rutaId:null, clienteUid:null, totalEstimado:Math.round(s+px), descuento:null,
       zona:zona, diaEntrega:esEnv?st.dia:diaR, envio:Math.round(e), ventana:'', historia:[], creado:Date.now(), ts:Date.now() };
     gdoPx('Purchase',{value:total,currency:'ARS',num_items:st.cant,content_name:'Combo fin de mes',content_type:'product'});
     var guardado=guardar(pedido);
@@ -333,18 +392,56 @@ window.GDO = window.GDO || {};
     confirmado(false);
     function confirmado(falloPago){
       // Aviso opcional por WhatsApp (el pedido YA quedó cargado en el panel).
-      var L=['Hola! Hice el pedido del *Combo fin de mes* desde la web.','','• '+st.cant+' combo'+(st.cant>1?'s':'')+' + tarta de '+st.tartas.join(', ').toLowerCase(),
-        esEnv?'• Envío a '+dir+' · '+st.dia+' '+st.diaF:'• Retiro en el local'+(diaR?' · '+diaR:''),'• Pago: '+pago,'• Total: '+money(total),'','A nombre de '+nom+'.'];
+      var L=['Hola! Hice el pedido del *Combo fin de mes* desde la web.','','• '+st.cant+' combo'+(st.cant>1?'s':'')+' + tarta de '+st.tartas.join(', ').toLowerCase()].concat(extras.map(function(n){ return '• '+EXTRA[n].label+' · '+uniExtra(EXTRA[n],st.extras[n]); })).concat([
+        esEnv?'• Envío a '+dir+' · '+st.dia+' '+st.diaF:'• Retiro en el local'+(diaR?' · '+diaR:''),'• Pago: '+pago,'• Total: '+money(total),'','A nombre de '+nom+'.']);
       var wa='https://wa.me/'+WA+'?text='+encodeURIComponent(L.join('\n'));
       window.scrollTo(0,0);
       app.innerHTML=TOP+'<div class="ok"><div class="ic">✓</div><h1>Pedido confirmado, '+esc(nom.split(' ')[0])+'.</h1>'+
         '<p>Ya lo tenemos. '+(esEnv?'Te lo llevamos el <b>'+esc(st.dia)+' '+esc(st.diaF)+'</b>.':'Te esperamos en <b>'+esc(CFG.sucursal)+'</b>.')+'</p>'+
         '<div class="card sum"><div class="ln"><span>'+st.cant+' × Combo fin de mes</span><span>'+money(s)+'</span></div><div class="ln"><span>Tarta de '+esc(st.tartas.join(', ').toLowerCase())+'</span><span>Regalo</span></div>'+
+          extras.map(function(n){ var x=EXTRA[n], q=st.extras[n]; return '<div class="ln"><span>'+esc(x.label)+' · '+uniExtra(x,q)+'</span><span>'+money(precioExtra(x,q)*q)+'</span></div>'; }).join('')+
           (esEnv?'<div class="ln"><span>Envío</span><span>'+(e===0?'Sin cargo':money(e))+'</span></div>':'')+'<div class="ln big"><span>Total</span><span>'+money(total)+'</span></div></div>'+
         (falloPago?'<p style="font-size:14px;color:#6d665e">No pudimos abrir el pago online en este momento. Tu pedido quedó tomado igual: pagás '+(esEnv?'al recibir':'al retirar')+'.</p>':'<p style="font-size:14px;color:#6d665e">Pagás '+(esEnv?'al recibir':'al retirar')+' con '+esc(pago.toLowerCase())+'.</p>')+
         '<a class="btn2" href="'+wa+'" target="_blank" rel="noopener">Avisarnos por WhatsApp</a>'+
         '<a class="mas" href="vista-minorista.html"><span>Mirá la lista completa</span> →</a></div>';
     }
+  }
+
+  // Cartel antes de confirmar un ENVÍO que no llega al envío sin cargo: ofrece sumar productos de la
+  // lista minorista (milanesas, rellenas, hamburguesas, trozado fresco…) con sus precios en vivo.
+  function sumarMas(){
+    var ov=document.createElement('div'); ov.className='up';
+    var sel={}; UPG.forEach(function(g){ sel[g.titulo]=g.noms.filter(function(n){ return st.extras[n]>0; })[0]||g.noms[0]; });
+    function fila(g){
+      var n=sel[g.titulo], x=EXTRA[n], q=st.extras[n]||0;
+      var pr=x.porKg?money(precioExtra(x,Math.max(q,x.min)))+' el kg'+(x.tiers.length>1?' · baja llevando más':''):money(x.vars[0].precio)+(/^unidad$/i.test(x.vars[0].variedad||'unidad')?' c/u':' por '+String(x.vars[0].variedad).toLowerCase().replace(/^\d+\s*/,'').replace(/s$/,''));
+      return '<div class="uprow" data-g="'+esc(g.titulo)+'"><b class="t">'+esc(g.titulo)+'</b><div class="l2">'+
+        (g.noms.length>1?'<select>'+g.noms.map(function(m){ return '<option value="'+esc(m)+'"'+(m===n?' selected':'')+'>'+esc(EXTRA[m].label)+'</option>'; }).join('')+'</select>':'<span style="flex:1;font-size:14px">'+esc(x.label)+'</span>')+
+        '<div class="mini"><button type="button" data-d="-1" aria-label="Menos">−</button><span>'+(q?uniExtra(x,q):'—')+'</span><button type="button" data-d="1" aria-label="Más">+</button></div></div><div class="pr">'+pr+'</div></div>';
+    }
+    function pintar(){
+      var pr=productos(), meta=CFG.envioGratisDesde, falta=Math.max(0,meta-pr), e=envio();
+      ov.innerHTML='<div class="upbox"><div class="h2">Antes de confirmar</div><h3>'+(falta?'Sumá '+money(falta)+' y el envío te sale sin cargo':'¡Listo! Tu envío es sin cargo')+'</h3>'+
+        '<div class="prog"><i style="width:'+Math.min(100,Math.round(pr/meta*100))+'%"></i></div>'+
+        '<div class="hint">'+(falta?'Hoy pagarías '+money(e)+' de envío. Agregá lo que quieras de la lista:':'Ya sumaste '+money(pr)+' en productos.')+'</div>'+
+        UPG.map(fila).join('')+
+        '<div class="upfoot"><button type="button" id="upOk"><span>Confirmar pedido</span><b>'+money(pr+e)+'</b></button>'+
+        (Object.keys(st.extras).some(function(n){ return st.extras[n]>0; })?'':'<a href="#" id="upNo">No, gracias. Confirmar con envío de '+money(ENVIO_FIJO)+'</a>')+'</div></div>';
+      ov.querySelectorAll('.uprow').forEach(function(r){
+        var g=r.dataset.g, s2=r.querySelector('select');
+        if(s2) s2.onchange=function(){ sel[g]=s2.value; pintar(); };
+        r.querySelectorAll('.mini button').forEach(function(b){ b.onclick=function(){
+          var n=sel[g], x=EXTRA[n], q=st.extras[n]||0, d=+b.dataset.d;
+          q = d>0 ? (q?q+1:x.min) : (q>x.min?q-1:0);
+          if(q) st.extras[n]=q; else delete st.extras[n];
+          upd(); pintar();
+        }; });
+      });
+      ov.querySelector('#upOk').onclick=function(){ ov.remove(); enviar(true); };
+      var no=ov.querySelector('#upNo'); if(no) no.onclick=function(ev){ ev.preventDefault(); ov.remove(); enviar(true); };
+    }
+    ov.onclick=function(ev){ if(ev.target===ov){ ov.remove(); } };
+    document.body.appendChild(ov); pintar();
   }
 
   // Guarda en /pedidos igual que la tienda: espera la sesión anónima, reintenta y deja respaldo local.

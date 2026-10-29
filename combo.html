@@ -133,9 +133,21 @@ window.GDO = window.GDO || {};
 <script src="geo.js"></script>
 <script>
 (function(){
-  var VERSION='combo v1.1';
-  // Link de pago (Nave u otro). Vacío = no se ofrece; el cliente paga al recibir.
-  var PAGO_URL='';
+  var VERSION='combo v1.2';
+  // Links de pago de Nave, uno por TOTAL exacto (combo + envío). Solo se ofrece pago online si el
+  // total del pedido coincide con uno de estos montos: si cambia el precio o el envío en la hoja,
+  // el botón desaparece solo hasta que se carguen links nuevos (así nunca se cobra un monto mal).
+  var NAVE='https://checkout.ranty.io/nave?payment_request_id=';
+  var PAGOS={
+    50000: NAVE+'7e189acf-9df2-4aff-9c03-a82e52e63bec',   // 1 combo, retiro
+    57000: NAVE+'1e29e509-c4d4-46fa-8f4a-8afc39289a87',   // 1 combo, envío Villa Tesei
+    59000: NAVE+'560d78ce-55f7-4b45-9fbf-c2d7a2dd8dab',   // 1 combo, envío resto de zonas
+    100000: NAVE+'99ed7262-408f-4fbb-94a7-4c87e7f19cef',  // 2 combos, envío gratis (o retiro)
+    150000: NAVE+'aab534fd-175b-4ffa-b2c2-eeede2a299e9'   // 3 combos, envío gratis (o retiro)
+  };
+  var ONLINE='Pago online (tarjeta, débito o billetera)';
+  // El total solo está definido si ya eligió zona (envío) o retiro.
+  function linkPago(){ if(st.modo==='envio' && st.zona==null) return ''; return PAGOS[sub()+envio()]||''; }
   var API='https://script.google.com/macros/s/AKfycbwH6JW35BRYcBk958OEr4sEvfVIfzgqzQeGwvz63xZYgukwxik8EsIego4d9O456bHURg/exec';
   var WA='5491135800164';
   var ITEMS=[['2 kg','Milanesa de pollo','mila'],['2 kg','Papas bastón','papas'],['3 kg','Cuarto trasero','cuarto'],['1 kg','Hamburguesa de pollo clásica','burga'],['1','Maple de huevos','huevos']];
@@ -188,7 +200,7 @@ window.GDO = window.GDO || {};
       '<div class="sec"><div class="h2">Qué incluye</div><h3>Una semana de comidas, resuelta.</h3><div class="box">'+
         ITEMS.map(function(x){ return '<div class="it"><img src="assets/combo/'+x[2]+'.jpg" alt=""><span class="q">'+x[0]+'</span><span class="d">'+x[1]+'</span></div>'; }).join('')+
         '<div class="it gift"><img src="assets/combo/tarta.png" alt=""><span class="q">+1</span><span class="d">Tarta individual a elección<span class="tag">REGALO</span></span></div></div></div>'+
-      '<div class="trust"><div><b>Precio de distribuidor</b>Directo de nuestro depósito</div><div><b>Entrega a domicilio</b>Lunes a sábado en zona oeste</div><div><b>Sin vueltas</b>Pagás al recibir</div></div>'+
+      '<div class="trust"><div><b>Precio de distribuidor</b>Directo de nuestro depósito</div><div><b>Entrega a domicilio</b>Lunes a sábado en zona oeste</div><div><b>Pago seguro</b>Online con Nave o al recibir</div></div>'+
       '<div class="sec"><div class="h2">Paso 1</div><h3>Armá tu pedido</h3><div class="box pad">'+
         '<label class="fl">Cantidad de combos</label><div class="qty"><button type="button" id="qm" aria-label="Uno menos">−</button><span id="qn">1</span><button type="button" id="qp" aria-label="Uno más">+</button></div>'+
         '<div id="tartasBox"></div></div></div>'+
@@ -203,7 +215,7 @@ window.GDO = window.GDO || {};
         '<label class="fl">Nombre y apellido</label><input id="nom" class="fin" autocomplete="name" placeholder="Cómo te llamás">'+
         '<label class="fl">WhatsApp</label><input id="tel" class="fin" inputmode="tel" autocomplete="tel" placeholder="11 1234 5678">'+
         '<div class="hint">Te escribimos solo para confirmar la entrega.</div>'+
-        '<label class="fl">Forma de pago</label><select id="pago" class="fin">'+(PAGO_URL?'<option>Pago online</option>':'')+(CFG.formasPago||['Efectivo']).map(function(f){ return '<option>'+esc(cap(f))+'</option>'; }).join('')+'</select>'+
+        '<label class="fl">Forma de pago</label><select id="pago" class="fin"></select><div class="hint" id="pagoHint"></div>'+
       '</div></div>'+
       '<div class="sec"><div class="h2">Resumen</div><div class="box pad sum">'+
         '<div class="ln"><span>Combo fin de mes × <span id="tc">1</span></span><span id="ts"></span></div>'+
@@ -249,6 +261,17 @@ window.GDO = window.GDO || {};
     $('tt').textContent=money(s+e); $('gt').textContent=money(s+e);
     if(st.modo!=='envio'){ tn.style.display='none'; }
     else { tn.style.display='block'; var falta=CFG.envioGratisDesde-s; tn.className='free'+(falta>0?' no':''); tn.textContent=falta>0?'Llevando 2 combos el envío es sin cargo.':'Tu envío es sin cargo.'; }
+    // Formas de pago: el pago online aparece primero (y elegido) cuando hay link para este total.
+    var ps=$('pago'), antes=ps.value, link=linkPago();
+    var ops=(link?[ONLINE]:[]).concat((CFG.formasPago||['Efectivo']).map(function(f){ return f.length<=3?f:cap(f); }));
+    ps.innerHTML=ops.map(function(f){ return '<option>'+esc(f)+'</option>'; }).join('');
+    ps.value=(link && (!antes || !st.pagoTocado))?ONLINE:(ops.indexOf(antes)>=0?antes:ops[0]);
+    ps.onchange=function(){ st.pagoTocado=true; pagoHint(); };
+    pagoHint();
+  }
+  function pagoHint(){
+    var h=$('pagoHint'), on=$('pago').value===ONLINE;
+    h.textContent=on?'Al confirmar te llevamos al pago seguro de Nave (Banco Galicia).':(st.modo==='envio'&&st.zona==null?'Elegí tu zona para ver si podés pagar online.':'Pagás '+(st.modo==='envio'?'al recibir':'al retirar')+'.');
   }
 
   function enviar(){
@@ -268,6 +291,8 @@ window.GDO = window.GDO || {};
     Object.keys(cuenta).forEach(function(t){ items.push({ producto:'TARTA INDIVIDUAL DE '+t.toUpperCase()+' (REGALO COMBO)', cantidad:cuenta[t], unidad:'unidad', precio:0, preparacion:'', nota:'' }); });
     var esp=esEnv?['MINORISTA','COMBO FIN DE MES (anuncio)','Zona: '+zona,'Día de entrega: '+st.dia+' '+st.diaF,'Envío: '+(e===0?'sin cargo':money(e))]
                  :['MINORISTA','COMBO FIN DE MES (anuncio)','Retiro en sucursal: '+CFG.sucursal].concat(diaR?['Día de retiro: '+diaR]:[]);
+    var link=(pago===ONLINE)?linkPago():'';
+    if(link) esp.push('PAGO ONLINE NAVE: verificar que se acreditó '+money(total)+' antes de entregar');
     esp.push('TOTAL a cobrar: '+money(total));
     var pedido={ id:nid(), origen:'tienda', lista:'minorista', fuente:'landing-combo-fin-de-mes', cliente:nom, telefono:tel,
       modalidad:esEnv?'envio':'retiro', direccion:dir, localidad:'', entrecalles:entre, lat:lat, lng:lng,
@@ -275,6 +300,9 @@ window.GDO = window.GDO || {};
       estado:'pendiente', creadoPor:null, rutaId:null, clienteUid:null, totalEstimado:Math.round(s), descuento:null,
       zona:zona, diaEntrega:esEnv?st.dia:diaR, envio:Math.round(e), ventana:'', historia:[], creado:Date.now(), ts:Date.now() };
     gdoPx('Purchase',{value:total,currency:'ARS',num_items:st.cant,content_name:'Combo fin de mes',content_type:'product'});
+    // El pago se abre ACÁ, sincrónico dentro del click (si no, el celular lo bloquea como popup).
+    // Esta pestaña sigue viva para que el guardado del pedido termine en segundo plano.
+    if(link){ try{ window.open(link,'_blank'); }catch(e){} }
     guardar(pedido);
     // Aviso opcional por WhatsApp (el pedido YA quedó cargado en el panel).
     var L=['Hola! Hice el pedido del *Combo fin de mes* desde la web.','','• '+st.cant+' combo'+(st.cant>1?'s':'')+' + tarta de '+st.tartas.join(', ').toLowerCase(),
@@ -285,7 +313,7 @@ window.GDO = window.GDO || {};
       '<p>Ya lo tenemos. '+(esEnv?'Te lo llevamos el <b>'+esc(st.dia)+' '+esc(st.diaF)+'</b>.':'Te esperamos en <b>'+esc(CFG.sucursal)+'</b>.')+'</p>'+
       '<div class="card sum"><div class="ln"><span>'+st.cant+' × Combo fin de mes</span><span>'+money(s)+'</span></div><div class="ln"><span>Tarta de '+esc(st.tartas.join(', ').toLowerCase())+'</span><span>Regalo</span></div>'+
         (esEnv?'<div class="ln"><span>Envío</span><span>'+(e===0?'Sin cargo':money(e))+'</span></div>':'')+'<div class="ln big"><span>Total</span><span>'+money(total)+'</span></div></div>'+
-      (PAGO_URL && pago==='Pago online'?'<a class="btn2 pay" href="'+esc(PAGO_URL)+'" target="_blank" rel="noopener">Pagar ahora</a>':'<p style="font-size:14px;color:#6d665e">Pagás '+(esEnv?'al recibir':'al retirar')+' con '+esc(pago.toLowerCase())+'.</p>')+
+      (link?'<p style="font-size:14px;color:#6d665e">Si no se abrió el pago, tocá acá:</p><a class="btn2 pay" href="'+esc(link)+'" target="_blank" rel="noopener">Pagar '+money(total)+' con Nave</a>':'<p style="font-size:14px;color:#6d665e">Pagás '+(esEnv?'al recibir':'al retirar')+' con '+esc(pago.toLowerCase())+'.</p>')+
       '<a class="btn2" href="'+wa+'" target="_blank" rel="noopener">Avisarnos por WhatsApp</a>'+
       '<a class="mas" href="vista-minorista.html"><span>Mirá la lista completa</span> →</a></div>';
   }

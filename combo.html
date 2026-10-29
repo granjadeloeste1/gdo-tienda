@@ -138,7 +138,15 @@ select.fin{background-image:linear-gradient(45deg,transparent 50%,#999 50%),line
 .upfoot{position:sticky;bottom:0;background:var(--cr);padding:12px 0 calc(14px + env(safe-area-inset-bottom));margin-top:12px;border-top:1px solid var(--li)}
 .upfoot button{width:100%;font:700 17px var(--sans);color:#fff;background:var(--ne);border:0;border-radius:14px;padding:16px;display:flex;justify-content:space-between}
 .upfoot button b{font:800 18px var(--slab);color:var(--am)}
-.upfoot .alt{width:100%;margin-top:8px;font:700 16px var(--sans);color:var(--ne);background:#fff;border:1.5px solid var(--ne);border-radius:14px;padding:14px}
+.upfoot .alt{width:100%;margin-top:8px;font:800 17px var(--sans);color:#fff;background:var(--or);border:0;border-radius:14px;padding:15px;box-shadow:0 6px 16px rgba(245,130,32,.35)}
+/* Tarjeta destacada para sumar productos de la lista al pedido */
+.sumar{margin:22px 22px 0;background:var(--or);color:#fff;border-radius:18px;padding:20px 18px;box-shadow:0 12px 30px rgba(245,130,32,.3);position:relative;overflow:hidden}
+.sumar:after{content:"";position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.12)}
+.sumar .h2{color:#fff;opacity:.9}
+.sumar h3{font:800 24px/1.12 var(--slab);margin:4px 0 6px}
+.sumar p{margin:0 0 14px;font-size:14px;line-height:1.4;opacity:.95}
+.sumar button{position:relative;z-index:1;width:100%;font:800 17px var(--sans);color:var(--ne);background:#fff;border:0;border-radius:14px;padding:15px}
+.sumar .ya{display:inline-block;margin-top:10px;font-size:13px;font-weight:700;background:rgba(0,0,0,.18);border-radius:99px;padding:5px 10px}
 .busca{width:100%;font:500 16px var(--sans);padding:12px 14px;border:1.5px solid var(--li);border-radius:12px;margin:6px 0 4px}
 .cat{background:#fff;border-radius:14px;margin-top:10px;box-shadow:0 1px 0 var(--li);overflow:hidden}
 .cat summary{list-style:none;cursor:pointer;padding:14px;font:800 15px var(--sans);display:flex;justify-content:space-between}
@@ -183,7 +191,7 @@ window.GDO = window.GDO || {};
 <script src="geo.js"></script>
 <script>
 (function(){
-  var VERSION='combo v1.9';
+  var VERSION='combo v2.0';
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
   // el monto calculado allá con la lista en vivo. (Los links de pago de Nave son de un solo uso.)
   // Si el servidor dice que está apagado o no responde, se ofrece solo pagar al recibir.
@@ -347,6 +355,9 @@ window.GDO = window.GDO || {};
       '<div class="sec"><div class="h2">Paso 1</div><h3>Armá tu pedido</h3><div class="box pad">'+
         '<label class="fl">Cantidad de combos</label><div class="qty"><button type="button" id="qm" aria-label="Uno menos">−</button><span id="qn">1</span><button type="button" id="qp" aria-label="Uno más">+</button></div>'+
         '<div id="tartasBox"></div></div></div>'+
+      '<div class="sumar"><div class="h2">Sumá a tu pedido</div><h3>¿Querés sumar algo más a tu compra?</h3>'+
+        '<p>Milanesas, hamburguesas, trozado fresco, congelados, huevos y más, a precio de distribuidor. Llega todo junto con tu combo.</p>'+
+        '<button type="button" id="sumarBtn">Ver toda la lista →</button><div id="sumarYa"></div></div>'+
       '<div class="sec"><div class="h2">Paso 2</div><h3>¿Cómo lo recibís?</h3><div class="box pad">'+
         '<div class="seg"><button type="button" class="opt" data-m="envio">Envío a domicilio<small id="envSmall">Solo '+money(ENVIO_FIJO)+'</small></button><button type="button" class="opt on" data-m="retiro">Retiro en el local<small>Lunes a sábado</small></button></div>'+
         '<div id="envBox" style="display:none"><div class="hint" id="envHint"></div><a class="linkmapa linkm" role="button">📍 Tocá acá y fijate si llegamos a tu zona</a><label class="fl">Zona</label><select id="zona" class="fin"><option value="">Elegí tu zona</option>'+zonas+'</select><div id="diasBox"></div>'+
@@ -378,6 +389,7 @@ window.GDO = window.GDO || {};
     $('go').onclick=enviar;
     app.querySelectorAll('.linkm').forEach(function(a){ a.onclick=verMapa; });
     $('verLista').onclick=function(ev){ ev.preventDefault(); abrirLista(); };
+    $('sumarBtn').onclick=function(){ abrirLista(); };
     try{ if(GDO.Geo && GDO.Geo.attachAutocomplete) GDO.Geo.attachAutocomplete($('dir'), function(it){ st.geo=it||null; }, { provincia:'Buenos Aires', departamento:'Hurlingham' }); }catch(e){}
     upd();
   }
@@ -398,6 +410,9 @@ window.GDO = window.GDO || {};
     var e=envio(), s=sub(), pr=productos(), tn=$('tn');
     $('ts').textContent=money(s);
     $('exL').innerHTML=Object.keys(st.extras).filter(function(n){ return st.extras[n]>0; }).map(function(n){ var x=EXTRA[n], q=st.extras[n]; return '<div class="ln"><span>'+esc(x.label)+' · '+uniExtra(x,q)+'</span><span>'+money(precioExtra(x,q)*q)+'</span></div>'; }).join('');
+    var nEx=Object.keys(st.extras).filter(function(n){ return st.extras[n]>0; }).length;
+    $('sumarYa').innerHTML=nEx?'<span class="ya">✓ Ya sumaste '+nEx+' producto'+(nEx>1?'s':'')+' · '+money(extrasTotal())+'</span>':'';
+    $('sumarBtn').textContent=nEx?'Ver la lista y sumar más →':'Ver toda la lista →';
     $('teL').style.display=st.modo==='envio'?'flex':'none';
     $('te').textContent=e===0?'Sin cargo':money(e);
     $('tt').textContent=money(pr+e); $('gt').textContent=money(pr+e);
@@ -542,8 +557,8 @@ window.GDO = window.GDO || {};
         (env?'<div class="prog"><i style="width:'+Math.min(100,Math.round(pr/meta*100))+'%"></i></div>':'')+
         '<div class="hint">'+(env&&falta?'Hoy pagarías '+money(e)+' de envío. ':'')+'Lo que sumes llega todo junto con tu combo.</div>'+
         UPG.map(fila).join('')+
-        '<div class="upfoot"><button type="button" id="upOk"><span>Confirmar pedido</span><b>'+money(pr+e)+'</b></button>'+
-        '<button type="button" class="alt" id="upLista">Ver toda la lista →</button>'+
+        '<div class="upfoot"><button type="button" class="alt" id="upLista" style="margin:0 0 8px">🛒 Sumar más de toda la lista →</button>'+
+        '<button type="button" id="upOk"><span>Confirmar pedido</span><b>'+money(pr+e)+'</b></button>'+
         (Object.keys(st.extras).some(function(n){ return st.extras[n]>0; })?'':'<a href="#" id="upNo">'+(env&&falta?'No, gracias. Confirmar con envío de '+money(ENVIO_FIJO):'No, gracias. Confirmar así')+'</a>')+'</div></div>';
       ov.querySelectorAll('.uprow').forEach(function(r){
         var g=r.dataset.g, s2=r.querySelector('select');

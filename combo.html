@@ -138,7 +138,7 @@ window.GDO = window.GDO || {};
   // el monto calculado allá con la lista en vivo. (Los links de pago de Nave son de un solo uso.)
   // Si el servidor dice que está apagado o no responde, se ofrece solo pagar al recibir.
   var NAVE_API='https://gdo-bot-whatsapp-production.up.railway.app/nave';
-  var ONLINE='Pago online (tarjeta, débito o billetera)';
+  var ONLINE='Pago online (dinero en cuenta, desde tu banco o billetera)';
   var NAVE_ON=false;
   // El total solo está definido si ya eligió zona (envío) o retiro.
   function hayOnline(){ return NAVE_ON && !(st.modo==='envio' && st.zona==null); }

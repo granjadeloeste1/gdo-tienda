@@ -84,6 +84,14 @@ select.fin{background-image:linear-gradient(45deg,transparent 50%,#999 50%),line
 .mapa .mhd{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;font:800 18px var(--slab)}
 .mapa .mhd button{border:0;background:var(--cr);width:36px;height:36px;border-radius:50%;font-size:20px}
 .mapa iframe{flex:1;border:0;width:100%}
+.mapa .mft{padding:12px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--li)}
+.mapa .mft button{width:100%;font:700 17px var(--sans);color:#fff;background:var(--ne);border:0;border-radius:14px;padding:15px}
+.trust .tmapa{border:1.5px solid var(--or);background:#fff7ef}
+.trust .tmapa u{display:block;margin-top:4px;color:var(--or-d);font-weight:700;text-decoration:underline}
+.gratis{position:fixed;inset:0;z-index:35;display:flex;align-items:center;justify-content:center;background:rgba(17,17,17,.45)}
+.gratis div{background:#1fa855;color:#fff;border-radius:22px;padding:26px 24px;max-width:320px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.35);animation:pop .5s ease}
+.gratis b{display:block;font:800 28px/1.1 var(--slab);margin:6px 0}
+.gratis small{display:block;margin-top:12px;opacity:.85;font-size:13px}
 .linkmapa{display:inline-block;margin-top:8px;font-weight:700;color:var(--or-d);text-decoration:underline;cursor:pointer}
 .dias{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
 .dias::-webkit-scrollbar{display:none}
@@ -165,7 +173,7 @@ window.GDO = window.GDO || {};
 <script src="geo.js"></script>
 <script>
 (function(){
-  var VERSION='combo v1.6';
+  var VERSION='combo v1.7';
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
   // el monto calculado allá con la lista en vivo. (Los links de pago de Nave son de un solo uso.)
   // Si el servidor dice que está apagado o no responde, se ofrece solo pagar al recibir.
@@ -283,13 +291,13 @@ window.GDO = window.GDO || {};
       '<div class="sec"><div class="h2">Qué incluye</div><h3>Una semana de comidas, resuelta.</h3><div class="box">'+
         ITEMS.map(function(x){ return '<div class="it"><img src="assets/combo/'+x[2]+'.jpg" alt=""><span class="q">'+x[0]+'</span><span class="d">'+x[1]+'</span></div>'; }).join('')+
         '<div class="it gift"><img src="assets/combo/tarta.png" alt=""><span class="q">+1</span><span class="d">Tarta individual a elección<span class="tag">REGALO</span></span></div></div></div>'+
-      '<div class="trust"><div><b>Precio de distribuidor</b>Directo de nuestro depósito</div><div class="linkm" style="cursor:pointer"><b>Envío $7.000</b>Fijate si llegamos a tu zona</div><div><b>Pago coordinado</b>Transferencia, QR o efectivo</div></div>'+
+      '<div class="trust"><div><b>Precio de distribuidor</b>Directo de nuestro depósito</div><div class="linkm tmapa" style="cursor:pointer" role="button"><b>Envío $7.000</b>¿Llegamos a tu zona?<u>Ver mapa →</u></div><div><b>Pago coordinado</b>Transferencia, QR o efectivo</div></div>'+
       '<div class="sec"><div class="h2">Paso 1</div><h3>Armá tu pedido</h3><div class="box pad">'+
         '<label class="fl">Cantidad de combos</label><div class="qty"><button type="button" id="qm" aria-label="Uno menos">−</button><span id="qn">1</span><button type="button" id="qp" aria-label="Uno más">+</button></div>'+
         '<div id="tartasBox"></div></div></div>'+
       '<div class="sec"><div class="h2">Paso 2</div><h3>¿Cómo lo recibís?</h3><div class="box pad">'+
         '<div class="seg"><button type="button" class="opt on" data-m="envio">Envío a domicilio<small id="envSmall">Solo '+money(ENVIO_FIJO)+'</small></button><button type="button" class="opt" data-m="retiro">Retiro en el local<small>Lunes a sábado</small></button></div>'+
-        '<div id="envBox"><div class="hint" id="envHint"></div><a class="linkmapa linkm">📍 Fijate si llegamos a tu zona</a><label class="fl">Zona</label><select id="zona" class="fin"><option value="">Elegí tu zona</option>'+zonas+'</select><div id="diasBox"></div>'+
+        '<div id="envBox"><div class="hint" id="envHint"></div><a class="linkmapa linkm" role="button">📍 Tocá acá y fijate si llegamos a tu zona</a><label class="fl">Zona</label><select id="zona" class="fin"><option value="">Elegí tu zona</option>'+zonas+'</select><div id="diasBox"></div>'+
           '<label class="fl">Dirección</label><input id="dir" class="fin" autocomplete="street-address" placeholder="Calle y número">'+
           '<label class="fl">Entre calles <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="entre" class="fin" placeholder="Ayuda al repartidor"></div>'+
         '<div id="retBox" style="display:none"><div class="hint">Retiralo en <b>'+esc(CFG.sucursal)+'</b>, de '+HORARIO_RETIRO+'.</div><label class="fl">¿Qué día pasás? <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="diaR" class="fin" placeholder="Por ejemplo, jueves"></div>'+
@@ -379,6 +387,9 @@ window.GDO = window.GDO || {};
   }
   // Envío gratis: cartel verde, papelitos y un "tarará" corto de corneta.
   function festejo(){
+    var c=document.createElement('div'); c.className='gratis';
+    c.innerHTML='<div><span style="font-size:42px">🎉</span><b>¡Ahora tenés envío gratis!</b>Tu pedido supera los '+money(CFG.envioGratisDesde)+'.<small>Tocá para seguir</small></div>';
+    c.onclick=function(){ c.remove(); }; document.body.appendChild(c);
     var cols=['#F58220','#FBC02D','#E53935','#1fa855','#111'];
     for(var i=0;i<40;i++){ var d=document.createElement('div'); d.className='confeti'; d.style.left=Math.random()*100+'vw'; d.style.background=cols[i%cols.length]; d.style.animationDelay=(Math.random()*.4)+'s'; document.body.appendChild(d); setTimeout(function(x){ return function(){ x.remove(); }; }(d),2200); }
     try{ var A=window.AudioContext||window.webkitAudioContext, ctx=new A(), t0=ctx.currentTime;
@@ -389,8 +400,8 @@ window.GDO = window.GDO || {};
   }
   function verMapa(){
     var ov=document.createElement('div'); ov.className='mapa';
-    ov.innerHTML='<div class="mbox"><div class="mhd"><span>¿Llegamos a tu zona?</span><button type="button" aria-label="Cerrar">×</button></div><iframe src="mapa-zona-oeste.html" title="Zonas de reparto"></iframe></div>';
-    ov.querySelector('button').onclick=function(){ ov.remove(); }; ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
+    ov.innerHTML='<div class="mbox"><div class="mhd"><span>¿Llegamos a tu zona?</span><button type="button" aria-label="Cerrar">×</button></div><iframe src="mapa-zona-oeste.html" title="Zonas de reparto"></iframe><div class="mft"><button type="button" class="volver">← Volver a mi pedido</button></div></div>';
+    ov.querySelectorAll('.mhd button, .volver').forEach(function(b){ b.onclick=function(){ ov.remove(); }; }); ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
     document.body.appendChild(ov);
   }
 

@@ -133,18 +133,11 @@ window.GDO = window.GDO || {};
 <script src="geo.js"></script>
 <script>
 (function(){
-  var VERSION='combo v1.2';
-  // Links de pago de Nave, uno por TOTAL exacto (combo + envío). Solo se ofrece pago online si el
-  // total del pedido coincide con uno de estos montos: si cambia el precio o el envío en la hoja,
-  // el botón desaparece solo hasta que se carguen links nuevos (así nunca se cobra un monto mal).
-  var NAVE='https://checkout.ranty.io/nave?payment_request_id=';
-  var PAGOS={
-    50000: NAVE+'7e189acf-9df2-4aff-9c03-a82e52e63bec',   // 1 combo, retiro
-    57000: NAVE+'1e29e509-c4d4-46fa-8f4a-8afc39289a87',   // 1 combo, envío Villa Tesei
-    59000: NAVE+'560d78ce-55f7-4b45-9fbf-c2d7a2dd8dab',   // 1 combo, envío resto de zonas
-    100000: NAVE+'99ed7262-408f-4fbb-94a7-4c87e7f19cef',  // 2 combos, envío gratis (o retiro)
-    150000: NAVE+'aab534fd-175b-4ffa-b2c2-eeede2a299e9'   // 3 combos, envío gratis (o retiro)
-  };
+  var VERSION='combo v1.3';
+  // Pago online: los links de pago de Nave son de UN SOLO USO (probado 2026-10-28), así que no
+  // sirven para la página. PAGOS queda vacío hasta la integración API de Nave (un cobro por pedido);
+  // mientras tanto el cliente paga al recibir o al retirar.
+  var PAGOS={};
   var ONLINE='Pago online (tarjeta, débito o billetera)';
   // El total solo está definido si ya eligió zona (envío) o retiro.
   function linkPago(){ if(st.modo==='envio' && st.zona==null) return ''; return PAGOS[sub()+envio()]||''; }
@@ -200,7 +193,7 @@ window.GDO = window.GDO || {};
       '<div class="sec"><div class="h2">Qué incluye</div><h3>Una semana de comidas, resuelta.</h3><div class="box">'+
         ITEMS.map(function(x){ return '<div class="it"><img src="assets/combo/'+x[2]+'.jpg" alt=""><span class="q">'+x[0]+'</span><span class="d">'+x[1]+'</span></div>'; }).join('')+
         '<div class="it gift"><img src="assets/combo/tarta.png" alt=""><span class="q">+1</span><span class="d">Tarta individual a elección<span class="tag">REGALO</span></span></div></div></div>'+
-      '<div class="trust"><div><b>Precio de distribuidor</b>Directo de nuestro depósito</div><div><b>Entrega a domicilio</b>Lunes a sábado en zona oeste</div><div><b>Pago seguro</b>Online con Nave o al recibir</div></div>'+
+      '<div class="trust"><div><b>Precio de distribuidor</b>Directo de nuestro depósito</div><div><b>Entrega a domicilio</b>Lunes a sábado en zona oeste</div><div><b>Sin vueltas</b>Pagás al recibir</div></div>'+
       '<div class="sec"><div class="h2">Paso 1</div><h3>Armá tu pedido</h3><div class="box pad">'+
         '<label class="fl">Cantidad de combos</label><div class="qty"><button type="button" id="qm" aria-label="Uno menos">−</button><span id="qn">1</span><button type="button" id="qp" aria-label="Uno más">+</button></div>'+
         '<div id="tartasBox"></div></div></div>'+

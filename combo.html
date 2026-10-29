@@ -140,6 +140,9 @@ select.fin{background-image:linear-gradient(45deg,transparent 50%,#999 50%),line
 .upfoot button b{font:800 18px var(--slab);color:var(--am)}
 .upfoot .alt{width:100%;margin-top:8px;font:800 17px var(--sans);color:#fff;background:var(--or);border:0;border-radius:14px;padding:15px;box-shadow:0 6px 16px rgba(245,130,32,.35)}
 /* Tarjeta destacada para sumar productos de la lista al pedido */
+.gratisbar{background:#1fa855;color:#fff;text-align:center;font:700 15px var(--sans);padding:11px 14px}
+.gratisbar b{font-family:var(--slab);font-weight:800}
+.envnota{margin-top:10px;font-size:13px;font-weight:600;color:#2e7d32;background:#eef7ee;border-radius:10px;padding:9px 12px}
 .sumar{margin:22px 22px 0;background:var(--or);color:#fff;border-radius:18px;padding:20px 18px;box-shadow:0 12px 30px rgba(245,130,32,.3);position:relative;overflow:hidden}
 .sumar:after{content:"";position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.12)}
 .sumar .h2{color:#fff;opacity:.9}
@@ -191,7 +194,7 @@ window.GDO = window.GDO || {};
 <script src="geo.js"></script>
 <script>
 (function(){
-  var VERSION='combo v2.0';
+  var VERSION='combo v2.1';
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
   // el monto calculado allá con la lista en vivo. (Los links de pago de Nave son de un solo uso.)
   // Si el servidor dice que está apagado o no responde, se ofrece solo pagar al recibir.
@@ -348,18 +351,20 @@ window.GDO = window.GDO || {};
         '<p>Pollo, milanesas, hamburguesas y huevos para resolver la semana, a precio de distribuidor.</p></div></div>'+
       '<div class="price"><div class="a"><small>Todo el combo</small><div class="n">'+money(COMBO.precio)+'</div></div>'+
         '<div class="g"><img src="assets/combo/tarta.png" alt=""><span>Tarta individual de regalo<b>'+regalo+'</b></span></div></div>'+
+      '<div class="gratisbar">🚚 Envío <b>sin cargo</b> comprando desde <b>'+money(CFG.envioGratisDesde)+'</b></div>'+
       '<div class="sec"><div class="h2">Qué incluye</div><h3>Una semana de comidas, resuelta.</h3><div class="box">'+
         ITEMS.map(function(x){ return '<div class="it"><img src="assets/combo/'+x[2]+'.jpg" alt=""><span class="q">'+x[0]+'</span><span class="d">'+x[1]+'</span></div>'; }).join('')+
         '<div class="it gift"><img src="assets/combo/tarta.png" alt=""><span class="q">+1</span><span class="d">Tarta individual a elección<span class="tag">REGALO</span></span></div></div></div>'+
-      '<div class="trust"><div><b>Precio de distribuidor</b>Directo de nuestro depósito</div><div class="linkm tmapa" style="cursor:pointer" role="button"><b>Envío $7.000</b>¿Llegamos a tu zona?<u>Ver mapa →</u></div><div><b>Pago coordinado</b>Transferencia, QR o efectivo</div></div>'+
+      '<div class="trust"><div><b>Precio de distribuidor</b>Directo de nuestro depósito</div><div class="linkm tmapa" style="cursor:pointer" role="button"><b>Envío $7.000</b>Gratis desde '+money(CFG.envioGratisDesde)+'<u>Ver zonas →</u></div><div><b>Pago coordinado</b>Transferencia, QR o efectivo</div></div>'+
       '<div class="sec"><div class="h2">Paso 1</div><h3>Armá tu pedido</h3><div class="box pad">'+
         '<label class="fl">Cantidad de combos</label><div class="qty"><button type="button" id="qm" aria-label="Uno menos">−</button><span id="qn">1</span><button type="button" id="qp" aria-label="Uno más">+</button></div>'+
         '<div id="tartasBox"></div></div></div>'+
       '<div class="sumar"><div class="h2">Sumá a tu pedido</div><h3>¿Querés sumar algo más a tu compra?</h3>'+
-        '<p>Milanesas, hamburguesas, trozado fresco, congelados, huevos y más, a precio de distribuidor. Llega todo junto con tu combo.</p>'+
+        '<p>Milanesas, hamburguesas, trozado fresco, congelados, huevos y más, a precio de distribuidor. Llega todo junto con tu combo y, llegando a '+money(CFG.envioGratisDesde)+', el envío es sin cargo.</p>'+
         '<button type="button" id="sumarBtn">Ver toda la lista →</button><div id="sumarYa"></div></div>'+
       '<div class="sec"><div class="h2">Paso 2</div><h3>¿Cómo lo recibís?</h3><div class="box pad">'+
         '<div class="seg"><button type="button" class="opt" data-m="envio">Envío a domicilio<small id="envSmall">Solo '+money(ENVIO_FIJO)+'</small></button><button type="button" class="opt on" data-m="retiro">Retiro en el local<small>Lunes a sábado</small></button></div>'+
+        '<div class="envnota" id="envNota"></div>'+
         '<div id="envBox" style="display:none"><div class="hint" id="envHint"></div><a class="linkmapa linkm" role="button">📍 Tocá acá y fijate si llegamos a tu zona</a><label class="fl">Zona</label><select id="zona" class="fin"><option value="">Elegí tu zona</option>'+zonas+'</select><div id="diasBox"></div>'+
           '<label class="fl">Dirección</label><input id="dir" class="fin" autocomplete="street-address" placeholder="Calle y número">'+
           '<label class="fl">Entre calles <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="entre" class="fin" placeholder="Ayuda al repartidor"></div>'+
@@ -418,6 +423,8 @@ window.GDO = window.GDO || {};
     $('tt').textContent=money(pr+e); $('gt').textContent=money(pr+e);
     var gratis=st.modo==='envio' && CFG.envioGratis && pr>=CFG.envioGratisDesde;
     $('envSmall').textContent=gratis?'¡Sin cargo!':'Solo '+money(ENVIO_FIJO);
+    var faltaG=CFG.envioGratisDesde-pr;
+    $('envNota').textContent=faltaG<=0?'🎉 Tu compra supera '+money(CFG.envioGratisDesde)+': el envío a domicilio es sin cargo.':'🚚 Envío '+money(ENVIO_FIJO)+'. Comprando desde '+money(CFG.envioGratisDesde)+' es sin cargo (te faltan '+money(faltaG)+').';
     $('envHint').innerHTML=gratis?'🎉 <b>¡Ya tenés envío gratis!</b> Te lo llevamos sin cargo.':'Te lo llevamos por solo <b>'+money(ENVIO_FIJO)+'</b>, sin que te muevas de tu casa. Sumando '+money(CFG.envioGratisDesde)+' en productos, el envío es sin cargo.';
     if(st.modo!=='envio'){ tn.style.display='none'; }
     else { tn.style.display='block'; var falta=CFG.envioGratisDesde-pr; tn.className='free'+(falta>0?' no':' fiesta'); tn.textContent=falta>0?'Sumando '+money(falta)+' más en productos, el envío es sin cargo.':'🎉 ¡Ya tenés envío gratis!'; }

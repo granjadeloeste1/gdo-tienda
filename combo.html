@@ -138,6 +138,16 @@ select.fin{background-image:linear-gradient(45deg,transparent 50%,#999 50%),line
 .upfoot{position:sticky;bottom:0;background:var(--cr);padding:12px 0 calc(14px + env(safe-area-inset-bottom));margin-top:12px;border-top:1px solid var(--li)}
 .upfoot button{width:100%;font:700 17px var(--sans);color:#fff;background:var(--ne);border:0;border-radius:14px;padding:16px;display:flex;justify-content:space-between}
 .upfoot button b{font:800 18px var(--slab);color:var(--am)}
+.upfoot .alt{width:100%;margin-top:8px;font:700 16px var(--sans);color:var(--ne);background:#fff;border:1.5px solid var(--ne);border-radius:14px;padding:14px}
+.busca{width:100%;font:500 16px var(--sans);padding:12px 14px;border:1.5px solid var(--li);border-radius:12px;margin:6px 0 4px}
+.cat{background:#fff;border-radius:14px;margin-top:10px;box-shadow:0 1px 0 var(--li);overflow:hidden}
+.cat summary{list-style:none;cursor:pointer;padding:14px;font:800 15px var(--sans);display:flex;justify-content:space-between}
+.cat summary::-webkit-details-marker{display:none}
+.cat summary span{color:var(--mu);font-weight:600}
+.prow{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid #f0ebe4}
+.prow .pn{flex:1;min-width:0;font-size:14px;font-weight:600;line-height:1.25}
+.prow .pn small{display:block;font-weight:500;color:var(--mu);font-size:12px;margin-top:2px}
+.prow.on{background:#fff7ef}
 .upfoot a{display:block;text-align:center;margin-top:10px;color:var(--mu);font-size:14px;text-decoration:underline}
 </style></head>
 <body><div class="wrap" id="app"><div class="top"><img src="assets/logo-horizontal-puntos.svg" alt="Granja del Oeste" class="logo"></div><div class="off">Preparando tu combo…</div></div>
@@ -173,7 +183,7 @@ window.GDO = window.GDO || {};
 <script src="geo.js"></script>
 <script>
 (function(){
-  var VERSION='combo v1.8';
+  var VERSION='combo v1.9';
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
   // el monto calculado allá con la lista en vivo. (Los links de pago de Nave son de un solo uso.)
   // Si el servidor dice que está apagado o no responde, se ofrece solo pagar al recibir.
@@ -195,7 +205,7 @@ window.GDO = window.GDO || {};
     ['Arrollados de pollo', function(p){ return p.sub==='ARROLLADOS'; }],
     ['Huevos', function(p){ return p.cat==='HUEVO'; }]
   ];
-  var EXTRA={}, UPG=[];
+  var EXTRA={}, UPG=[], CATS=[];
   // El total solo está definido si ya eligió zona (envío) o retiro.
   function hayOnline(){ return NAVE_ON && !(st.modo==='envio' && st.zona==null); }
   var API='https://script.google.com/macros/s/AKfycbwH6JW35BRYcBk958OEr4sEvfVIfzgqzQeGwvz63xZYgukwxik8EsIego4d9O456bHURg/exec';
@@ -263,6 +273,24 @@ window.GDO = window.GDO || {};
       });
       if(noms.length) UPG.push({ titulo:g[0], noms:noms });
     });
+    // Lista completa para sumar al pedido: por kg (con escala) o una fila por variedad.
+    var porNombre={}, orden=[];
+    ps.filter(function(p){ return !/COMBO/i.test(p.cat); }).forEach(function(p){ if(!porNombre[p.nombre]){ porNombre[p.nombre]={ p:p, vars:[] }; orden.push(p.nombre); } porNombre[p.nombre].vars.push({ variedad:p.variedad, precio:p.precio }); });
+    var catIdx={};
+    orden.forEach(function(n){
+      var it=porNombre[n], cat=it.p.cat, kg=it.vars.map(function(v){ var m=/^(\d+(?:[.,]\d+)?)\s*kg$/i.exec(String(v.variedad).trim()); return m?parseFloat(m[1].replace(',','.')):null; });
+      var label=cap(String(n).replace(/\s+X\s+(KG|UNIDAD)$/i,'').replace(/\s+/g,' ')).replace(/^Maple b1$/,'Maple de huevos');
+      var keys=[];
+      if(kg.every(function(x){ return x!=null; })){
+        if(!EXTRA[n]) EXTRA[n]={ nombre:n, label:label, vars:it.vars, porKg:true, tiers:it.vars.map(function(v,i){ return { min:kg[i], perkg:v.precio }; }).sort(function(a,b){ return a.min-b.min; }), min:/MILANES/i.test(cat+' '+it.p.sub)?2:1 };
+        keys.push(n);
+      } else if(it.vars.length===1){
+        if(!EXTRA[n]) EXTRA[n]={ nombre:n, label:label, vars:it.vars, porKg:false, min:1 };
+        keys.push(n);
+      } else it.vars.forEach(function(v){ var k=n+'||'+v.variedad; EXTRA[k]={ nombre:n, label:label+' · '+cap(v.variedad), vars:[v], porKg:false, min:1 }; keys.push(k); });
+      if(catIdx[cat]==null){ catIdx[cat]=CATS.length; CATS.push({ cat:cap(cat), keys:[] }); }
+      CATS[catIdx[cat]].keys=CATS[catIdx[cat]].keys.concat(keys);
+    });
     if(VUELTA) return;
     if(!COMBO){ app.innerHTML=TOP+'<div class="off">El combo no está disponible en este momento.<a class="mas" href="vista-minorista.html"><span>Ver la lista completa</span></a></div>'; return; }
     gdoPx('ViewContent',{content_name:'Combo fin de mes',value:COMBO.precio,currency:'ARS',content_type:'product'});
@@ -278,6 +306,29 @@ window.GDO = window.GDO || {};
   function productos(){ return sub()+extrasTotal(); }
   function envio(){ if(st.modo!=='envio') return 0; if(CFG.envioGratis && productos()>=CFG.envioGratisDesde) return 0; return ENVIO_FIJO; }
   function uniExtra(e,q){ return e.porKg?q+' kg':q+' u.'; }
+  function precioTxt(x,q){ return x.porKg?money(precioExtra(x,Math.max(q,x.min)))+' el kg'+(x.tiers.length>1?' · baja llevando más':''):money(x.vars[0].precio)+(/^unidad$/i.test(x.vars[0].variedad||'unidad')?' c/u':' por '+String(x.vars[0].variedad).toLowerCase().replace(/^\d+\s*/,'').replace(/s$/,'')); }
+  function sumarUno(k,d){ var x=EXTRA[k], q=st.extras[k]||0; q = d>0 ? (q?q+1:x.min) : (q>x.min?q-1:0); if(q) st.extras[k]=q; else delete st.extras[k]; upd(); }
+  // Lista completa de la tienda adentro de la página: lo que se suma va al MISMO pedido del combo.
+  function abrirLista(alCerrar){
+    var ov=document.createElement('div'); ov.className='up'; var abiertas={}, filtro='';
+    function pintar(){
+      var pr=productos(), meta=CFG.envioGratisDesde, falta=Math.max(0,meta-pr), e=envio(), f=filtro.trim().toLowerCase();
+      var cats=CATS.map(function(c){ var ks=c.keys.filter(function(k){ return !f || (EXTRA[k].label+' '+c.cat).toLowerCase().indexOf(f)>=0; }); return { cat:c.cat, keys:ks, n:c.keys.filter(function(k){ return st.extras[k]>0; }).length }; }).filter(function(c){ return c.keys.length; });
+      ov.innerHTML='<div class="upbox"><div class="h2">Lista completa</div><h3>Sumá lo que quieras a tu pedido</h3>'+
+        '<div class="hint">Llega todo junto con tu combo.'+(st.modo==='envio'?(falta?' Te faltan <b>'+money(falta)+'</b> para el envío sin cargo.':' <b>Tu envío ya es sin cargo.</b>'):'')+'</div>'+
+        (st.modo==='envio'?'<div class="prog" style="margin-top:8px"><i style="width:'+Math.min(100,Math.round(pr/meta*100))+'%"></i></div>':'')+
+        '<input class="busca" placeholder="Buscar: milanesa, huevos, papas…" value="'+esc(filtro)+'">'+
+        cats.map(function(c){ return '<details class="cat"'+(f||abiertas[c.cat]?' open':'')+' data-c="'+esc(c.cat)+'"><summary>'+esc(c.cat)+'<span>'+(c.n?c.n+' en tu pedido ':'')+'▾</span></summary>'+
+          c.keys.map(function(k){ var x=EXTRA[k], q=st.extras[k]||0; return '<div class="prow'+(q?' on':'')+'" data-k="'+esc(k)+'"><div class="pn">'+esc(x.label)+'<small>'+precioTxt(x,q)+'</small></div><div class="mini"><button type="button" data-d="-1" aria-label="Menos">−</button><span>'+(q?uniExtra(x,q):'—')+'</span><button type="button" data-d="1" aria-label="Más">+</button></div></div>'; }).join('')+'</details>'; }).join('')+
+        '<div class="upfoot"><button type="button" class="volv"><span>Listo, volver al pedido</span><b>'+money(pr+e)+'</b></button></div></div>';
+      var inp=ov.querySelector('.busca'); inp.oninput=function(){ filtro=inp.value; pintar(); var i2=ov.querySelector('.busca'); i2.focus(); i2.setSelectionRange(i2.value.length,i2.value.length); };
+      ov.querySelectorAll('.cat').forEach(function(d){ d.ontoggle=function(){ abiertas[d.dataset.c]=d.open; }; });
+      ov.querySelectorAll('.prow').forEach(function(r){ r.querySelectorAll('.mini button').forEach(function(b){ b.onclick=function(){ var y=ov.querySelector('.upbox').scrollTop; sumarUno(r.dataset.k,+b.dataset.d); pintar(); ov.querySelector('.upbox').scrollTop=y; }; }); });
+      ov.querySelector('.volv').onclick=function(){ ov.remove(); if(alCerrar) alCerrar(); };
+    }
+    ov.onclick=function(ev){ if(ev.target===ov){ ov.remove(); if(alCerrar) alCerrar(); } };
+    document.body.appendChild(ov); pintar();
+  }
 
   function render(){
     var zonas=(CFG.zonas||[]).map(function(z,i){ return '<option value="'+i+'">'+esc(String(z.nombre).toLowerCase().replace(/[a-záéíóúñ]+/g,function(w){ return /^(de|del|y)$/.test(w)?w:w.charAt(0).toUpperCase()+w.slice(1); }))+'</option>'; }).join('');
@@ -315,7 +366,7 @@ window.GDO = window.GDO || {};
         '<div class="ln" id="teL"><span>Envío</span><span id="te"></span></div>'+
         '<div class="ln big"><span>Total</span><span id="tt"></span></div><div class="free" id="tn"></div></div></div>'+
       '<div class="err" id="err"></div>'+
-      '<a class="mas" href="vista-minorista.html"><span>¿Querés sumar otros productos? Mirá la lista completa</span> →</a>'+
+      '<a class="mas" href="#" id="verLista"><span>¿Querés sumar otros productos? Mirá la lista completa</span> →</a>'+
       '<div class="ver">'+VERSION+'</div>'+
       '<div class="bar"><button id="go"><span>Confirmar pedido</span><b id="gt"></b></button></div>';
     $('qm').onclick=function(){ if(st.cant>1){ st.cant--; upd(); } };
@@ -326,6 +377,7 @@ window.GDO = window.GDO || {};
     app.addEventListener('input',inicio); app.addEventListener('change',inicio);
     $('go').onclick=enviar;
     app.querySelectorAll('.linkm').forEach(function(a){ a.onclick=verMapa; });
+    $('verLista').onclick=function(ev){ ev.preventDefault(); abrirLista(); };
     try{ if(GDO.Geo && GDO.Geo.attachAutocomplete) GDO.Geo.attachAutocomplete($('dir'), function(it){ st.geo=it||null; }, { provincia:'Buenos Aires', departamento:'Hurlingham' }); }catch(e){}
     upd();
   }
@@ -415,7 +467,7 @@ window.GDO = window.GDO || {};
     if(!nom) return falla('Completá tu nombre.', $('nom'));
     if(tel.replace(/\D/g,'').length<8) return falla('Revisá tu número de WhatsApp.', $('tel'));
     // Envío por debajo del monto de envío gratis: antes de confirmar se ofrece sumar productos.
-    if(listo!==true && st.modo==='envio' && CFG.envioGratis && productos()<CFG.envioGratisDesde && UPG.length) return sumarMas();
+    if(listo!==true && UPG.length && (!st.ofrecido || (st.modo==='envio' && CFG.envioGratis && productos()<CFG.envioGratisDesde))){ st.ofrecido=true; return sumarMas(); }
     var s=sub(), px=extrasTotal(), e=envio(), total=s+px+e, esEnv=st.modo==='envio';
     var dir=esEnv?$('dir').value.trim():'', entre=esEnv?$('entre').value.trim():'', zona=esEnv?CFG.zonas[st.zona].nombre:'';
     var diaR=esEnv?'':$('diaR').value.trim();
@@ -478,19 +530,21 @@ window.GDO = window.GDO || {};
     var sel={}; UPG.forEach(function(g){ sel[g.titulo]=g.noms.filter(function(n){ return st.extras[n]>0; })[0]||g.noms[0]; });
     function fila(g){
       var n=sel[g.titulo], x=EXTRA[n], q=st.extras[n]||0;
-      var pr=x.porKg?money(precioExtra(x,Math.max(q,x.min)))+' el kg'+(x.tiers.length>1?' · baja llevando más':''):money(x.vars[0].precio)+(/^unidad$/i.test(x.vars[0].variedad||'unidad')?' c/u':' por '+String(x.vars[0].variedad).toLowerCase().replace(/^\d+\s*/,'').replace(/s$/,''));
+      var pr=precioTxt(x,q);
       return '<div class="uprow" data-g="'+esc(g.titulo)+'"><b class="t">'+esc(g.titulo)+'</b><div class="l2">'+
         (g.noms.length>1?'<select>'+g.noms.map(function(m){ return '<option value="'+esc(m)+'"'+(m===n?' selected':'')+'>'+esc(EXTRA[m].label)+'</option>'; }).join('')+'</select>':'<span style="flex:1;font-size:14px">'+esc(x.label)+'</span>')+
         '<div class="mini"><button type="button" data-d="-1" aria-label="Menos">−</button><span>'+(q?uniExtra(x,q):'—')+'</span><button type="button" data-d="1" aria-label="Más">+</button></div></div><div class="pr">'+pr+'</div></div>';
     }
     function pintar(){
       var pr=productos(), meta=CFG.envioGratisDesde, falta=Math.max(0,meta-pr), e=envio();
-      ov.innerHTML='<div class="upbox"><div class="h2">Antes de confirmar</div><h3>'+(falta?'Sumá '+money(falta)+' y el envío te sale sin cargo':'¡Listo! Tu envío es sin cargo')+'</h3>'+
-        '<div class="prog"><i style="width:'+Math.min(100,Math.round(pr/meta*100))+'%"></i></div>'+
-        '<div class="hint">'+(falta?'Hoy pagarías '+money(e)+' de envío. Agregá lo que quieras de la lista:':'Ya sumaste '+money(pr)+' en productos.')+'</div>'+
+      var env=st.modo==='envio';
+      ov.innerHTML='<div class="upbox"><div class="h2">Antes de confirmar</div><h3>'+(env?(falta?'Sumá '+money(falta)+' y el envío te sale sin cargo':'¡Listo! Tu envío es sin cargo'):'¿Querés sumar algo más?')+'</h3>'+
+        (env?'<div class="prog"><i style="width:'+Math.min(100,Math.round(pr/meta*100))+'%"></i></div>':'')+
+        '<div class="hint">'+(env&&falta?'Hoy pagarías '+money(e)+' de envío. ':'')+'Lo que sumes llega todo junto con tu combo.</div>'+
         UPG.map(fila).join('')+
         '<div class="upfoot"><button type="button" id="upOk"><span>Confirmar pedido</span><b>'+money(pr+e)+'</b></button>'+
-        (Object.keys(st.extras).some(function(n){ return st.extras[n]>0; })?'':'<a href="#" id="upNo">No, gracias. Confirmar con envío de '+money(ENVIO_FIJO)+'</a>')+'</div></div>';
+        '<button type="button" class="alt" id="upLista">Ver toda la lista →</button>'+
+        (Object.keys(st.extras).some(function(n){ return st.extras[n]>0; })?'':'<a href="#" id="upNo">'+(env&&falta?'No, gracias. Confirmar con envío de '+money(ENVIO_FIJO):'No, gracias. Confirmar así')+'</a>')+'</div></div>';
       ov.querySelectorAll('.uprow').forEach(function(r){
         var g=r.dataset.g, s2=r.querySelector('select');
         if(s2) s2.onchange=function(){ sel[g]=s2.value; pintar(); };
@@ -502,6 +556,7 @@ window.GDO = window.GDO || {};
         }; });
       });
       ov.querySelector('#upOk').onclick=function(){ ov.remove(); enviar(true); };
+      ov.querySelector('#upLista').onclick=function(){ ov.style.display='none'; abrirLista(function(){ ov.style.display=''; pintar(); }); };
       var no=ov.querySelector('#upNo'); if(no) no.onclick=function(ev){ ev.preventDefault(); ov.remove(); enviar(true); };
     }
     ov.onclick=function(ev){ if(ev.target===ov){ ov.remove(); } };

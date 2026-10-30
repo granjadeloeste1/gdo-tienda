@@ -451,6 +451,8 @@ if(window.VEND){
 </a>
 <script>
 var API ="https://script.google.com/macros/s/AKfycbwH6JW35BRYcBk958OEr4sEvfVIfzgqzQeGwvz63xZYgukwxik8EsIego4d9O456bHURg/exec";
+// Los combos son solo minoristas: en la lista mayorista no se muestran aunque la hoja tenga precio.
+function sinCombos(d){ return (d||[]).filter(function(s){ return !/^\s*COMBOS?\b/i.test(s.title||""); }); }
 var sections = [], term = "";
 var $n = function(n) { if (n === null || n === undefined) return ""; return "$ " + Math.round(n).toLocaleString("es-AR"); };
 var OPTIONS = [];
@@ -670,14 +672,14 @@ function recargar() {
     .then(function(r) { if (!r.ok) throw 0; return r.json(); })
     .then(function(data) {
       if (!data || !data.length) throw 0;
-      sections = data; estado = "ok"; guardarPrecios(data); render();
+      sections = sinCombos(data); estado = "ok"; guardarPrecios(data); render();
       document.getElementById("fecha").textContent = "Actualizada " + new Date().toLocaleDateString("es-AR", {day:"2-digit",month:"2-digit",year:"numeric"}) + " - Precios sujetos a modificaciones";
     })
     .catch(function() { if (!sections.length) { estado = "error"; render(); } });
 }
 // Pintura instantanea con la copia reciente (si la hay) y refresco en vivo.
 var _px = leerPrecios();
-if (_px) { sections = _px.data; estado = "ok"; }
+if (_px) { sections = sinCombos(_px.data); estado = "ok"; }
 render();
 recargar();
 

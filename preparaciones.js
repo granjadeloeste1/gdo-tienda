@@ -74,6 +74,7 @@ window.GDO = window.GDO || {};
       re: /COMBO\s*AHORRO/i,
       grupos: [
         { titulo: '¿Hamburguesas o albóndigas? (1 kg)', opciones: ['Hamburguesas de pollo clásicas', 'Albóndigas clásicas'] },
+        { titulo: '¿Patitas o medallones? (1 kg)', opciones: ['Patitas de pollo', 'Medallones de pollo'] },
         { titulo: '¿De qué sabor los canelones? (12 unidades)', opciones: ['Canelones de ricota y verdura', 'Canelones de ricota y jamón', 'Canelones de pollo con salsa blanca', 'Canelones de jamón y queso'] },
       ],
     },

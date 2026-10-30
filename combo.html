@@ -195,6 +195,7 @@ window.GDO = window.GDO || {};
 })();
 </script>
 <script src="geo.js"></script>
+<script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
   var VERSION='combo v2.3';
@@ -507,6 +508,8 @@ window.GDO = window.GDO || {};
     var diaR=esEnv?'':$('diaR').value.trim();
     var lat=null,lng=null; if(st.geo && st.geo.lat!=null && st.geo.direccion && st.geo.direccion.toLowerCase()===dir.toLowerCase()){ lat=st.geo.lat; lng=st.geo.lng!=null?st.geo.lng:st.geo.lon; }
     var items=[{ producto:'COMBO FIN DE MES ('+COMBO.desc+')', cantidad:st.cant, unidad:'unidad', precio:COMBO.precio, preparacion:'', nota:'' }];
+    function detalleCombo(){ return GDO.Prep.detalleCombo(COMBO.desc, [], st.cant); }
+    detalleCombo().forEach(function(x){ items.push({ producto:x.nombre, cantidad:x.cantidad, unidad:x.unidad, precio:0, preparacion:'', nota:'Dentro de COMBO FIN DE MES', enCombo:true }); });
     var cuenta={}; st.tartas.forEach(function(t){ cuenta[t]=(cuenta[t]||0)+1; });
     Object.keys(cuenta).forEach(function(t){ items.push({ producto:'TARTA INDIVIDUAL DE '+t.toUpperCase()+' (REGALO COMBO)', cantidad:cuenta[t], unidad:'unidad', precio:0, preparacion:'', nota:'' }); });
     var extras=Object.keys(st.extras).filter(function(n){ return st.extras[n]>0; });
@@ -550,7 +553,9 @@ window.GDO = window.GDO || {};
       if(esEnv && entre) L.push('• *Entre calles:* '+entre);
       if(!esEnv && diaR) L.push('• *Día de retiro:* '+diaR);
       L.push('• *Forma de pago:* '+pago,'','━━━━━━━━━━━━━━','📦 *DETALLE DEL PEDIDO*','');
-      L.push('*1) Combo fin de mes*','    '+st.cant+' un × '+money(COMBO.precio)+' = *'+money(s)+'*','');
+      L.push('*1) Combo fin de mes*');
+      detalleCombo().forEach(function(x,j){ L.push('    '+(j+1)+'. '+x.texto); });
+      L.push('    '+st.cant+' combo'+(st.cant>1?'s':'')+' × '+money(COMBO.precio)+' = *'+money(s)+'*','');
       L.push('*2) Tarta'+(st.cant>1?'s':'')+' de '+tartasTxt()+' (regalo)*','    Sin cargo','');
       extras.forEach(function(n,i){ var x=EXTRA[n], q=st.extras[n]; L.push('*'+(i+3)+') '+x.label+'*','    '+uniExtra(x,q)+' × '+money(precioExtra(x,q))+' = *'+money(precioExtra(x,q)*q)+'*',''); });
       L.push('━━━━━━━━━━━━━━');

@@ -85,6 +85,25 @@ window.GDO = window.GDO || {};
     return null;
   }
 
-  GDO.Prep = { de: de, elecciones: elecciones, porDefecto: porDefecto, conTrabajo: conTrabajo, recargo: recargo,
+  /* DETALLE DE UN COMBO: la descripción de la lista ("2 Kg Mila de pollo, 1 Maple de
+     Huevos") abierta en productos, ya con las elecciones del cliente y multiplicada por
+     la cantidad de combos. Va sin precio: el precio es el del combo.
+     OJO: está duplicado en el bot (src/pedidos.js, detalleCombo). */
+  function sinTildes(t) { return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+  function detalleCombo(desc, elegidas, cantCombos) {
+    var n = cantCombos || 1;
+    return String(desc || '').replace(/\.\s*$/, '').split(/,(?![^(]*\))/).map(function (x) { return x.trim(); }).filter(Boolean).map(function (parte) {
+      var m = /^(\d+(?:[.,]\d+)?)\s*(kg|kilos?)?\s+(.*)$/i.exec(parte);
+      var cant = m ? parseFloat(m[1].replace(',', '.')) : 1, esKg = !!(m && m[2]), nombre = m ? m[3] : parte;
+      var eleccion = /\so\s|a elecci[oó]n/i.test(nombre) && (elegidas || []).filter(function (e) {
+        return sinTildes(nombre).indexOf(sinTildes(e).split(' ')[0]) >= 0;
+      })[0];
+      if (eleccion) nombre = eleccion;
+      var total = cant * n;
+      return { cantidad: total, unidad: esKg ? 'kg' : 'unidad', nombre: nombre, texto: total + (esKg ? ' kg ' : ' ') + nombre };
+    });
+  }
+
+  GDO.Prep = { de: de, elecciones: elecciones, detalleCombo: detalleCombo, porDefecto: porDefecto, conTrabajo: conTrabajo, recargo: recargo,
                RECARGO_KG: RECARGO_KG, lista: PREPS };
 })();

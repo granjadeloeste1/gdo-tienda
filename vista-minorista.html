@@ -208,7 +208,7 @@ function gdoPx(ev, p){ try{ if(window.fbq) fbq('track', ev, p||{}); }catch(e){} 
 
 <!-- Opciones de corte por producto (suprema, cuarto trasero). Se carga ANTES del
      script de la lista porque render() las consulta al dibujar cada producto. -->
-<script src="preparaciones.js?v=3"></script>
+<script src="preparaciones.js?v=4"></script>
 <script src="descuentos.js?v=3"></script>
 <!-- Firebase: registrar pedidos de ENVÍO en el panel de Rutas (mismo proyecto ruteogdo que la mayorista) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -315,6 +315,12 @@ window.GDO = window.GDO || {};
     // Combo con elecciones: cada combinación es su línea; en la lista se ve el total.
     if(GDO.Prep && GDO.Prep.elecciones(n)){ var pre=vkey(n,v)+' · ', t=0; for(var k in CART) if(k.indexOf(pre)===0) t+=CART[k].cant; return t; }
     var it=CART[vkey(n,v)]; return it?it.cant:0;
+  }
+  // Los productos que lleva una línea de combo (null si no es combo).
+  function detalleDe(it){
+    var p=(window.MIN_DATA||[]).filter(function(x){ return x.nombre===it.nombre; })[0];
+    if(!p || !/COMBO/i.test(p.cat||'') || !p.desc) return null;
+    return GDO.Prep.detalleCombo(p.desc, String(it.variedad||'').split(' · ').slice(1), it.cant);
   }
   // Antes de sumar el combo: una opción de cada grupo, obligatoria.
   function pedirEleccion(n,v,p){
@@ -521,7 +527,12 @@ window.GDO = window.GDO || {};
           items.push({ producto: it.nombre, cantidad: it.kg, unidad:'kg', precio: precioKg(it), preparacion:'', nota: nota });
         }
       }
-      else items.push({ producto: it.nombre+' ('+it.variedad+')', cantidad: it.cant, unidad: unidadVar(it.variedad), precio: it.precio, preparacion:'', nota: nota });
+      else {
+        var combo=detalleDe(it);
+        items.push({ producto: combo ? it.nombre : it.nombre+' ('+it.variedad+')', cantidad: it.cant, unidad: unidadVar(it.variedad), precio: it.precio, preparacion:'', nota: nota });
+        // Abierto en productos, sin precio (se cobra el combo): así producción ve qué armar.
+        if(combo) combo.forEach(function(x){ items.push({ producto: x.nombre, cantidad: x.cantidad, unidad: x.unidad, precio: 0, preparacion:'', nota: 'Dentro de '+it.nombre, enCombo: true }); });
+      }
     }
     if(!items.length) return;
     // Coordenadas de la dirección elegida en el autocompletado (si no la editó después)
@@ -726,8 +737,15 @@ window.GDO = window.GDO || {};
             L.push('    ⚖️ _Se cobra al peso exacto (va en el ticket)_');
           } else L.push('    '+it.kg+' kg × '+money(precioKg(it))+' = *'+money(lineTotal(it))+'*');
         } else {
-          L.push('*'+i+') '+it.nombre+' ('+it.variedad+')*');
-          L.push('    '+it.cant+' un × '+money(it.precio)+' = *'+money(lineTotal(it))+'*');
+          var combo=detalleDe(it);
+          if(combo){
+            L.push('*'+i+') '+it.nombre+'*');
+            combo.forEach(function(x,j){ L.push('    '+(j+1)+'. '+x.texto); });
+            L.push('    '+it.cant+' combo'+(it.cant>1?'s':'')+' × '+money(it.precio)+' = *'+money(lineTotal(it))+'*');
+          } else {
+            L.push('*'+i+') '+it.nombre+' ('+it.variedad+')*');
+            L.push('    '+it.cant+' un × '+money(it.precio)+' = *'+money(lineTotal(it))+'*');
+          }
         }
         // Cómo lo quiere cortado (uno por línea si pidió de varias formas) y
         // cualquier aclaración de ese producto.
@@ -903,7 +921,7 @@ window.GDO = window.GDO || {};
         '<iframe id="mapaReparto" src="mapa-zona-oeste.html?v=4" title="Zona de reparto Oeste" loading="lazy" style="width:100%;border:0;display:block;min-height:420px"></iframe></details>'+
       '<style>.mapwrap{margin:10px 0;border:1px solid #eee;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)}.mapwrap>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#fff;background:#F58220;padding:13px 16px}.mapwrap>summary::-webkit-details-marker{display:none}.mapwrap .mapchev{margin-left:auto;transition:transform .2s}.mapwrap[open] .mapchev{transform:rotate(180deg)}</style>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+
-      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.4<br>Todos los derechos reservados</p>';
+      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.5<br>Todos los derechos reservados</p>';
     render(cats);
     // Ajusta la altura del mapa (iframe mismo-origen) a su contenido, y al abrir/cerrar el desplegable.
     (function(){ var det=$('#mapaDet'), f=$('#mapaReparto'); if(!f) return;

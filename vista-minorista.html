@@ -169,6 +169,10 @@ function gdoPx(ev, p){ try{ if(window.fbq) fbq('track', ev, p||{}); }catch(e){} 
   .wa svg{ width:29px; height:29px; fill:#fff }
   @keyframes waBob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-6px) } }
   @media(prefers-reduced-motion:reduce){ .wa{ animation:none } }
+  .gdoConfeti{ position:fixed; top:-12px; width:9px; height:14px; z-index:301; pointer-events:none; animation:gdoCaer 1.6s ease-in forwards }
+  @keyframes gdoCaer{ to{ transform:translateY(105vh) rotate(720deg); opacity:.7 } }
+  @keyframes gdoPop{ 0%{ transform:scale(.8); opacity:0 } 60%{ transform:scale(1.05); opacity:1 } 100%{ transform:scale(1) } }
+  @media(prefers-reduced-motion:reduce){ .gdoConfeti{ display:none } }
   /* pie: version + propiedad */
   .kgmin{ display:inline-block; background:#fff7ef; border:1px solid #f3cda0; color:#a85f1a; border-radius:8px; padding:3px 9px; font-size:11.5px; font-weight:800; margin:2px 0 8px }
   .gdofoot{ text-align:center; color:#9a9a9a; font-size:12px; line-height:1.5; margin:22px 0 90px }
@@ -448,8 +452,30 @@ window.GDO = window.GDO || {};
     document.querySelectorAll('[data-tot]').forEach(function(s){ var it=CART[pkey(s.dataset.tot)]; s.textContent = it ? (kgPieza(it.nombre)?'≈ ':'')+money(lineTotal(it)) : ''; });
     document.querySelectorAll('[data-pk]').forEach(function(r){ r.classList.toggle('incart', pesoKg(r.dataset.pk)>0); });
   }
+  // Al llegar al envío gratis: cartel en el medio, confeti y sonido (igual que la página del combo).
+  var teniaGratis=null;
+  function festejoGratis(){
+    var c=document.createElement('div');
+    c.style.cssText='position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:24px';
+    c.innerHTML='<div style="background:#1fa855;color:#fff;border-radius:20px;padding:26px 22px;text-align:center;max-width:340px;box-shadow:0 20px 50px rgba(0,0,0,.4);animation:gdoPop .45s ease">'+
+      '<div style="font-size:46px;line-height:1">🎉</div><b style="display:block;font-size:24px;line-height:1.15;margin:10px 0 8px">¡Ahora tenés envío gratis!</b>'+
+      '<div style="font-size:15px">Tu pedido llegó a '+money(CFG.envioGratisDesde)+'.</div><small style="display:block;margin-top:12px;opacity:.85">Tocá para seguir</small></div>';
+    c.onclick=function(){ c.remove(); };
+    document.body.appendChild(c);
+    var cols=['#F58220','#FBC02D','#E53935','#1fa855','#111'];
+    for(var i=0;i<40;i++){ var d=document.createElement('div'); d.className='gdoConfeti'; d.style.left=Math.random()*100+'vw'; d.style.background=cols[i%cols.length]; d.style.animationDelay=(Math.random()*.4)+'s'; document.body.appendChild(d); setTimeout(function(x){ return function(){ x.remove(); }; }(d),2200); }
+    try{ var A=window.AudioContext||window.webkitAudioContext, ctx=new A(), t0=ctx.currentTime;
+      [[523,0,.12],[659,.13,.12],[784,.26,.12],[1047,.4,.35]].forEach(function(n){ var o=ctx.createOscillator(), g=ctx.createGain(); o.type='sawtooth'; o.frequency.value=n[0];
+        g.gain.setValueAtTime(0,t0+n[1]); g.gain.linearRampToValueAtTime(.12,t0+n[1]+.02); g.gain.exponentialRampToValueAtTime(.001,t0+n[1]+n[2]);
+        o.connect(g); g.connect(ctx.destination); o.start(t0+n[1]); o.stop(t0+n[1]+n[2]+.05); });
+    }catch(e){}
+  }
   function sync(){
     var tot=cartTotal(), n=cartCount(), falta=Math.max(0,CFG.minPedido-tot);
+    // Solo al CRUZAR el monto: no al recargar la página con el carrito ya lleno. Si baja y vuelve a llegar, festeja de nuevo.
+    var hayGratis=!!(CFG.envioGratis && CFG.envioGratisDesde>0 && tot>=CFG.envioGratisDesde);
+    if(teniaGratis===false && hayGratis) festejoGratis();
+    teniaGratis=hayGratis;
     var faltaEnvio = CFG.envioGratis ? Math.max(0, CFG.envioGratisDesde-tot) : 0;
     var sub;
     if(falta>0) sub='faltan '+money(falta)+' (mínimo '+money(CFG.minPedido)+')';
@@ -921,7 +947,7 @@ window.GDO = window.GDO || {};
         '<iframe id="mapaReparto" src="mapa-zona-oeste.html?v=4" title="Zona de reparto Oeste" loading="lazy" style="width:100%;border:0;display:block;min-height:420px"></iframe></details>'+
       '<style>.mapwrap{margin:10px 0;border:1px solid #eee;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)}.mapwrap>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#fff;background:#F58220;padding:13px 16px}.mapwrap>summary::-webkit-details-marker{display:none}.mapwrap .mapchev{margin-left:auto;transition:transform .2s}.mapwrap[open] .mapchev{transform:rotate(180deg)}</style>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+
-      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.5<br>Todos los derechos reservados</p>';
+      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.6<br>Todos los derechos reservados</p>';
     render(cats);
     // Ajusta la altura del mapa (iframe mismo-origen) a su contenido, y al abrir/cerrar el desplegable.
     (function(){ var det=$('#mapaDet'), f=$('#mapaReparto'); if(!f) return;

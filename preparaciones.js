@@ -67,6 +67,23 @@ window.GDO = window.GDO || {};
   // Recargo por kilo de ese corte. 0 si el producto va tal cual.
   function recargo(nombre, corte) { return conTrabajo(nombre, corte) ? RECARGO_KG : 0; }
 
-  GDO.Prep = { de: de, porDefecto: porDefecto, conTrabajo: conTrabajo, recargo: recargo,
+  /* ELECCIONES DE UN COMBO: el cliente las elige antes de sumarlo, y salen escritas en
+     el pedido (WhatsApp y panel), para que nadie tenga que preguntarlas después. */
+  var ELECCIONES = [
+    {
+      re: /COMBO\s*AHORRO/i,
+      grupos: [
+        { titulo: '¿Hamburguesas o albóndigas? (1 kg)', opciones: ['Hamburguesas de pollo clásicas', 'Albóndigas clásicas'] },
+        { titulo: '¿De qué sabor los canelones? (12 unidades)', opciones: ['Canelones de ricota y verdura', 'Canelones de ricota y jamón', 'Canelones de pollo con salsa blanca', 'Canelones de jamón y queso'] },
+      ],
+    },
+  ];
+  function elecciones(nombre) {
+    var n = String(nombre == null ? '' : nombre);
+    for (var i = 0; i < ELECCIONES.length; i++) if (ELECCIONES[i].re.test(n)) return ELECCIONES[i].grupos;
+    return null;
+  }
+
+  GDO.Prep = { de: de, elecciones: elecciones, porDefecto: porDefecto, conTrabajo: conTrabajo, recargo: recargo,
                RECARGO_KG: RECARGO_KG, lista: PREPS };
 })();

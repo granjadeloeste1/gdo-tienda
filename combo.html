@@ -541,18 +541,34 @@ window.GDO = window.GDO || {};
     }
     confirmado(false);
     function confirmado(falloPago){
-      // Aviso opcional por WhatsApp (el pedido YA quedó cargado en el panel).
-      var L=['Hola! Hice el pedido del *Combo fin de mes* desde la web.','','• '+st.cant+' combo'+(st.cant>1?'s':'')+' + tarta'+(st.cant>1?'s':'')+' de '+tartasTxt()].concat(extras.map(function(n){ return '• '+EXTRA[n].label+' · '+uniExtra(EXTRA[n],st.extras[n]); })).concat([
-        esEnv?'• Envío a '+dir+' · '+st.dia+' '+st.diaF:'• Retiro en el local'+(diaR?' · '+diaR:''),'• Pago: '+pago,'• Total: '+money(total),'','A nombre de '+nom+'.']);
+      // Como en la lista: el pedido sale SIEMPRE por WhatsApp con el formato "NUEVO PEDIDO" (el bot lo
+      // reconoce y no lo vuelve a cargar). Pestaña nueva y sincrónico al click, para que no lo bloquee
+      // el celular y el guardado siga vivo; si igual lo bloquea, se navega a los 2,5 s.
+      var L=['🛒 *NUEVO PEDIDO MINORISTA*','*Granja del Oeste*','','━━━━━━━━━━━━━━','👤 *DATOS DEL CLIENTE*','','• *Nombre:* '+nom,'• *Teléfono:* '+tel];
+      if(esEnv) L.push('• *Modalidad:* Envío a domicilio','• *Zona:* '+zona,'• *Día de entrega:* '+st.dia+' '+st.diaF,'• *Dirección:* '+dir);
+      else L.push('• *Modalidad:* Retiro en sucursal','• *Retiro en:* '+CFG.sucursal);
+      if(esEnv && entre) L.push('• *Entre calles:* '+entre);
+      if(!esEnv && diaR) L.push('• *Día de retiro:* '+diaR);
+      L.push('• *Forma de pago:* '+pago,'','━━━━━━━━━━━━━━','📦 *DETALLE DEL PEDIDO*','');
+      L.push('*1) Combo fin de mes*','    '+st.cant+' un × '+money(COMBO.precio)+' = *'+money(s)+'*','');
+      L.push('*2) Tarta'+(st.cant>1?'s':'')+' de '+tartasTxt()+' (regalo)*','    Sin cargo','');
+      extras.forEach(function(n,i){ var x=EXTRA[n], q=st.extras[n]; L.push('*'+(i+3)+') '+x.label+'*','    '+uniExtra(x,q)+' × '+money(precioExtra(x,q))+' = *'+money(precioExtra(x,q)*q)+'*',''); });
+      L.push('━━━━━━━━━━━━━━');
+      if(esEnv) L.push('• *Envío:* '+(e===0?'sin cargo':money(e)));
+      L.push('💰 *TOTAL: '+money(total)+'*','━━━━━━━━━━━━━━','','_El pedido será confirmado por un miembro del equipo en horario comercial para acordar la entrega o retiro según corresponda._');
       var wa='https://wa.me/'+WA+'?text='+encodeURIComponent(L.join('\n'));
+      if(!falloPago){
+        var waTab=null; try{ waTab=window.open(wa,'_blank'); }catch(err){ waTab=null; }
+        if(!waTab) setTimeout(function(){ location.href=wa; },2500);
+      }
       window.scrollTo(0,0);
-      app.innerHTML=TOP+'<div class="ok"><div class="ic">✓</div><h1>Pedido confirmado, '+esc(nom.split(' ')[0])+'.</h1>'+
-        '<p>Ya lo tenemos. '+(esEnv?'Te lo llevamos el <b>'+esc(st.dia)+' '+esc(st.diaF)+'</b>.':'Te esperamos en <b>'+esc(CFG.sucursal)+'</b>.')+'</p>'+
+      app.innerHTML=TOP+'<div class="ok"><div class="ic">✓</div><h1>Pedido enviado, '+esc(nom.split(' ')[0])+'.</h1>'+
+        '<p>Mandalo por WhatsApp y te lo confirmamos por ahí. '+(esEnv?'Entrega: <b>'+esc(st.dia)+' '+esc(st.diaF)+'</b>.':'Retiro en <b>'+esc(CFG.sucursal)+'</b>.')+'</p>'+
         '<div class="card sum"><div class="ln"><span>'+st.cant+' × Combo fin de mes</span><span>'+money(s)+'</span></div><div class="ln"><span>Tarta'+(st.cant>1?'s':'')+' de '+esc(tartasTxt())+'</span><span>Regalo</span></div>'+
           extras.map(function(n){ var x=EXTRA[n], q=st.extras[n]; return '<div class="ln"><span>'+esc(x.label)+' · '+uniExtra(x,q)+'</span><span>'+money(precioExtra(x,q)*q)+'</span></div>'; }).join('')+
           (esEnv?'<div class="ln"><span>Envío</span><span>'+(e===0?'Sin cargo':money(e))+'</span></div>':'')+'<div class="ln big"><span>Total</span><span>'+money(total)+'</span></div></div>'+
         (falloPago?'<p style="font-size:14px;color:#6d665e">No pudimos abrir el pago online en este momento. Tu pedido quedó tomado igual: '+esc(textoPago(pago, esEnv)).replace(/^./,function(c){ return c.toLowerCase(); })+'</p>':'<p style="font-size:14px;color:#6d665e">'+esc(textoPago(pago, esEnv))+'</p>')+
-        '<a class="btn2" href="'+wa+'" target="_blank" rel="noopener">Avisarnos por WhatsApp</a>'+
+        '<a class="btn2" href="'+wa+'" target="_blank" rel="noopener">Enviar el pedido por WhatsApp</a>'+
         '<a class="mas" href="vista-minorista.html"><span>Mirá la lista completa</span> →</a></div>';
     }
   }

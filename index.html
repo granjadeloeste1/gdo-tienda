@@ -391,7 +391,7 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v3.0<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v3.1<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -427,6 +427,7 @@ if(window.VEND){
   })();
 }
 </script>
+<script>/* Link directo a la mayorista (?lista=mayorista, el que manda el bot): sin pantalla de elección ni botón para volver a ella. */try{if(new URLSearchParams(location.search).get('lista')==='mayorista'){document.getElementById('gdoChooser').style.display='none';var _sm=document.createElement('style');_sm.textContent='.hdr .back{display:none}';document.head.appendChild(_sm);}}catch(e){}</script>
 <script>/* Si ya se eligió la lista Mayorista, al refrescar (F5) NO volver al chooser. */try{if(sessionStorage.getItem('gdoLista')==='may'){var _gc=document.getElementById('gdoChooser');if(_gc)_gc.style.display='none';}}catch(e){}</script>
 <header class="hdr">
   <button class="back" onclick="try{sessionStorage.removeItem('gdoLista')}catch(e){};document.getElementById('gdoChooser').style.display='flex'" aria-label="Volver">←</button>

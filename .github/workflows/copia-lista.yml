@@ -1,8 +1,12 @@
 name: Copia de la lista
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '11,41 * * * *'
   workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copia-lista.yml
+      - .github/scripts/copia-lista.js
 permissions:
   contents: write
 jobs:

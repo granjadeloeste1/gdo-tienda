@@ -205,7 +205,7 @@ window.GDO = window.GDO || {};
 <script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
-  var VERSION='combo v3.0';
+  var VERSION='combo v3.1';
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
   // el monto calculado allá con la lista en vivo. (Los links de pago de Nave son de un solo uso.)
   // Si el servidor dice que está apagado o no responde, se ofrece solo pagar al recibir.
@@ -276,7 +276,15 @@ window.GDO = window.GDO || {};
     mirar();
   }
 
-  fetch(API+'?lista=minorista&t='+Date.now()).then(function(r){ return r.json(); }).then(function(d){
+  // La lista a veces falla de una: se reintenta antes de rendirse, y nunca se queda esperando para siempre.
+  function pedirLista(quedan){
+    var espera=new Promise(function(_,no){ setTimeout(function(){ no(new Error('tiempo')); },12000); });
+    return Promise.race([fetch(API+'?lista=minorista&t='+Date.now()).then(function(r){ return r.json(); }),espera]).catch(function(e){
+      if(quedan<=0) throw e;
+      return new Promise(function(r){ setTimeout(r,1500); }).then(function(){ return pedirLista(quedan-1); });
+    });
+  }
+  pedirLista(2).then(function(d){
     CFG=d.config||{}; var ps=d.productos||[];
     FIN=ps.filter(function(p){ return /COMBO/i.test(p.cat) && /^COMBO$/i.test(String(p.nombre).trim()); })[0];
     AHORRO=ps.filter(function(p){ return /COMBO/i.test(p.cat) && /^COMBO AHORRO$/i.test(String(p.nombre).trim()); })[0]||null;
@@ -325,8 +333,13 @@ window.GDO = window.GDO || {};
     gdoPx('ViewContent',{content_name:nombreCombo(),value:COMBO.precio,currency:'ARS',content_type:'product'});
     render();
   }).catch(function(){
-    // Regla de la tienda: sin conexión NO se muestran precios.
-    app.innerHTML=TOP+'<div class="off">No pudimos cargar el combo. Revisá tu conexión y probá de nuevo.<br><br><button class="opt" onclick="location.reload()">Reintentar</button></div>';
+    if(VUELTA) return;
+    // Regla de la tienda: sin la lista NO se muestran precios. La vista previa de los anuncios de Instagram
+    // no deja traer la lista aunque haya internet; al tocar el botón se abre la página completa.
+    var ahorro=/[?&]combo=ahorro\b/i.test(location.search);
+    app.innerHTML=TOP+'<div class="off"><b>'+(ahorro?'Combo Ahorro':'Combo fin de mes')+'</b>'+
+      (ahorro?'':'<br><br>'+ITEMS.map(function(i){ return esc(i[0]+' · '+i[1]); }).join('<br>'))+
+      '<br><br><button class="opt" onclick="location.reload()">Ver el combo y pedir</button></div>';
   });
 
   function sub(){ return COMBO.precio*st.cant; }

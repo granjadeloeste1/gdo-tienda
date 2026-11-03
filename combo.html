@@ -178,6 +178,12 @@ select.fin{background-image:linear-gradient(45deg,transparent 50%,#999 50%),line
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-check-compat.js"></script>
 <script>
+  // ¿Llegó desde un anuncio de Meta? Va en el mensaje de WhatsApp para que el bot lo agende como Pauta.
+  var DEL_ANUNCIO = (function(){
+    var q = location.search, r = document.referrer || '', si = /[?&](fbclid|utm_source|utm_medium|utm_campaign)=/.test(q) || /facebook\.com|instagram\.com|fb\.me/.test(r);
+    try { if (si) sessionStorage.setItem('gdo_anuncio', '1'); else si = sessionStorage.getItem('gdo_anuncio') === '1'; } catch (e) {}
+    return si;
+  })();
 // Firebase: mismo proyecto y mismo arranque que vista-minorista.html (sesión anónima para crear el pedido).
 window.GDO = window.GDO || {};
 (function(){
@@ -622,6 +628,7 @@ window.GDO = window.GDO || {};
       L.push('━━━━━━━━━━━━━━');
       if(esEnv) L.push('• *Envío:* '+(e===0?'sin cargo':money(e)));
       L.push('💰 *TOTAL: '+money(total)+'*','━━━━━━━━━━━━━━','','_El pedido será confirmado por un miembro del equipo en horario comercial para acordar la entrega o retiro según corresponda._');
+      if(DEL_ANUNCIO) L.push('','📣 Vi el anuncio: Combo fin de mes');
       var wa='https://wa.me/'+WA+'?text='+encodeURIComponent(L.join('\n'));
       if(!falloPago){
         var waTab=null; try{ waTab=window.open(wa,'_blank'); }catch(err){ waTab=null; }

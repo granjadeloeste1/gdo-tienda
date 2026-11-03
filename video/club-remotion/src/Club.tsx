@@ -10,32 +10,32 @@ const BG = '#0b0d0c';
 const SANS = '"Inter Display", Inter, Arial, sans-serif';
 const MONO = '"DejaVu Sans Mono", monospace';
 
-// La locución final es: intro de la presentadora (7,39 s) + voz original 7,55–16,59 + voz original 20,25–fin.
-// m() pasa un tiempo de la voz original al tiempo del video.
-const m = (t: number) => (t < 7.55 ? t : t < 20.25 ? t + 0.30 : t - 3.36);
+// La locución (voz.wav) va entera y sin cortes: el tiempo de la voz es el tiempo del video.
+// m() queda por si se vuelve a editar la locución (pasa un tiempo de la voz al del video).
+const m = (t: number) => t;
 const f = (t: number) => Math.round(t * FPS);
 
 // Frases de la locución (tiempos de la voz original) para los subtítulos.
 const FRASES: [number, number, string][] = [
-  [0.51, 2.16, '¿Ya conocés el GDO Club?'],
-  [3.08, 5.64, 'Es el club de beneficios de Granja del Oeste…'],
-  [6.36, 7.5, 'y es gratis.'],
-  [7.6, 9.83, 'Entrás a lista.granjadeloeste.com,'],
-  [10.35, 11.06, 'tocás Club,'],
-  [11.52, 13.52, 'completás tus datos…'],
-  [14.07, 15.72, 'y listo: ya tenés tu credencial digital.'],
-  [20.25, 21.52, 'Y por cada cien pesos,'],
-  [21.62, 23.0, 'sumás un Punto GDO.'],
-  [24.36, 27.57, 'Mostrás tu credencial en el mostrador, o escaneás el código…'],
-  [27.95, 29.88, 'y los puntos te aparecen al toque.'],
-  [30.73, 31.72, '¿Juntaste puntos?'],
-  [32.31, 36.61, 'Entrás a Premios, elegís el que más te guste, y tocás Canjear.'],
-  [37.49, 38.42, 'Te llega un voucher:'],
-  [39.08, 40.28, 'lo mostrás en el local…'],
-  [40.66, 42.54, 'o te lo mandamos con tu próximo envío.'],
-  [43.27, 43.49, 'Ah:'],
-  [43.96, 48.65, 'el cajón de pollo y el de huevos no suman, y los puntos duran un año.'],
-  [49.70, 53.40, 'Hacete socio hoy, ¡y que cada compra te rinda más!'],
+  [0.10, 1.62, '¿Ya conocés el GDO Club?'],
+  [2.45, 4.76, 'Es el club de beneficios de Granja del Oeste…'],
+  [4.94, 5.77, 'y es gratis.'],
+  [6.67, 9.33, 'Entrás a lista.granjadeloeste.com,'],
+  [9.53, 10.17, 'tocás Club,'],
+  [10.41, 11.49, 'completás tus datos…'],
+  [11.67, 14.19, 'y listo: ya tenés tu credencial digital.'],
+  [15.06, 16.63, 'Por cada cien pesos de compra,'],
+  [16.89, 18.21, 'sumás un Punto GDO.'],
+  [18.29, 21.48, 'Mostrás tu credencial en el mostrador, o escaneás el código…'],
+  [21.78, 23.34, 'y los puntos te aparecen al toque.'],
+  [24.26, 25.39, '¿Juntaste puntos?'],
+  [26.27, 29.72, 'Entrás a Premios, elegís el que más te guste y tocás Canjear.'],
+  [30.69, 31.68, 'Te llega un voucher:'],
+  [32.03, 33.22, 'lo mostrás en el local…'],
+  [33.41, 35.35, 'o te lo mandamos con tu próximo envío.'],
+  [36.26, 36.51, 'Ah:'],
+  [36.78, 40.66, 'el cajón de pollo y el de huevos no suman, y los puntos duran un año.'],
+  [41.57, 44.46, 'Hacete socio hoy, ¡y que cada compra te rinda más!'],
 ];
 
 // Parte cada frase en golpes de 2-3 palabras, repartidos según su largo.
@@ -188,34 +188,34 @@ export const Club: React.FC = () => {
       <Audio src={staticFile('voz.wav')} />
 
       {/* 1 · Presentadora */}
-      <Sequence from={0} durationInFrames={f(m(7.55))}>
+      <Sequence from={0} durationInFrames={f(m(6.55))}>
         <Presentadora src="host_intro.mp4" />
         <Marca />
       </Sequence>
 
       {/* 2 · Cómo te asociás */}
-      <Seccion a0={7.55} b0={16.59}>
+      <Seccion a0={6.55} b0={14.9}>
         <Fondo />
         <Kicker txt="GDO Club · paso a paso" />
         <Titulo a="Cómo te" b="asociás (gratis)" />
         <Pasos top={530} h={140} gap={34} pasos={[
-          {n: '1', t: 'Entrás a la lista', s: 'lista.granjadeloeste.com', on: r(7.6, 7.55)},
-          {n: '2', t: 'Tocás “Club”', s: 'arriba, en el menú', on: r(10.35, 7.55)},
-          {n: '3', t: 'Completás tus datos', s: 'nombre, DNI, dirección, teléfono', on: r(11.52, 7.55)},
-          {n: '4', t: 'Credencial digital', s: 'con tu número de socio', on: r(14.07, 7.55)},
+          {n: '1', t: 'Entrás a la lista', s: 'lista.granjadeloeste.com', on: r(6.67, 6.55)},
+          {n: '2', t: 'Tocás “Club”', s: 'arriba, en el menú', on: r(9.53, 6.55)},
+          {n: '3', t: 'Completás tus datos', s: 'nombre, DNI, dirección, teléfono', on: r(10.41, 6.55)},
+          {n: '4', t: 'Credencial digital', s: 'con tu número de socio', on: r(12.49, 6.55)},
         ]} />
       </Seccion>
 
       {/* 3 · $100 = 1 punto */}
-      <Seccion a0={20.25} b0={23.59}>
+      <Seccion a0={14.9} b0={18.24}>
         <Fondo />
         <Kicker txt="Cómo sumás" />
         <Titulo a="Cada compra" b="suma puntos" />
         <Sequence from={10}>
           <AbsoluteFill style={{alignItems: 'center', top: 560}}>
             {(() => {
-              const k = spring({frame: fr - f(m(20.25)) - 10, fps: FPS, config: {damping: 12}});
-              const v = Math.round(interpolate(fr - f(m(20.25)) - 10, [0, 24], [0, 100], {extrapolateRight: 'clamp', easing: Easing.out(Easing.cubic)}));
+              const k = spring({frame: fr - f(m(14.9)) - 10, fps: FPS, config: {damping: 12}});
+              const v = Math.round(interpolate(fr - f(m(14.9)) - 10, [0, 24], [0, 100], {extrapolateRight: 'clamp', easing: Easing.out(Easing.cubic)}));
               return (
                 <div style={{textAlign: 'center', transform: `scale(${0.7 + 0.3 * k})`, opacity: k}}>
                   <div style={{fontFamily: SANS, fontWeight: 900, fontSize: 300, color: O, lineHeight: 1}}>${v}</div>
@@ -229,50 +229,50 @@ export const Club: React.FC = () => {
       </Seccion>
 
       {/* 4 · Carga de puntos */}
-      <Seccion a0={23.59} b0={30.73}>
+      <Seccion a0={18.24} b0={24.06}>
         <Fondo />
         <Kicker txt="En el mostrador" />
         <Titulo a="Mostrás tu" b="credencial" size={96} />
         <Pasos top={500} h={120} gap={26} pasos={[
-          {n: 'A', t: 'Mostrás la credencial', s: 'o escaneás el QR del mostrador', on: r(24.36, 23.59)},
-          {n: 'B', t: 'Te cargamos los puntos', s: 'aparecen al toque', on: r(27.95, 23.59)},
+          {n: 'A', t: 'Mostrás la credencial', s: 'o escaneás el QR del mostrador', on: r(18.29, 18.24)},
+          {n: 'B', t: 'Te cargamos los puntos', s: 'aparecen al toque', on: r(21.78, 18.24)},
         ]} />
-        <Sequence from={f(r(24.8, 23.59))}><Celular top={830} w={290} pantallas={[[0, 'c_credencial.png'], [r(28.6, 24.8), 'd_credencial_mas.png']]} badge={[r(28.6, 24.8), '+1.230 pts']} /></Sequence>
+        <Sequence from={f(r(18.7, 18.24))}><Celular top={830} w={290} pantallas={[[0, 'c_credencial.png'], [r(22.0, 18.7), 'd_credencial_mas.png']]} badge={[r(22.0, 18.7), '+1.230 pts']} /></Sequence>
       </Seccion>
 
       {/* 5 · Canje */}
-      <Seccion a0={30.73} b0={43.27}>
+      <Seccion a0={24.06} b0={36.11}>
         <Fondo />
         <Kicker txt="Cómo canjeás" />
         <Titulo a="Tus puntos," b="tus premios" size={96} />
         <Pasos top={480} h={112} gap={22} pasos={[
-          {n: '1', t: 'Entrás a Premios', s: 'en tu cuenta del Club', on: r(32.31, 30.73)},
-          {n: '2', t: 'Tocás Canjear', s: 'en el premio que elijas', on: r(34.6, 30.73)},
-          {n: '3', t: 'Recibís un voucher', s: 'con código QR', on: r(37.49, 30.73)},
-          {n: '4', t: 'Lo usás', s: 'en el local o con tu próximo envío', on: r(39.08, 30.73)},
+          {n: '1', t: 'Entrás a Premios', s: 'en tu cuenta del Club', on: r(26.27, 24.06)},
+          {n: '2', t: 'Tocás Canjear', s: 'en el premio que elijas', on: r(28.94, 24.06)},
+          {n: '3', t: 'Recibís un voucher', s: 'con código QR', on: r(30.69, 24.06)},
+          {n: '4', t: 'Lo usás', s: 'en el local o con tu próximo envío', on: r(32.03, 24.06)},
         ]} />
-        <Sequence from={f(r(32.6, 30.73))}><Celular top={1040} w={225} pantallas={[[0, 'e_premios.png'], [r(37.49, 32.6), 'f_voucher.png']]} /></Sequence>
+        <Sequence from={f(r(26.5, 24.06))}><Celular top={1040} w={225} pantallas={[[0, 'e_premios.png'], [r(30.69, 26.5), 'f_voucher.png']]} /></Sequence>
       </Seccion>
 
       {/* 6 · Letra chica */}
-      <Seccion a0={43.27} b0={49.4}>
+      <Seccion a0={36.11} b0={41.37}>
         <Fondo />
         <Kicker txt="Letra chica" />
         <Titulo a="Tené en" b="cuenta" />
         <Pasos top={560} h={170} gap={40} pasos={[
-          {n: '×', t: 'Cajón de pollo y de huevos', s: 'no suman puntos', on: r(43.96, 43.27)},
-          {n: '⏳', t: 'Los puntos duran 1 año', s: 'desde que se acreditan', on: r(46.6, 43.27)},
+          {n: '×', t: 'Cajón de pollo y de huevos', s: 'no suman puntos', on: r(36.78, 36.11)},
+          {n: '⏳', t: 'Los puntos duran 1 año', s: 'desde que se acreditan', on: r(39.33, 36.11)},
         ]} />
         <Fuente txt="Bases y condiciones: lista.granjadeloeste.com/club.html" />
       </Seccion>
 
       {/* 7 · Cierre con la presentadora */}
-      <Sequence from={f(m(49.4))} durationInFrames={durationInFrames - f(m(49.4))}>
+      <Sequence from={f(m(41.37))} durationInFrames={durationInFrames - f(m(41.37))}>
         <Presentadora src="host_cta.mp4" />
         <Marca />
         <AbsoluteFill style={{alignItems: 'center'}}>
           {(() => {
-            const k = spring({frame: fr - f(m(49.4)) - 20, fps: FPS, config: {damping: 14}});
+            const k = spring({frame: fr - f(m(41.37)) - 20, fps: FPS, config: {damping: 14}});
             return <div style={{position: 'absolute', top: 1270, background: 'rgba(11,13,12,.85)', border: `3px solid ${O}`, borderRadius: 50,
               padding: '18px 36px', fontFamily: SANS, fontWeight: 800, fontSize: 46, color: '#fff', opacity: k, transform: `scale(${0.8 + 0.2 * k})`}}>
               📲 lista.granjadeloeste.com <span style={{color: O}}>→ Club</span></div>;

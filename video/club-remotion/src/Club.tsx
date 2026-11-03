@@ -17,25 +17,18 @@ const f = (t: number) => Math.round(t * FPS);
 
 // Frases de la locución (tiempos de la voz original) para los subtítulos.
 const FRASES: [number, number, string][] = [
-  [0.05, 1.59, '¿Ya conocés el GDO Club?'],
-  [2.23, 4.64, 'Es el club de beneficios de Granja del Oeste…'],
-  [5.16, 5.89, 'y es gratis.'],
-  [6.45, 9.76, 'Entrás a lista.granjadeloeste.com,'],
-  [10.37, 11.12, 'tocás Club,'],
-  [11.52, 12.70, 'completás tus datos…'],
-  [13.14, 16.20, 'y listo: ya tenés tu credencial digital.'],
-  [16.96, 18.74, 'Por cada cien pesos de compra,'],
-  [18.88, 20.60, 'sumás un Punto GDO.'],
-  [21.32, 24.52, 'Mostrás tu credencial en el mostrador, o escaneás el código…'],
-  [24.98, 26.96, 'y los puntos te aparecen al toque.'],
-  [27.87, 28.93, '¿Juntaste puntos?'],
-  [29.55, 33.63, 'Entrás a Premios, elegís el que más te guste y tocás Canjear.'],
-  [34.40, 35.25, 'Te llega un voucher:'],
-  [35.88, 37.12, 'lo mostrás en el local…'],
-  [37.57, 39.52, 'o te lo mandamos con tu próximo envío.'],
-  [40.45, 40.69, 'Ah:'],
-  [41.23, 46.52, 'el cajón de pollo y el de huevos no suman, y los puntos duran un año.'],
-  [47.39, 51.02, 'Hacete socio hoy, ¡y que cada compra te rinda más!'],
+  [0.10, 1.46, '¿Ya sos del GDO Club?'],
+  [1.79, 2.38, 'Es gratis,'],
+  [2.61, 4.06, 'y cada compra te suma.'],
+  [4.37, 7.14, 'Entrás a lista.granjadeloeste.com,'],
+  [7.37, 8.11, 'tocás Club,'],
+  [8.34, 9.38, 'completás tus datos…'],
+  [9.69, 11.02, 'y ya tenés tu credencial.'],
+  [11.43, 13.37, 'Por cada cien pesos, un punto:'],
+  [13.62, 16.58, 'mostrás la credencial cuando comprás y se cargan al toque.'],
+  [16.94, 19.27, 'Después, en Premios, elegís el que quieras…'],
+  [19.56, 20.54, 'y te llega el voucher.'],
+  [20.86, 21.91, 'Hacete socio hoy.'],
 ];
 
 // Parte cada frase en golpes de 2-3 palabras, repartidos según su largo.
@@ -188,34 +181,34 @@ export const Club: React.FC = () => {
       <Audio src={staticFile('voz.wav')} />
 
       {/* 1 · Presentadora */}
-      <Sequence from={0} durationInFrames={f(m(6.3))}>
+      <Sequence from={0} durationInFrames={f(m(4.2))}>
         <Presentadora src="host_intro.mp4" />
         <Marca />
       </Sequence>
 
       {/* 2 · Cómo te asociás */}
-      <Seccion a0={6.3} b0={16.7}>
+      <Seccion a0={4.2} b0={11.25}>
         <Fondo />
         <Kicker txt="GDO Club · paso a paso" />
         <Titulo a="Cómo te" b="asociás (gratis)" />
         <Pasos top={530} h={140} gap={34} pasos={[
-          {n: '1', t: 'Entrás a la lista', s: 'lista.granjadeloeste.com', on: r(6.45, 6.3)},
-          {n: '2', t: 'Tocás “Club”', s: 'arriba, en el menú', on: r(10.37, 6.3)},
-          {n: '3', t: 'Completás tus datos', s: 'nombre, DNI, dirección, teléfono', on: r(11.52, 6.3)},
-          {n: '4', t: 'Credencial digital', s: 'con tu número de socio', on: r(14.37, 6.3)},
+          {n: '1', t: 'Entrás a la lista', s: 'lista.granjadeloeste.com', on: r(4.37, 4.2)},
+          {n: '2', t: 'Tocás “Club”', s: 'arriba, en el menú', on: r(7.37, 4.2)},
+          {n: '3', t: 'Completás tus datos', s: 'nombre, DNI, dirección, teléfono', on: r(8.34, 4.2)},
+          {n: '4', t: 'Credencial digital', s: 'con tu número de socio', on: r(9.69, 4.2)},
         ]} />
       </Seccion>
 
       {/* 3 · $100 = 1 punto */}
-      <Seccion a0={16.7} b0={21.1}>
+      <Seccion a0={11.25} b0={13.5}>
         <Fondo />
         <Kicker txt="Cómo sumás" />
         <Titulo a="Cada compra" b="suma puntos" />
         <Sequence from={10}>
           <AbsoluteFill style={{alignItems: 'center', top: 560}}>
             {(() => {
-              const k = spring({frame: fr - f(m(16.7)) - 10, fps: FPS, config: {damping: 12}});
-              const v = Math.round(interpolate(fr - f(m(16.7)) - 10, [0, 24], [0, 100], {extrapolateRight: 'clamp', easing: Easing.out(Easing.cubic)}));
+              const k = spring({frame: fr - f(m(11.25)) - 10, fps: FPS, config: {damping: 12}});
+              const v = Math.round(interpolate(fr - f(m(11.25)) - 10, [0, 24], [0, 100], {extrapolateRight: 'clamp', easing: Easing.out(Easing.cubic)}));
               return (
                 <div style={{textAlign: 'center', transform: `scale(${0.7 + 0.3 * k})`, opacity: k}}>
                   <div style={{fontFamily: SANS, fontWeight: 900, fontSize: 300, color: O, lineHeight: 1}}>${v}</div>
@@ -229,50 +222,38 @@ export const Club: React.FC = () => {
       </Seccion>
 
       {/* 4 · Carga de puntos */}
-      <Seccion a0={21.1} b0={27.6}>
+      <Seccion a0={13.5} b0={16.8}>
         <Fondo />
         <Kicker txt="En el mostrador" />
         <Titulo a="Mostrás tu" b="credencial" size={96} />
         <Pasos top={500} h={120} gap={26} pasos={[
-          {n: 'A', t: 'Mostrás la credencial', s: 'o escaneás el QR del mostrador', on: r(21.32, 21.1)},
-          {n: 'B', t: 'Te cargamos los puntos', s: 'aparecen al toque', on: r(24.98, 21.1)},
+          {n: 'A', t: 'Mostrás la credencial', s: 'cuando comprás', on: r(13.62, 13.5)},
+          {n: 'B', t: 'Se cargan los puntos', s: 'al toque', on: r(15.5, 13.5)},
         ]} />
-        <Sequence from={f(r(21.8, 21.1))}><Celular top={830} w={290} pantallas={[[0, 'c_credencial.png'], [r(25.2, 21.8), 'd_credencial_mas.png']]} badge={[r(25.2, 21.8), '+1.230 pts']} /></Sequence>
+        <Sequence from={f(r(13.8, 13.5))}><Celular top={830} w={290} pantallas={[[0, 'c_credencial.png'], [r(15.6, 13.8), 'd_credencial_mas.png']]} badge={[r(15.6, 13.8), '+1.230 pts']} /></Sequence>
       </Seccion>
 
       {/* 5 · Canje */}
-      <Seccion a0={27.6} b0={40.2}>
+      <Seccion a0={16.8} b0={20.7}>
         <Fondo />
         <Kicker txt="Cómo canjeás" />
         <Titulo a="Tus puntos," b="tus premios" size={96} />
         <Pasos top={480} h={112} gap={22} pasos={[
-          {n: '1', t: 'Entrás a Premios', s: 'en tu cuenta del Club', on: r(29.55, 27.6)},
-          {n: '2', t: 'Tocás Canjear', s: 'en el premio que elijas', on: r(32.66, 27.6)},
-          {n: '3', t: 'Recibís un voucher', s: 'con código QR', on: r(34.40, 27.6)},
-          {n: '4', t: 'Lo usás', s: 'en el local o con tu próximo envío', on: r(35.88, 27.6)},
+          {n: '1', t: 'Entrás a Premios', s: 'en tu cuenta del Club', on: r(16.94, 16.8)},
+          {n: '2', t: 'Elegís el que quieras', s: 'y tocás Canjear', on: r(18.0, 16.8)},
+          {n: '3', t: 'Te llega el voucher', s: 'lo usás en el local o en tu envío', on: r(19.56, 16.8)},
         ]} />
-        <Sequence from={f(r(29.8, 27.6))}><Celular top={1040} w={225} pantallas={[[0, 'e_premios.png'], [r(34.40, 29.8), 'f_voucher.png']]} /></Sequence>
+        <Sequence from={f(r(17.1, 16.8))}><Celular top={960} w={250} pantallas={[[0, 'e_premios.png'], [r(19.56, 17.1), 'f_voucher.png']]} /></Sequence>
       </Seccion>
 
-      {/* 6 · Letra chica */}
-      <Seccion a0={40.2} b0={47.1}>
-        <Fondo />
-        <Kicker txt="Letra chica" />
-        <Titulo a="Tené en" b="cuenta" />
-        <Pasos top={560} h={170} gap={40} pasos={[
-          {n: '×', t: 'Cajón de pollo y de huevos', s: 'no suman puntos', on: r(41.23, 40.2)},
-          {n: '⏳', t: 'Los puntos duran 1 año', s: 'desde que se acreditan', on: r(44.41, 40.2)},
-        ]} />
-        <Fuente txt="Bases y condiciones: lista.granjadeloeste.com/club.html" />
-      </Seccion>
 
-      {/* 7 · Cierre con la presentadora */}
-      <Sequence from={f(m(47.1))} durationInFrames={durationInFrames - f(m(47.1))}>
+      {/* 6 · Cierre con la presentadora */}
+      <Sequence from={f(m(20.7))} durationInFrames={durationInFrames - f(m(20.7))}>
         <Presentadora src="host_cta.mp4" />
         <Marca />
         <AbsoluteFill style={{alignItems: 'center'}}>
           {(() => {
-            const k = spring({frame: fr - f(m(47.1)) - 20, fps: FPS, config: {damping: 14}});
+            const k = spring({frame: fr - f(m(20.7)) - 20, fps: FPS, config: {damping: 14}});
             return <div style={{position: 'absolute', top: 1270, background: 'rgba(11,13,12,.85)', border: `3px solid ${O}`, borderRadius: 50,
               padding: '18px 36px', fontFamily: SANS, fontWeight: 800, fontSize: 46, color: '#fff', opacity: k, transform: `scale(${0.8 + 0.2 * k})`}}>
               📲 lista.granjadeloeste.com <span style={{color: O}}>→ Club</span></div>;

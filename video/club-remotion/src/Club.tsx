@@ -1,149 +1,220 @@
 import React from 'react';
 import {
   AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, interpolate, spring,
-  staticFile, useCurrentFrame, useVideoConfig, Easing,
+  staticFile, useCurrentFrame, continueRender, delayRender, Easing,
 } from 'remotion';
+
+// Video explicador del GDO CLUB (qué es, para qué sirve, cómo te asociás).
+// Locución: public/voz.wav (Valeria, ElevenLabs eleven_v4). Presentadora: host_intro.mp4 / host_cta.mp4.
 
 const FPS = 30;
 const O = '#F58220';
-const BG = '#0b0d0c';
-const SANS = '"Inter Display", Inter, Arial, sans-serif';
-const MONO = '"DejaVu Sans Mono", monospace';
+const AM = '#FBC02D';
+const BG = '#0d0e0e';
+const SLAB = '"Roboto Slab GDO", "Roboto Slab", Rockwell, serif';
+const SANS = '"Inter GDO", Inter, Arial, sans-serif';
 
-// La locución (voz.wav) va entera y sin cortes: el tiempo de la voz es el tiempo del video.
-// m() queda por si se vuelve a editar la locución (pasa un tiempo de la voz al del video).
+// Fuentes de marca (slab para titulares, Inter para textos), cargadas antes de renderizar.
+const FUENTES: [string, string, string][] = [
+  ['Roboto Slab GDO', 'fonts/RobotoSlab-ExtraBold.ttf', '800'],
+  ['Inter GDO', 'fonts/Inter-Medium.otf', '500'],
+  ['Inter GDO', 'fonts/Inter-SemiBold.otf', '600'],
+  ['Inter GDO', 'fonts/Inter-Bold.otf', '700'],
+];
+const useFuentes = () => {
+  const [h] = React.useState(() => delayRender('fuentes'));
+  React.useEffect(() => {
+    Promise.all(FUENTES.map(([fam, src, w]) => new FontFace(fam, `url(${staticFile(src)})`, {weight: w}).load().then((ff) => document.fonts.add(ff))))
+      .then(() => continueRender(h)).catch(() => continueRender(h));
+  }, [h]);
+};
+
+// Tiempo de la locución → tiempo del video (la voz va entera, sin cortes).
 const m = (t: number) => t;
 const f = (t: number) => Math.round(t * FPS);
+const clamp = {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'} as const;
+const ease = Easing.bezier(0.22, 1, 0.36, 1);
 
-// Frases de la locución (tiempos de la voz original) para los subtítulos.
+// Frases de la locución (s) para los subtítulos.
 const FRASES: [number, number, string][] = [
-  [0.10, 1.46, '¿Ya sos del GDO Club?'],
-  [1.79, 2.38, 'Es gratis,'],
-  [2.61, 4.06, 'y cada compra te suma.'],
-  [4.37, 7.14, 'Entrás a lista.granjadeloeste.com,'],
-  [7.37, 8.11, 'tocás Club,'],
-  [8.34, 9.38, 'completás tus datos…'],
-  [9.69, 11.02, 'y ya tenés tu credencial.'],
-  [11.43, 13.37, 'Por cada cien pesos, un punto:'],
-  [13.62, 16.58, 'mostrás la credencial cuando comprás y se cargan al toque.'],
-  [16.94, 19.27, 'Después, en Premios, elegís el que quieras…'],
-  [19.56, 20.54, 'y te llega el voucher.'],
-  [20.86, 21.91, 'Hacete socio hoy.'],
+  [0.07, 1.43, '¿Qué es el GDO Club?'],
+  [1.73, 2.70, 'Te lo cuento rápido.'],
+  [3.03, 4.50, 'Es nuestro club de beneficios:'],
+  [4.77, 5.84, 'comprás como siempre…'],
+  [6.09, 8.16, 'y cada cien pesos te suman un punto.'],
+  [8.57, 12.67, 'Con tus puntos canjeás productos de regalo y descuentos para tus próximas compras.'],
+  [13.11, 14.22, 'Asociarte es gratis:'],
+  [14.60, 17.35, 'entrás a lista.granjadeloeste.com,'],
+  [17.68, 18.34, 'tocás Club,'],
+  [18.63, 20.31, 'y ya tenés tu credencial digital.'],
+  [20.72, 22.15, 'Cuando comprás, la mostrás…'],
+  [22.45, 23.97, 'y los puntos se cargan solos.'],
+  [24.36, 25.35, 'Hacete socio hoy.'],
 ];
 
-// Parte cada frase en golpes de 2-3 palabras, repartidos según su largo.
-type Golpe = {a: number; b: number; txt: string};
-const GOLPES: Golpe[] = (() => {
-  const out: Golpe[] = [];
-  for (const [a0, b0, txt] of FRASES) {
-    const a = m(a0), b = m(b0);
-    const w = txt.split(' ');
-    const chunks: string[] = [];
-    for (let i = 0; i < w.length; ) {
-      if (w[i].length > 14) { chunks.push(w[i]); i += 1; continue; }
-      let n = w.length - i === 4 ? 2 : Math.min(3, w.length - i);
-      while (n > 1 && w.slice(i, i + n).some((x) => x.length > 14)) n--;
-      chunks.push(w.slice(i, i + n).join(' ')); i += n;
-    }
-    const tot = chunks.reduce((s, c) => s + c.length, 0);
-    let t = a;
-    for (const c of chunks) { const d = (b - a) * (c.length / tot); out.push({a: t, b: t + d, txt: c}); t += d; }
-  }
-  return out;
-})();
+// Escenas (s): presentadora, qué es, beneficios, asociate, credencial, cierre.
+const T = {intro: 4.6, quees: 8.4, benef: 12.9, asoc: 20.5, cred: 24.2};
+
+// ───────────────────────── piezas ─────────────────────────
+
+// Aparición con desenfoque y subida suave (d = demora en frames).
+const useEntrada = (d = 0, dist = 40) => {
+  const fr = useCurrentFrame();
+  const k = interpolate(fr - d, [0, 16], [0, 1], {...clamp, easing: ease});
+  return {opacity: k, transform: `translateY(${(1 - k) * dist}px)`, filter: `blur(${(1 - k) * 10}px)`} as React.CSSProperties;
+};
+
+const Fondo: React.FC = () => {
+  const fr = useCurrentFrame();
+  const x = 50 + Math.sin(fr / 90) * 8, y = 18 + Math.cos(fr / 110) * 5;
+  return (
+    <AbsoluteFill style={{background: BG}}>
+      <AbsoluteFill style={{background: `radial-gradient(900px 900px at ${x}% ${y}%, rgba(245,130,32,.20), transparent 62%), radial-gradient(700px 700px at 0% 100%, rgba(245,130,32,.08), transparent 60%)`}} />
+      <AbsoluteFill style={{backgroundImage: 'radial-gradient(rgba(255,255,255,.05) 1.2px, transparent 1.2px)', backgroundSize: '36px 36px',
+        maskImage: 'linear-gradient(180deg, rgba(0,0,0,.9), transparent 70%)', WebkitMaskImage: 'linear-gradient(180deg, rgba(0,0,0,.9), transparent 70%)'}} />
+    </AbsoluteFill>
+  );
+};
+
+const Marca: React.FC<{d?: number}> = ({d = 0}) => (
+  <div style={{position: 'absolute', left: 72, top: 120, display: 'flex', alignItems: 'center', gap: 18, ...useEntrada(d, 16)}}>
+    <Img src={staticFile('isotipo-blanco.svg')} style={{height: 58}} />
+    <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 30, letterSpacing: 7, color: '#fff'}}>GDO <span style={{color: O}}>CLUB</span></div>
+  </div>
+);
+
+const Eyebrow: React.FC<{txt: string; top?: number; d?: number}> = ({txt, top = 290, d = 2}) => (
+  <div style={{position: 'absolute', left: 72, top, fontFamily: SANS, fontWeight: 700, fontSize: 26, letterSpacing: 7,
+    color: AM, textTransform: 'uppercase', ...useEntrada(d, 16)}}>{txt}</div>
+);
+
+const Titulo: React.FC<{a: string; b: string; top?: number; size?: number; d?: number}> = ({a, b, top = 340, size = 112, d = 5}) => {
+  const e1 = useEntrada(d, 50), e2 = useEntrada(d + 5, 50);
+  return (
+    <div style={{position: 'absolute', left: 68, right: 68, top, fontFamily: SLAB, fontWeight: 800, fontSize: size, lineHeight: 1.02, letterSpacing: -1.5, color: '#fff'}}>
+      <div style={e1}>{a}</div>
+      <div style={{...e2, color: O}}>{b}</div>
+    </div>
+  );
+};
+
+// Escena con fundido de entrada y salida.
+const Fundido: React.FC<{dur: number; children: React.ReactNode}> = ({dur, children}) => {
+  const fr = useCurrentFrame();
+  const op = interpolate(fr, [0, 8, dur - 8, dur], [0, 1, 1, 0], clamp);
+  const sc = interpolate(fr, [0, dur], [1.02, 1], clamp);
+  return <AbsoluteFill style={{opacity: op, transform: `scale(${sc})`}}>{children}</AbsoluteFill>;
+};
+const Escena: React.FC<{a: number; b: number; children: React.ReactNode}> = ({a, b, children}) => {
+  const dur = f(m(b)) - f(m(a));
+  return (
+    <Sequence from={f(m(a))} durationInFrames={dur}>
+      <Fundido dur={dur}>{children}</Fundido>
+    </Sequence>
+  );
+};
+
+// Íconos de línea (en vez de emojis).
+const Icono: React.FC<{tipo: 'regalo' | 'descuento' | 'check' | 'qr'; size?: number; color?: string}> = ({tipo, size = 56, color = O}) => {
+  const p = {fill: 'none', stroke: color, strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round'} as const;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24">
+      {tipo === 'regalo' && <g {...p}><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M5 12v8h14v-8M12 8v12M12 8S10.5 3.5 8 4.2 7.5 8 12 8zM12 8s1.5-4.5 4-3.8S16.5 8 12 8z" /></g>}
+      {tipo === 'descuento' && <g {...p}><path d="M3 12V4h8l10 10-8 8L3 12z" /><circle cx="7.5" cy="8.5" r="1.4" /><path d="M10 16l6-6" /></g>}
+      {tipo === 'check' && <g {...p}><path d="M5 12.5l4.5 4.5L19 7.5" /></g>}
+      {tipo === 'qr' && <g {...p}><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4M20 17v3" /></g>}
+    </svg>
+  );
+};
+
+// Celular con pantallas reales del Club. pantallas: [desde (s, relativo a la escena), imagen]
+const Celular: React.FC<{pantallas: [number, string][]; top: number; w: number; d?: number; scroll?: number}> = ({pantallas, top, w, d = 0, scroll = 0}) => {
+  const fr = useCurrentFrame();
+  const t = fr / FPS;
+  const k = spring({frame: fr - d, fps: FPS, config: {damping: 18, mass: 0.9}});
+  const h = w * 2.1;
+  return (
+    <div style={{position: 'absolute', left: (1080 - w) / 2, top, width: w, height: h}}>
+      <div style={{width: '100%', height: '100%', borderRadius: w * 0.14, background: '#0a0a0a', padding: w * 0.03,
+        border: '3px solid #2c2f2e', boxShadow: '0 60px 120px rgba(0,0,0,.65), 0 0 120px rgba(245,130,32,.18)',
+        opacity: k, transform: `translateY(${(1 - k) * 260}px)`}}>
+        <div style={{position: 'relative', width: '100%', height: '100%', borderRadius: w * 0.115, overflow: 'hidden', background: '#000'}}>
+          {pantallas.map(([desde, img], i) => {
+            const sig = pantallas[i + 1]?.[0] ?? 999;
+            const op = t >= desde && t < sig + 0.35 ? interpolate(t - desde, [0, 0.35], [0, 1], clamp) : 0;
+            const y = i === pantallas.length - 1 ? -interpolate(t - desde, [0.6, 4], [0, scroll], {...clamp, easing: Easing.inOut(Easing.cubic)}) : 0;
+            return <Img key={i} src={staticFile(img)} style={{position: 'absolute', left: 0, top: 0, width: '100%', opacity: op, transform: `translateY(${y}px)`}} />;
+          })}
+          <div style={{position: 'absolute', left: '50%', top: w * 0.025, width: w * 0.28, height: w * 0.06, marginLeft: -w * 0.14, borderRadius: 99, background: '#000'}} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Credencial de socio (como la real del Club), con brillo que la recorre.
+const Credencial: React.FC<{d?: number; puntos: number; ry?: number; rx?: number; w?: number}> = ({d = 0, puntos, ry = 0, rx = 0, w = 860}) => {
+  const fr = useCurrentFrame();
+  const k = spring({frame: fr - d, fps: FPS, config: {damping: 16}});
+  const brillo = interpolate((fr - d) % 110, [10, 50], [-60, 160], clamp);
+  const s = w / 860;
+  return (
+    <div style={{width: w, height: w * 0.6, perspective: 2000, opacity: k}}>
+      <div style={{position: 'relative', width: '100%', height: '100%', borderRadius: 44 * s, overflow: 'hidden',
+        background: 'linear-gradient(135deg, #1d1f1e 0%, #121313 55%, #1a1410 100%)', border: '2px solid rgba(245,130,32,.55)',
+        boxShadow: '0 50px 110px rgba(0,0,0,.7), 0 0 90px rgba(245,130,32,.22)',
+        transform: `rotateY(${ry + (1 - k) * -35}deg) rotateX(${rx + (1 - k) * 12}deg) scale(${0.85 + 0.15 * k})`}}>
+        <div style={{position: 'absolute', left: 0, top: 0, bottom: 0, width: 12 * s, background: O}} />
+        <div style={{position: 'absolute', left: 56 * s, top: 46 * s, fontFamily: SANS, fontWeight: 700, fontSize: 40 * s, letterSpacing: 5 * s, color: '#fff'}}>GDO <span style={{color: O}}>CLUB</span></div>
+        <div style={{position: 'absolute', right: 46 * s, top: 46 * s, border: `2px solid ${O}`, color: O, borderRadius: 99, padding: `${6 * s}px ${20 * s}px`,
+          fontFamily: SANS, fontWeight: 700, fontSize: 22 * s, letterSpacing: 4 * s}}>MIEMBRO</div>
+        <Img src={staticFile('isotipo-blanco.svg')} style={{position: 'absolute', left: 60 * s, top: 118 * s, height: 150 * s,
+          filter: 'drop-shadow(0 0 22px rgba(245,130,32,.9))'}} />
+        <div style={{position: 'absolute', left: 56 * s, bottom: 52 * s, fontFamily: SANS}}>
+          <div style={{fontWeight: 600, fontSize: 20 * s, letterSpacing: 4 * s, color: 'rgba(255,255,255,.55)'}}>SOCIO N°</div>
+          <div style={{fontWeight: 700, fontSize: 44 * s, letterSpacing: 2 * s, color: O}}>0000 1234</div>
+          <div style={{fontWeight: 700, fontSize: 32 * s, letterSpacing: 2 * s, color: '#fff', marginTop: 2 * s}}>LAURA GÓMEZ</div>
+        </div>
+        <div style={{position: 'absolute', right: 52 * s, bottom: 52 * s, textAlign: 'right', fontFamily: SANS}}>
+          <div style={{fontFamily: SLAB, fontWeight: 800, fontSize: 76 * s, color: O, lineHeight: 1}}>{puntos.toLocaleString('es-AR')}</div>
+          <div style={{fontWeight: 600, fontSize: 20 * s, letterSpacing: 4 * s, color: 'rgba(255,255,255,.55)', marginTop: 6 * s}}>PUNTOS GDO</div>
+        </div>
+        <div style={{position: 'absolute', top: -40, bottom: -40, width: 140 * s, left: `${brillo}%`, transform: 'skewX(-18deg)',
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.10), transparent)'}} />
+      </div>
+    </div>
+  );
+};
+
+// Tarjeta con ícono y texto (beneficios, pasos).
+const Ficha: React.FC<{icono: React.ReactNode; t: string; s: string; on: number; activo?: boolean; top: number}> = ({icono, t, s, on, activo = true, top}) => {
+  const fr = useCurrentFrame();
+  const k = interpolate(fr - f(on), [0, 14], [0, 1], {...clamp, easing: ease});
+  return (
+    <div style={{position: 'absolute', left: 68, right: 68, top, height: 132, borderRadius: 32, display: 'flex', alignItems: 'center', gap: 30, padding: '0 36px',
+      background: activo ? 'linear-gradient(90deg, rgba(245,130,32,.16), rgba(245,130,32,.04))' : 'rgba(255,255,255,.035)',
+      border: `2px solid ${activo ? 'rgba(245,130,32,.7)' : 'rgba(255,255,255,.08)'}`,
+      opacity: 0.25 + 0.75 * k, transform: `translateX(${(1 - k) * -50}px)`}}>
+      <div style={{width: 76, height: 76, borderRadius: 22, background: activo ? 'rgba(245,130,32,.14)' : 'rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{icono}</div>
+      <div>
+        <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 44, color: '#fff', lineHeight: 1.1}}>{t}</div>
+        <div style={{fontFamily: SANS, fontWeight: 500, fontSize: 30, color: 'rgba(255,255,255,.6)', marginTop: 4}}>{s}</div>
+      </div>
+    </div>
+  );
+};
 
 const Subtitulos: React.FC = () => {
   const fr = useCurrentFrame();
   const t = fr / FPS;
-  const g = GOLPES.find((x) => t >= x.a && t < x.b + 0.12);
-  if (!g) return null;
-  const k = spring({frame: fr - f(g.a), fps: FPS, config: {damping: 14, stiffness: 220}});
+  const fr0 = FRASES.find(([a, b]) => t >= m(a) - 0.05 && t < m(b) + 0.25);
+  if (!fr0) return null;
+  const [a, b, txt] = fr0;
+  const op = interpolate(t, [m(a) - 0.05, m(a) + 0.12, m(b) + 0.1, m(b) + 0.25], [0, 1, 1, 0], clamp);
   return (
-    <div style={{position: 'absolute', left: 50, right: 50, top: 1575, textAlign: 'center',
-      fontFamily: SANS, fontWeight: 900, fontSize: Math.min(82, Math.floor(1350 / Math.max(10, g.txt.length))), lineHeight: 1.05, color: '#fff', textTransform: 'uppercase',
-      WebkitTextStroke: '10px #000', paintOrder: 'stroke fill', letterSpacing: 1,
-      transform: `scale(${0.85 + 0.15 * k})`, textShadow: '0 6px 18px rgba(0,0,0,.6)'}}>
-      {g.txt.replace('GDO', 'GDO')}
-    </div>
-  );
-};
-
-const Fondo: React.FC = () => (
-  <AbsoluteFill style={{background: `radial-gradient(900px 700px at 85% 10%, rgba(245,130,32,.10), transparent 60%), radial-gradient(800px 800px at 0% 100%, rgba(245,130,32,.06), transparent 60%), ${BG}`}} />
-);
-
-const Kicker: React.FC<{txt: string; d?: number}> = ({txt, d = 0}) => {
-  const fr = useCurrentFrame();
-  const op = interpolate(fr - d, [0, 10], [0, 1], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
-  return <div style={{position: 'absolute', left: 64, top: 200, fontFamily: MONO, fontSize: 30, letterSpacing: 7,
-    color: O, opacity: op, textTransform: 'uppercase'}}>{txt}</div>;
-};
-
-const Titulo: React.FC<{a: string; b: string; top?: number; size?: number}> = ({a, b, top = 260, size = 104}) => {
-  const fr = useCurrentFrame();
-  const k = spring({frame: fr - 3, fps: FPS, config: {damping: 16}});
-  return (
-    <div style={{position: 'absolute', left: 60, right: 60, top, fontFamily: SANS, fontWeight: 900, fontSize: size,
-      lineHeight: 1.0, letterSpacing: -2, color: '#fff', opacity: k, transform: `translateY(${(1 - k) * 40}px)`}}>
-      {a}<br /><span style={{color: O}}>{b}</span>
-    </div>
-  );
-};
-
-type Paso = {n: string; t: string; s: string; on: number};
-const Pasos: React.FC<{pasos: Paso[]; top: number; h?: number; gap?: number}> = ({pasos, top, h = 150, gap = 40}) => {
-  const fr = useCurrentFrame();
-  const t = fr / FPS;
-  return (
-    <>
-      {pasos.map((p, i) => {
-        const y = top + i * (h + gap);
-        const k = spring({frame: fr - 8 - i * 5, fps: FPS, config: {damping: 18}});
-        const activo = t >= p.on && (i === pasos.length - 1 || t < pasos[i + 1].on);
-        const hecho = t >= p.on;
-        return (
-          <React.Fragment key={i}>
-            {i > 0 && <div style={{position: 'absolute', left: 107, top: y - gap, width: 4, height: gap, background: hecho ? O : '#2a2d2b', opacity: k}} />}
-            <div style={{position: 'absolute', left: 54, right: 54, top: y, height: h, borderRadius: 30,
-              background: activo ? 'rgba(245,130,32,.16)' : '#141716', border: `3px solid ${activo ? O : '#232624'}`,
-              display: 'flex', alignItems: 'center', gap: 34, padding: '0 40px', opacity: k,
-              transform: `translateX(${(1 - k) * -60}px) scale(${activo ? 1.02 : 1})`,
-              boxShadow: activo ? '0 0 40px rgba(245,130,32,.25)' : 'none'}}>
-              <div style={{fontFamily: SANS, fontWeight: 900, fontSize: 70, color: hecho ? O : '#5a5f5c', width: 54}}>{p.n}</div>
-              <div>
-                <div style={{fontFamily: SANS, fontWeight: 800, fontSize: 54, color: '#fff', lineHeight: 1.1}}>{p.t}</div>
-                <div style={{fontFamily: SANS, fontWeight: 500, fontSize: 34, color: '#a3a9a6', marginTop: 4}}>{p.s}</div>
-              </div>
-            </div>
-          </React.Fragment>
-        );
-      })}
-    </>
-  );
-};
-
-// Celular con pantallas reales del Club. pantallas: [desde (s, relativo), imagen]
-const Celular: React.FC<{pantallas: [number, string][]; top: number; w?: number; badge?: [number, string]}> = ({pantallas, top, w = 470, badge}) => {
-  const fr = useCurrentFrame();
-  const t = fr / FPS;
-  const k = spring({frame: fr - 4, fps: FPS, config: {damping: 15}});
-  const h = w * 2.05;
-  return (
-    <div style={{position: 'absolute', left: (1080 - w) / 2, top, width: w, height: h, borderRadius: 64, background: '#111',
-      border: '4px solid #2f3331', padding: 16, boxShadow: '0 40px 100px rgba(0,0,0,.6), 0 0 90px rgba(245,130,32,.15)',
-      transform: `translateY(${(1 - k) * 200}px)`, opacity: k}}>
-      <div style={{position: 'relative', width: '100%', height: '100%', borderRadius: 50, overflow: 'hidden', background: '#000'}}>
-        {pantallas.map(([d, img], i) => {
-          const sig = pantallas[i + 1]?.[0] ?? 999;
-          const op = t >= d && t < sig + 0.3 ? interpolate(t - d, [0, 0.3], [0, 1], {extrapolateRight: 'clamp'}) : 0;
-          return <Img key={i} src={staticFile(img)} style={{position: 'absolute', left: 0, top: 0, width: '100%', opacity: op}} />;
-        })}
-      </div>
-      {badge && t >= badge[0] && (
-        <div style={{position: 'absolute', right: -60, top: 120, background: O, color: '#111', fontFamily: SANS, fontWeight: 900,
-          fontSize: 52, borderRadius: 40, padding: '12px 30px', boxShadow: '0 12px 40px rgba(245,130,32,.5)',
-          transform: `scale(${spring({frame: fr - f(badge[0]), fps: FPS, config: {damping: 9}})})`}}>{badge[1]}</div>
-      )}
+    <div style={{position: 'absolute', left: 90, right: 90, top: 1600, display: 'flex', justifyContent: 'center', opacity: op}}>
+      <div style={{fontFamily: SANS, fontWeight: 600, fontSize: 40, lineHeight: 1.3, color: '#fff', textAlign: 'center',
+        background: 'rgba(10,11,11,.62)', backdropFilter: 'blur(10px)', borderRadius: 22, padding: '14px 28px', textShadow: '0 2px 10px rgba(0,0,0,.5)'}}>{txt}</div>
     </div>
   );
 };
@@ -151,117 +222,187 @@ const Celular: React.FC<{pantallas: [number, string][]; top: number; w?: number;
 const Presentadora: React.FC<{src: string}> = ({src}) => (
   <AbsoluteFill>
     <OffthreadVideo src={staticFile(src)} muted style={{width: '100%', height: '100%', objectFit: 'cover'}} />
-    <AbsoluteFill style={{background: 'linear-gradient(180deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 62%, rgba(0,0,0,.55) 100%)'}} />
+    <AbsoluteFill style={{background: 'linear-gradient(180deg, rgba(8,9,9,.88) 0%, rgba(8,9,9,.55) 26%, rgba(8,9,9,0) 44%, rgba(8,9,9,0) 70%, rgba(8,9,9,.6) 100%)'}} />
   </AbsoluteFill>
 );
 
-const Marca: React.FC = () => (
-  <div style={{position: 'absolute', left: 60, top: 96, display: 'flex', alignItems: 'center', gap: 16}}>
-    <Img src={staticFile('isotipo-blanco.svg')} style={{height: 64}} />
-    <div style={{fontFamily: SANS, fontWeight: 900, fontSize: 38, letterSpacing: 6, color: '#fff'}}>GDO <span style={{color: O}}>CLUB</span></div>
-  </div>
+// ───────────────────────── escenas ─────────────────────────
+
+const Intro: React.FC = () => (
+  <>
+    <Presentadora src="host_intro.mp4" />
+    <Marca d={4} />
+    <Eyebrow txt="Te lo cuento rápido" top={250} d={10} />
+    <Titulo a="¿Qué es el" b="GDO Club?" top={300} size={120} d={14} />
+  </>
 );
 
-const Fuente: React.FC<{txt: string}> = ({txt}) => (
-  <div style={{position: 'absolute', left: 64, right: 64, top: 1360, fontFamily: MONO, fontSize: 26, color: '#7d8380', lineHeight: 1.4}}>{txt}</div>
-);
+const QueEs: React.FC = () => {
+  const fr = useCurrentFrame();
+  const t = fr / FPS;
+  const t100 = m(6.09) - m(T.intro);
+  const sube = interpolate(t, [t100 - 0.1, t100 + 0.5], [0, 1], {...clamp, easing: ease});
+  const fotos: [string, string][] = [['milanesas.jpg', 'Milanesas'], ['trozado.jpg', 'Pollo'], ['huevos.jpg', 'Huevos']];
+  const k100 = spring({frame: fr - f(t100) - 6, fps: FPS, config: {damping: 13}});
+  const v = Math.round(interpolate(fr - f(t100) - 6, [0, 22], [0, 100], {...clamp, easing: Easing.out(Easing.cubic)}));
+  const giro = interpolate(fr - f(t100) - 18, [0, 18], [90, 0], {...clamp, easing: ease});
+  return (
+    <>
+      <Fondo />
+      <Marca />
+      <Eyebrow txt="Es nuestro club de beneficios" />
+      <Titulo a="Comprás" b="como siempre…" />
+      <div style={{position: 'absolute', left: 68, right: 68, top: 640, display: 'flex', gap: 26,
+        transform: `translateY(${sube * -40}px) scale(${1 - sube * 0.08})`, opacity: 1 - sube * 0.75}}>
+        {fotos.map(([img, txt], i) => {
+          const k = interpolate(fr - 10 - i * 5, [0, 16], [0, 1], {...clamp, easing: ease});
+          return (
+            <div key={i} style={{flex: 1, height: 540, borderRadius: 34, overflow: 'hidden', position: 'relative', opacity: k,
+              transform: `translateY(${(1 - k) * 80}px)`, boxShadow: '0 30px 60px rgba(0,0,0,.5)', border: '2px solid rgba(255,255,255,.08)'}}>
+              <Img src={staticFile(`fotos/${img}`)} style={{width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${1.12 - k * 0.08})`}} />
+              <div style={{position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, rgba(0,0,0,.75))'}} />
+              <div style={{position: 'absolute', left: 24, bottom: 22, fontFamily: SANS, fontWeight: 700, fontSize: 34, color: '#fff'}}>{txt}</div>
+            </div>
+          );
+        })}
+      </div>
+      {t >= t100 - 0.1 && (
+        <div style={{position: 'absolute', left: 0, right: 0, top: 960, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 40,
+          opacity: k100, transform: `scale(${0.8 + 0.2 * k100})`}}>
+          <div style={{fontFamily: SLAB, fontWeight: 800, fontSize: 250, color: '#fff', letterSpacing: -6, textShadow: '0 20px 60px rgba(0,0,0,.6)'}}>${v}</div>
+          <svg width="90" height="60" viewBox="0 0 90 60"><path d="M4 30h72M56 10l22 20-22 20" fill="none" stroke={O} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <div style={{width: 250, height: 250, borderRadius: '50%', perspective: 800}}>
+            <div style={{width: '100%', height: '100%', borderRadius: '50%', transform: `rotateY(${giro}deg)`,
+              background: `radial-gradient(circle at 35% 30%, #ffb15c, ${O} 55%, #c25e0b)`, boxShadow: '0 25px 70px rgba(245,130,32,.55), inset 0 -10px 30px rgba(0,0,0,.25)',
+              border: '6px solid rgba(255,255,255,.25)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'}}>
+              <div style={{fontFamily: SLAB, fontWeight: 800, fontSize: 104, color: '#fff', lineHeight: 0.9}}>1</div>
+              <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 24, letterSpacing: 4, color: '#fff'}}>PUNTO GDO</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
 
-const Seccion: React.FC<{a0: number; b0: number; children: React.ReactNode}> = ({a0, b0, children}) => {
-  const a = m(a0), b = m(b0);
-  return <Sequence from={f(a)} durationInFrames={f(b) - f(a)}>{children}</Sequence>;
+const Beneficios: React.FC = () => {
+  const r = (t: number) => m(t) - m(T.quees);
+  return (
+    <>
+      <Fondo />
+      <Marca />
+      <Eyebrow txt="Para qué sirven tus puntos" />
+      <Titulo a="Los canjeás" b="por premios" />
+      <Ficha icono={<Icono tipo="regalo" />} t="Productos de regalo" s="huevos, milanesas, suprema…" on={r(9.8)} top={620} />
+      <Ficha icono={<Icono tipo="descuento" />} t="Descuentos" s="en tus próximas compras" on={r(11.1)} top={776} />
+      <Celular pantallas={[[0, 'e_premios.png']]} top={950} w={300} d={f(r(8.7))} scroll={30} />
+    </>
+  );
+};
+
+const Asociate: React.FC = () => {
+  const fr = useCurrentFrame();
+  const t = fr / FPS;
+  const r = (x: number) => m(x) - m(T.benef);
+  const paso = t < r(17.68) ? 0 : t < r(18.63) ? 1 : 2;
+  const tCred = r(18.63);
+  const salePhone = interpolate(t, [tCred, tCred + 0.5], [0, 1], {...clamp, easing: ease});
+  const pasos: [string, string][] = [['lista.granjadeloeste.com', 'Entrás a la lista'], ['Tocás “Club”', 'y completás tus datos'], ['Credencial digital', 'lista al instante']];
+  const toque = interpolate(t, [r(17.5), r(17.9)], [0, 1], clamp);
+  return (
+    <>
+      <Fondo />
+      <Marca />
+      <Eyebrow txt="Asociarte es gratis" />
+      <Titulo a="Tres pasos," b="y listo" />
+      <div style={{position: 'absolute', left: 68, right: 68, top: 620, display: 'flex', gap: 16}}>
+        {pasos.map(([a, b], i) => {
+          const on = i <= paso, act = i === paso;
+          return (
+            <div key={i} style={{flex: 1, borderRadius: 26, padding: '20px 22px', border: `2px solid ${act ? O : on ? 'rgba(245,130,32,.35)' : 'rgba(255,255,255,.08)'}`,
+              background: act ? 'rgba(245,130,32,.14)' : 'rgba(255,255,255,.03)'}}>
+              <div style={{fontFamily: SLAB, fontWeight: 800, fontSize: 40, color: on ? O : '#5f6461'}}>{i + 1}</div>
+              <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 25, color: on ? '#fff' : '#7d8380', marginTop: 6, lineHeight: 1.15}}>{a}</div>
+              <div style={{fontFamily: SANS, fontWeight: 500, fontSize: 21, color: 'rgba(255,255,255,.5)', marginTop: 4}}>{b}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{position: 'absolute', inset: 0, opacity: 1 - salePhone, transform: `translateY(${salePhone * 120}px)`}}>
+        <Celular pantallas={[[0, 'a_publica.png'], [r(17.85), 'b_alta.png']]} top={830} w={330} d={f(r(13.3))} />
+        {toque > 0 && toque < 1 && (
+          <div style={{position: 'absolute', left: 585, top: 1140, width: 60, height: 60, marginLeft: -30, marginTop: -30, borderRadius: '50%',
+            border: '4px solid #fff', opacity: 1 - toque, transform: `scale(${0.6 + toque * 1.6})`}} />
+        )}
+      </div>
+      {t >= tCred && (
+        <div style={{position: 'absolute', left: 110, top: 930}}>
+          <Credencial d={f(tCred)} puntos={0} w={860} ry={interpolate(t, [tCred, tCred + 2], [-8, 6], clamp)} rx={4} />
+        </div>
+      )}
+    </>
+  );
+};
+
+const MostrasCredencial: React.FC = () => {
+  const fr = useCurrentFrame();
+  const t = fr / FPS;
+  const r = (x: number) => m(x) - m(T.asoc);
+  const tCarga = r(22.45);
+  const pts = Math.round(interpolate(t, [tCarga, tCarga + 1.1], [1250, 2480], {...clamp, easing: Easing.out(Easing.cubic)}));
+  const kb = spring({frame: fr - f(tCarga), fps: FPS, config: {damping: 10}});
+  const sube = interpolate(t, [tCarga, tCarga + 1.4], [0, -70], clamp);
+  return (
+    <>
+      <Fondo />
+      <Marca />
+      <Eyebrow txt="Cuando comprás" />
+      <Titulo a="Mostrás tu" b="credencial" />
+      <Ficha icono={<Icono tipo="qr" />} t="En el local o en tu envío" s="te la escaneamos al cobrar" on={r(20.8)} top={620} />
+      <Ficha icono={<Icono tipo="check" />} t="Los puntos se cargan solos" s="los ves al toque en tu cuenta" on={tCarga} top={776} activo={t >= tCarga} />
+      <div style={{position: 'absolute', left: 110, top: 990}}>
+        <Credencial d={4} puntos={pts} w={860} ry={interpolate(t, [0, 3.6], [6, -6], clamp)} rx={3} />
+      </div>
+      {t >= tCarga && (
+        <div style={{position: 'absolute', right: 120, top: 950 + sube, background: O, color: '#111', fontFamily: SANS, fontWeight: 700, fontSize: 48,
+          borderRadius: 99, padding: '12px 30px', boxShadow: '0 16px 50px rgba(245,130,32,.55)', transform: `scale(${kb})`,
+          opacity: interpolate(t, [tCarga + 1.6, tCarga + 2.2], [1, 0], clamp)}}>+1.230</div>
+      )}
+    </>
+  );
+};
+
+const Cierre: React.FC = () => {
+  const fr = useCurrentFrame();
+  const k = spring({frame: fr - 18, fps: FPS, config: {damping: 15}});
+  return (
+    <>
+      <Presentadora src="host_cta.mp4" />
+      <Marca d={2} />
+      <Eyebrow txt="Es gratis" top={250} d={6} />
+      <Titulo a="Hacete" b="socio hoy" top={300} size={120} d={8} />
+      <div style={{position: 'absolute', left: 0, right: 0, top: 1300, display: 'flex', justifyContent: 'center', opacity: k, transform: `translateY(${(1 - k) * 30}px)`}}>
+        <div style={{background: 'rgba(10,11,11,.82)', backdropFilter: 'blur(10px)', border: `2px solid ${O}`, borderRadius: 99, padding: '20px 40px',
+          fontFamily: SANS, fontWeight: 700, fontSize: 44, color: '#fff', boxShadow: '0 20px 60px rgba(0,0,0,.5)'}}>
+          lista.granjadeloeste.com <span style={{color: O}}>→ Club</span>
+        </div>
+      </div>
+    </>
+  );
 };
 
 export const Club: React.FC = () => {
-  const {durationInFrames} = useVideoConfig();
-  const fr = useCurrentFrame();
-  // tiempos relativos a cada sección (en s de la voz original)
-  const r = (t: number, a0: number) => m(t) - m(a0);
+  useFuentes();
   return (
-    <AbsoluteFill style={{background: BG}}>
-      <Audio src={staticFile('voz.wav')} />
-
-      {/* 1 · Presentadora */}
-      <Sequence from={0} durationInFrames={f(m(4.2))}>
-        <Presentadora src="host_intro.mp4" />
-        <Marca />
-      </Sequence>
-
-      {/* 2 · Cómo te asociás */}
-      <Seccion a0={4.2} b0={11.25}>
-        <Fondo />
-        <Kicker txt="GDO Club · paso a paso" />
-        <Titulo a="Cómo te" b="asociás (gratis)" />
-        <Pasos top={530} h={140} gap={34} pasos={[
-          {n: '1', t: 'Entrás a la lista', s: 'lista.granjadeloeste.com', on: r(4.37, 4.2)},
-          {n: '2', t: 'Tocás “Club”', s: 'arriba, en el menú', on: r(7.37, 4.2)},
-          {n: '3', t: 'Completás tus datos', s: 'nombre, DNI, dirección, teléfono', on: r(8.34, 4.2)},
-          {n: '4', t: 'Credencial digital', s: 'con tu número de socio', on: r(9.69, 4.2)},
-        ]} />
-      </Seccion>
-
-      {/* 3 · $100 = 1 punto */}
-      <Seccion a0={11.25} b0={13.5}>
-        <Fondo />
-        <Kicker txt="Cómo sumás" />
-        <Titulo a="Cada compra" b="suma puntos" />
-        <Sequence from={10}>
-          <AbsoluteFill style={{alignItems: 'center', top: 560}}>
-            {(() => {
-              const k = spring({frame: fr - f(m(11.25)) - 10, fps: FPS, config: {damping: 12}});
-              const v = Math.round(interpolate(fr - f(m(11.25)) - 10, [0, 24], [0, 100], {extrapolateRight: 'clamp', easing: Easing.out(Easing.cubic)}));
-              return (
-                <div style={{textAlign: 'center', transform: `scale(${0.7 + 0.3 * k})`, opacity: k}}>
-                  <div style={{fontFamily: SANS, fontWeight: 900, fontSize: 300, color: O, lineHeight: 1}}>${v}</div>
-                  <div style={{fontFamily: SANS, fontWeight: 900, fontSize: 92, color: '#fff', marginTop: 10}}>= 1 Punto GDO</div>
-                </div>
-              );
-            })()}
-          </AbsoluteFill>
-        </Sequence>
-        <Fuente txt="Suman los pedidos minoristas y las compras en el local." />
-      </Seccion>
-
-      {/* 4 · Carga de puntos */}
-      <Seccion a0={13.5} b0={16.8}>
-        <Fondo />
-        <Kicker txt="En el mostrador" />
-        <Titulo a="Mostrás tu" b="credencial" size={96} />
-        <Pasos top={500} h={120} gap={26} pasos={[
-          {n: 'A', t: 'Mostrás la credencial', s: 'cuando comprás', on: r(13.62, 13.5)},
-          {n: 'B', t: 'Se cargan los puntos', s: 'al toque', on: r(15.5, 13.5)},
-        ]} />
-        <Sequence from={f(r(13.8, 13.5))}><Celular top={830} w={290} pantallas={[[0, 'c_credencial.png'], [r(15.6, 13.8), 'd_credencial_mas.png']]} badge={[r(15.6, 13.8), '+1.230 pts']} /></Sequence>
-      </Seccion>
-
-      {/* 5 · Canje */}
-      <Seccion a0={16.8} b0={20.7}>
-        <Fondo />
-        <Kicker txt="Cómo canjeás" />
-        <Titulo a="Tus puntos," b="tus premios" size={96} />
-        <Pasos top={480} h={112} gap={22} pasos={[
-          {n: '1', t: 'Entrás a Premios', s: 'en tu cuenta del Club', on: r(16.94, 16.8)},
-          {n: '2', t: 'Elegís el que quieras', s: 'y tocás Canjear', on: r(18.0, 16.8)},
-          {n: '3', t: 'Te llega el voucher', s: 'lo usás en el local o en tu envío', on: r(19.56, 16.8)},
-        ]} />
-        <Sequence from={f(r(17.1, 16.8))}><Celular top={960} w={250} pantallas={[[0, 'e_premios.png'], [r(19.56, 17.1), 'f_voucher.png']]} /></Sequence>
-      </Seccion>
-
-
-      {/* 6 · Cierre con la presentadora */}
-      <Sequence from={f(m(20.7))} durationInFrames={durationInFrames - f(m(20.7))}>
-        <Presentadora src="host_cta.mp4" />
-        <Marca />
-        <AbsoluteFill style={{alignItems: 'center'}}>
-          {(() => {
-            const k = spring({frame: fr - f(m(20.7)) - 20, fps: FPS, config: {damping: 14}});
-            return <div style={{position: 'absolute', top: 1270, background: 'rgba(11,13,12,.85)', border: `3px solid ${O}`, borderRadius: 50,
-              padding: '18px 36px', fontFamily: SANS, fontWeight: 800, fontSize: 46, color: '#fff', opacity: k, transform: `scale(${0.8 + 0.2 * k})`}}>
-              📲 lista.granjadeloeste.com <span style={{color: O}}>→ Club</span></div>;
-          })()}
-        </AbsoluteFill>
-      </Sequence>
-
-      <Subtitulos />
-    </AbsoluteFill>
+  <AbsoluteFill style={{background: BG}}>
+    <Audio src={staticFile('voz.wav')} />
+    <Sequence from={0} durationInFrames={f(m(T.intro)) + 8}><Fundido dur={f(m(T.intro)) + 8}><Intro /></Fundido></Sequence>
+    <Escena a={T.intro} b={T.quees + 0.25}><QueEs /></Escena>
+    <Escena a={T.quees} b={T.benef + 0.25}><Beneficios /></Escena>
+    <Escena a={T.benef} b={T.asoc + 0.25}><Asociate /></Escena>
+    <Escena a={T.asoc} b={T.cred + 0.25}><MostrasCredencial /></Escena>
+    <Sequence from={f(m(T.cred))}><Cierre /></Sequence>
+    <Subtitulos />
+  </AbsoluteFill>
   );
 };

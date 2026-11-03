@@ -354,7 +354,7 @@ h1 span{color:var(--nar)}
   var $=function(id){return document.getElementById(id)};
   var db=null, auth=null, user=null, socio=null, cfg=null;
   var partida=null, unsubPartida=null, unsubCanje=null;
-  var t0=0, raf=null, ttlTimer=null, corriendo=false;
+  var t0=0, t0Ack=0, raf=null, ttlTimer=null, corriendo=false;
   var arrancando=false, jugadaLocal=null;   // evitan carreras con el listener en vivo
   var CIRC=691.15;
 
@@ -399,19 +399,22 @@ h1 span{color:var(--nar)}
     if(corriendo || !partida) return;
     var b=$('bStart'); if(b.disabled) return;
     b.disabled=true; $('startTxt').textContent='…'; arrancando=true;
+    // El tiempo que VALE es el del servidor: desde que le llega el "arranqué"
+    // hasta que le llega el "paré". Por eso el reloj de pantalla cuenta desde que
+    // MANDAMOS el arranque (no desde que el servidor contesta): así el viaje de
+    // ida de los dos avisos se compensa y lo que ve el socio es lo que mide el
+    // servidor, con la diferencia de unas centésimas de la red.
+    var tEnvio=performance.now();
     db.collection('partidas').doc(partida._id).update({
       estado:'jugando', inicioTs: firebase.firestore.FieldValue.serverTimestamp()
     }).then(function(){
-      // El reloj local arranca RECIÉN cuando el servidor confirmó el inicio. Así el
-      // tiempo que declaramos nunca puede ser mayor que el que midió el servidor
-      // (la regla rechaza eso), y la latencia siempre juega a favor del socio.
       clearInterval(ttlTimer);
       corriendo=true; arrancando=false;
       $('dPlay').innerHTML=fmt(0); $('prog').style.strokeDashoffset=CIRC;
       $('bStop').disabled=false; $('stopTxt').textContent='PARÁ';
       $('playNota').innerHTML='Tocá <b style="color:var(--rojo-cla)">PARÁ</b> cuando marque '+plano(partida.objetivoMs)+'. Sin tolerancia.';
       mostrar('play'); vibrar(20);
-      t0=performance.now(); tick();
+      t0=tEnvio; t0Ack=performance.now(); tick();
     }).catch(function(){
       arrancando=false;
       b.disabled=false; $('startTxt').textContent='DALE';
@@ -419,27 +422,56 @@ h1 span{color:var(--nar)}
     });
   }
 
-  /* ---- frenar: el servidor sella el fin y la regla dicta el resultado ---- */
+  /* ---- frenar: el SERVIDOR mide el tiempo y la regla dicta el resultado ----
+     Dos pasos (ver /partidas en firestore.rules):
+     1) "paré": estado 'jugada' + finTs = hora del servidor. Nada más: el
+        navegador ya NO declara su tiempo (antes podía declarar cualquier valor
+        dentro de 2 s del real, y así ganar siempre).
+     2) "cerrar": se lee la partida del servidor y se escribe tiempoMs = finTs −
+        inicioTs y gano. La regla solo acepta EXACTAMENTE esa cuenta, así que
+        ese paso lo puede hacer cualquiera (incluso al volver a entrar).
+     Si las reglas publicadas todavía son las viejas, el paso 1 se rechaza y se
+     usa el método anterior (tiempo medido en el celular). */
+  function msServidor(x){
+    return Math.floor(x.finTs.toMillis()) - Math.floor(x.inicioTs.toMillis());
+  }
+  function cerrarPartida(id){
+    var ref=db.collection('partidas').doc(id);
+    return ref.get({source:'server'}).then(function(d){
+      var x=d.data()||{};
+      if(typeof x.tiempoMs==='number') return { ms:x.tiempoMs, gano:x.gano===true };
+      if(!x.finTs || !x.inicioTs) throw new Error('sin-sellos');
+      var ms=msServidor(x), gano=Math.floor(ms/10)===Math.floor(x.objetivoMs/10);
+      return ref.update({ tiempoMs:ms, gano:gano }).then(function(){ return { ms:ms, gano:gano }; });
+    });
+  }
   function frenar(){
     if(!corriendo) return;
     corriendo=false; cancelAnimationFrame(raf);
     var ms=Math.floor(performance.now()-t0);
+    var msViejo=Math.floor(performance.now()-t0Ack);   // solo para las reglas viejas
     $('dPlay').innerHTML=fmt(ms);
     $('bStop').disabled=true; $('stopTxt').textContent='…';
     vibrar(40);
-    var gano = Math.floor(ms/10) === Math.floor(partida.objetivoMs/10);
     jugadaLocal = partida._id;   // el resultado de ESTA jugada lo dibuja resultado(), no el rescate
-    db.collection('partidas').doc(partida._id).update({
-      estado:'jugada', tiempoMs:ms, gano:gano,
-      finTs: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function(){
-      resultado(ms, gano);
-    }).catch(function(){
-      // La regla rechazó la jugada: el tiempo declarado no cierra con el que midió
-      // el servidor. Se cuenta como jugada consumida (bases, punto 9).
+    var ref=db.collection('partidas').doc(partida._id);
+    var fallo=function(){
+      // La regla rechazó la jugada. Se cuenta como jugada consumida (bases, punto 9).
       $('playNota').innerHTML='<b>No pudimos validar la jugada.</b> El tiempo no coincide con el del servidor. Mostrale esta pantalla al encargado.';
       $('stopTxt').textContent='—';
-    });
+    };
+    ref.update({ estado:'jugada', finTs: firebase.firestore.FieldValue.serverTimestamp() })
+      .then(function(){
+        return cerrarPartida(partida._id).then(function(r){ resultado(r.ms, r.gano); });
+      }, function(){
+        // Reglas viejas (antes de publicar las nuevas): método anterior.
+        var gano = Math.floor(msViejo/10) === Math.floor(partida.objetivoMs/10);
+        return ref.update({
+          estado:'jugada', tiempoMs:msViejo, gano:gano,
+          finTs: firebase.firestore.FieldValue.serverTimestamp()
+        }).then(function(){ resultado(msViejo, gano); });
+      })
+      .catch(fallo);
   }
 
   // Fecha de hoy en YYYY-MM-DD, igual que la que guarda el panel en la partida.
@@ -567,6 +599,12 @@ h1 span{color:var(--nar)}
           if(x.estado==='jugando' && x.fecha===hoyStr()) abierta=x;
           if(x.estado==='jugada' && (!hoy || (x.finTs&&hoy.finTs&&x.finTs.toMillis()>hoy.finTs.toMillis()))) hoy=x;
         });
+        // Se cortó entre "paré" y "cerrar" (paso 2 de frenar): la cerramos ahora.
+        // El listener vuelve a disparar con el resultado ya escrito.
+        if(hoy && typeof hoy.tiempoMs!=='number' && hoy.finTs && hoy.inicioTs && hoy._id!==jugadaLocal){
+          cerrarPartida(hoy._id).catch(function(){});
+          return;
+        }
         // RESCATE DEL PREMIO: si hay una partida GANADA hoy y su voucher no se
         // llegó a emitir (se cortó internet justo ahí, se cerró la pantalla, o la
         // partida es anterior a que existiera el voucher), lo emitimos ahora.

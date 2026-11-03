@@ -6,13 +6,18 @@ import {
 
 // Video institucional del club de socios, para la sección de alta de la página:
 // qué es, cómo se completa el formulario, la credencial, cómo se suman y se canjean los puntos.
-// Locución: public/voz.wav (Valeria, ElevenLabs eleven_v4). Pensado para celular: una idea grande por pantalla.
+// 16:9 (1280x720), el formato del recuadro de video de la página: texto a la izquierda, lo visual a la derecha.
+// En el celular el recuadro mide ~360 px de ancho, por eso los textos son grandes y pocos.
+// Locución: public/voz.wav (Valeria, ElevenLabs eleven_v4).
 
 const FPS = 30;
 const O = '#F58220';
 const BG = '#0d0e0e';
 const SLAB = '"Roboto Slab GDO", "Roboto Slab", Rockwell, serif';
 const SANS = '"Inter GDO", Inter, Arial, sans-serif';
+
+// Columnas: texto (izquierda) y visual (derecha).
+const IZQ = 64, ANCHO_IZQ = 560, DER = 680, ANCHO_DER = 540;
 
 // Fuentes de marca (slab para titulares, Inter para textos), cargadas antes de renderizar.
 const FUENTES: [string, string, string][] = [
@@ -45,34 +50,35 @@ const T = {intro: 3.7, puntos: 10.1, form: 24.2, cred: 28.0, mostras: 32.9, canj
 
 // ───────────────────────── piezas ─────────────────────────
 
-const useEntrada = (d = 0, dist = 40) => {
+const useEntrada = (d = 0, dist = 30) => {
   const fr = useCurrentFrame();
   const k = interpolate(fr - d, [0, 16], [0, 1], {...clamp, easing: ease});
-  return {opacity: k, transform: `translateY(${(1 - k) * dist}px)`, filter: `blur(${(1 - k) * 10}px)`} as React.CSSProperties;
+  return {opacity: k, transform: `translateY(${(1 - k) * dist}px)`, filter: `blur(${(1 - k) * 8}px)`} as React.CSSProperties;
 };
 
 const Fondo: React.FC = () => {
   const fr = useCurrentFrame();
-  const x = 50 + Math.sin(fr / 90) * 8, y = 18 + Math.cos(fr / 110) * 5;
+  const x = 75 + Math.sin(fr / 90) * 6, y = 40 + Math.cos(fr / 110) * 8;
   return (
     <AbsoluteFill style={{background: BG}}>
-      <AbsoluteFill style={{background: `radial-gradient(900px 900px at ${x}% ${y}%, rgba(245,130,32,.20), transparent 62%), radial-gradient(700px 700px at 0% 100%, rgba(245,130,32,.08), transparent 60%)`}} />
-      <AbsoluteFill style={{backgroundImage: 'radial-gradient(rgba(255,255,255,.05) 1.2px, transparent 1.2px)', backgroundSize: '36px 36px',
-        maskImage: 'linear-gradient(180deg, rgba(0,0,0,.9), transparent 70%)', WebkitMaskImage: 'linear-gradient(180deg, rgba(0,0,0,.9), transparent 70%)'}} />
+      <AbsoluteFill style={{background: `radial-gradient(700px 600px at ${x}% ${y}%, rgba(245,130,32,.20), transparent 62%), radial-gradient(600px 500px at 0% 100%, rgba(245,130,32,.08), transparent 60%)`}} />
+      <AbsoluteFill style={{backgroundImage: 'radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px)', backgroundSize: '28px 28px',
+        maskImage: 'linear-gradient(90deg, transparent, rgba(0,0,0,.8) 60%)', WebkitMaskImage: 'linear-gradient(90deg, transparent, rgba(0,0,0,.8) 60%)'}} />
     </AbsoluteFill>
   );
 };
 
 const Marca: React.FC = () => (
-  <div style={{position: 'absolute', left: 72, top: 120, ...useEntrada(0, 16)}}>
-    <Img src={staticFile('isotipo-blanco.svg')} style={{height: 76}} />
+  <div style={{position: 'absolute', left: IZQ, top: 40, display: 'flex', alignItems: 'center', gap: 16, ...useEntrada(0, 12)}}>
+    <Img src={staticFile('isotipo-blanco.svg')} style={{height: 52}} />
+    <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 30, letterSpacing: 6, color: '#fff'}}>GDO <span style={{color: O}}>CLUB</span></div>
   </div>
 );
 
-const Titulo: React.FC<{a: string; b: string; top?: number; size?: number; d?: number}> = ({a, b, top = 280, size = 128, d = 5}) => {
-  const e1 = useEntrada(d, 50), e2 = useEntrada(d + 5, 50);
+const Titulo: React.FC<{a: string; b: string; top?: number; size?: number; d?: number; left?: number}> = ({a, b, top = 130, size = 82, d = 5, left = IZQ}) => {
+  const e1 = useEntrada(d, 40), e2 = useEntrada(d + 5, 40);
   return (
-    <div style={{position: 'absolute', left: 68, right: 68, top, fontFamily: SLAB, fontWeight: 800, fontSize: size, lineHeight: 1.02, letterSpacing: -1.5, color: '#fff'}}>
+    <div style={{position: 'absolute', left, width: ANCHO_IZQ + 40, top, fontFamily: SLAB, fontWeight: 800, fontSize: size, lineHeight: 1.04, letterSpacing: -1, color: '#fff'}}>
       <div style={e1}>{a}</div>
       <div style={{...e2, color: O}}>{b}</div>
     </div>
@@ -94,7 +100,7 @@ const Escena: React.FC<{a: number; b: number; children: React.ReactNode}> = ({a,
   );
 };
 
-const Icono: React.FC<{tipo: 'regalo' | 'descuento' | 'check' | 'tienda'; size?: number; color?: string}> = ({tipo, size = 64, color = O}) => {
+const Icono: React.FC<{tipo: 'regalo' | 'descuento' | 'check' | 'tienda'; size?: number; color?: string}> = ({tipo, size = 46, color = O}) => {
   const p = {fill: 'none', stroke: color, strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round'} as const;
   return (
     <svg width={size} height={size} viewBox="0 0 24 24">
@@ -106,16 +112,16 @@ const Icono: React.FC<{tipo: 'regalo' | 'descuento' | 'check' | 'tienda'; size?:
   );
 };
 
-// Tarjeta con ícono y una sola frase grande.
+// Tarjeta con ícono y una sola frase grande (columna izquierda).
 const Ficha: React.FC<{icono: React.ReactNode; t: string; on: number; top: number}> = ({icono, t, on, top}) => {
   const fr = useCurrentFrame();
   const k = interpolate(fr - f(on), [0, 14], [0, 1], {...clamp, easing: ease});
   return (
-    <div style={{position: 'absolute', left: 68, right: 68, top, height: 156, borderRadius: 36, display: 'flex', alignItems: 'center', gap: 32, padding: '0 38px',
+    <div style={{position: 'absolute', left: IZQ, width: ANCHO_IZQ, top, height: 108, borderRadius: 28, display: 'flex', alignItems: 'center', gap: 24, padding: '0 28px',
       background: 'linear-gradient(90deg, rgba(245,130,32,.16), rgba(245,130,32,.04))', border: '2px solid rgba(245,130,32,.7)',
-      opacity: k, transform: `translateX(${(1 - k) * -50}px)`}}>
-      <div style={{width: 92, height: 92, borderRadius: 26, background: 'rgba(245,130,32,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{icono}</div>
-      <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 56, color: '#fff', lineHeight: 1.05}}>{t}</div>
+      opacity: k, transform: `translateX(${(1 - k) * -40}px)`}}>
+      <div style={{width: 68, height: 68, borderRadius: 20, background: 'rgba(245,130,32,.14)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0}}>{icono}</div>
+      <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 40, color: '#fff', lineHeight: 1.08}}>{t}</div>
     </div>
   );
 };
@@ -128,34 +134,33 @@ const Cartel: React.FC<{pasos: [number, string][]; top: number}> = ({pasos, top}
   const k = interpolate(fr - f(pasos[i][0]), [0, 12], [0, 1], {...clamp, easing: ease});
   const kIn = interpolate(fr - f(pasos[0][0]), [0, 14], [0, 1], {...clamp, easing: ease});
   return (
-    <div style={{position: 'absolute', left: 68, right: 68, top, height: 160, borderRadius: 40, display: 'flex', alignItems: 'center', gap: 30, padding: '0 40px',
+    <div style={{position: 'absolute', left: IZQ, width: ANCHO_IZQ, top, minHeight: 124, borderRadius: 32, display: 'flex', alignItems: 'center', gap: 24, padding: '14px 28px',
       background: 'linear-gradient(90deg, rgba(245,130,32,.2), rgba(245,130,32,.06))', border: '2px solid rgba(245,130,32,.8)', opacity: kIn}}>
-      <div style={{width: 96, height: 96, borderRadius: '50%', background: O, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        transform: `scale(${0.8 + 0.2 * k})`}}><Icono tipo="check" size={58} color="#111" /></div>
-      <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 58, color: '#fff', lineHeight: 1.05, opacity: k, transform: `translateY(${(1 - k) * 20}px)`}}>{pasos[i][1]}</div>
+      <div style={{width: 76, height: 76, borderRadius: '50%', background: O, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        transform: `scale(${0.8 + 0.2 * k})`}}><Icono tipo="check" size={46} color="#111" /></div>
+      <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 44, color: '#fff', lineHeight: 1.08, opacity: k, transform: `translateY(${(1 - k) * 16}px)`}}>{pasos[i][1]}</div>
     </div>
   );
 };
 
-// Pantalla real del sitio, ampliada, con un recuadro que marca lo que dice la voz.
+// Pantalla real del sitio, ampliada, con un recuadro que marca lo que dice la voz (columna derecha).
 // tomas: [desde (s), imagen, desplazamiento en px de la captura (1170 de ancho)]
 // marcas: [desde (s), [x0, y0, x1, y1] en px de la captura, toque?]
 type Marcado = [number, [number, number, number, number], boolean?];
-const Pantalla: React.FC<{tomas: [number, string, number][]; marcas: Marcado[]; top: number; h: number; d?: number}> = ({tomas, marcas, top, h, d = 0}) => {
+const Pantalla: React.FC<{tomas: [number, string, number][]; marcas: Marcado[]; d?: number}> = ({tomas, marcas, d = 0}) => {
   const fr = useCurrentFrame();
   const t = fr / FPS;
-  const W = 900, s = W / 1170;
+  const W = ANCHO_DER, s = W / 1170, top = 36, h = 720 - 36 * 2;
   const k = spring({frame: fr - d, fps: FPS, config: {damping: 18}});
   let ti = 0; while (ti < tomas.length - 1 && t >= tomas[ti + 1][0]) ti++;
-  // desplazamiento suave entre tomas de la misma imagen
   const pan = ti > 0 && tomas[ti][1] === tomas[ti - 1][1]
     ? interpolate(t, [tomas[ti][0], tomas[ti][0] + 0.6], [tomas[ti - 1][2], tomas[ti][2]], {...clamp, easing: Easing.inOut(Easing.cubic)})
     : tomas[ti][2];
   let mi = -1; for (let j = 0; j < marcas.length; j++) if (t >= marcas[j][0]) mi = j;
   return (
-    <div style={{position: 'absolute', left: (1080 - W) / 2, top, width: W, height: h, borderRadius: 44, overflow: 'hidden', background: '#000',
-      border: '3px solid #2c2f2e', boxShadow: '0 50px 110px rgba(0,0,0,.65), 0 0 110px rgba(245,130,32,.16)',
-      opacity: k, transform: `translateY(${(1 - k) * 160}px)`}}>
+    <div style={{position: 'absolute', left: DER, top, width: W, height: h, borderRadius: 34, overflow: 'hidden', background: '#000',
+      border: '3px solid #2c2f2e', boxShadow: '0 40px 90px rgba(0,0,0,.65), 0 0 90px rgba(245,130,32,.16)',
+      opacity: k, transform: `translateX(${(1 - k) * 120}px)`}}>
       {tomas.map(([, img], j) => {
         if (j > 0 && img === tomas[j - 1][1]) return null;
         const usada = tomas[ti][1] === img;
@@ -169,16 +174,15 @@ const Pantalla: React.FC<{tomas: [number, string, number][]; marcas: Marcado[]; 
         const tq = interpolate(t - desde, [0.35, 0.85], [0, 1], clamp);
         return (
           <>
-            <div style={{position: 'absolute', left: x0 * s - 8, top: (y0 - pan) * s - 8, width: (x1 - x0) * s + 16, height: (y1 - y0) * s + 16, borderRadius: 22,
-              border: `6px solid ${O}`, boxShadow: '0 0 40px rgba(245,130,32,.7)', opacity: km, transform: `scale(${1.06 - 0.06 * km})`}} />
+            <div style={{position: 'absolute', left: x0 * s - 6, top: (y0 - pan) * s - 6, width: (x1 - x0) * s + 12, height: (y1 - y0) * s + 12, borderRadius: 16,
+              border: `5px solid ${O}`, boxShadow: '0 0 30px rgba(245,130,32,.7)', opacity: km, transform: `scale(${1.06 - 0.06 * km})`}} />
             {toque && tq > 0 && tq < 1 && (
-              <div style={{position: 'absolute', left: ((x0 + x1) / 2) * s - 40, top: ((y0 + y1) / 2 - pan) * s - 40, width: 80, height: 80, borderRadius: '50%',
-                border: '6px solid #fff', opacity: 1 - tq, transform: `scale(${0.5 + tq * 1.5})`}} />
+              <div style={{position: 'absolute', left: ((x0 + x1) / 2) * s - 30, top: ((y0 + y1) / 2 - pan) * s - 30, width: 60, height: 60, borderRadius: '50%',
+                border: '5px solid #fff', opacity: 1 - tq, transform: `scale(${0.5 + tq * 1.5})`}} />
             )}
           </>
         );
       })()}
-      <AbsoluteFill style={{background: 'linear-gradient(180deg, transparent 82%, rgba(0,0,0,.55))'}} />
     </div>
   );
 };
@@ -193,7 +197,7 @@ const Credencial: React.FC<{d?: number; puntos: number; ry?: number; rx?: number
     <div style={{width: w, height: w * 0.6, perspective: 2000, opacity: k}}>
       <div style={{position: 'relative', width: '100%', height: '100%', borderRadius: 44 * s, overflow: 'hidden',
         background: 'linear-gradient(135deg, #1d1f1e 0%, #121313 55%, #1a1410 100%)', border: '2px solid rgba(245,130,32,.55)',
-        boxShadow: '0 50px 110px rgba(0,0,0,.7), 0 0 90px rgba(245,130,32,.22)',
+        boxShadow: '0 40px 90px rgba(0,0,0,.7), 0 0 80px rgba(245,130,32,.22)',
         transform: `rotateY(${ry + (1 - k) * -35}deg) rotateX(${rx + (1 - k) * 12}deg) scale(${0.85 + 0.15 * k})`}}>
         <div style={{position: 'absolute', left: 0, top: 0, bottom: 0, width: 12 * s, background: O}} />
         <div style={{position: 'absolute', left: 56 * s, top: 46 * s, fontFamily: SANS, fontWeight: 700, fontSize: 40 * s, letterSpacing: 5 * s, color: '#fff'}}>GDO <span style={{color: O}}>CLUB</span></div>
@@ -218,51 +222,55 @@ const Credencial: React.FC<{d?: number; puntos: number; ry?: number; rx?: number
   );
 };
 
-// ───────────────────────── escenas ─────────────────────────
-
-const Intro: React.FC = () => {
+// Gallo de la marca iluminado (columna derecha).
+const Gallo: React.FC<{h: number; left: number; top: number}> = ({h, left, top}) => {
   const fr = useCurrentFrame();
   const k = spring({frame: fr - 2, fps: FPS, config: {damping: 14}});
   const glow = 0.6 + 0.4 * Math.sin(fr / 12);
   return (
-    <>
-      <Fondo />
-      <div style={{position: 'absolute', left: 0, right: 0, top: 760, display: 'flex', justifyContent: 'center', opacity: k, transform: `scale(${0.7 + 0.3 * k})`}}>
-        <Img src={staticFile('isotipo-blanco.svg')} style={{height: 520, filter: `drop-shadow(0 0 ${40 + 30 * glow}px rgba(245,130,32,.85))`}} />
-      </div>
-      <Titulo a="Ser socio" b="es gratis" top={300} size={140} d={6} />
-    </>
+    <div style={{position: 'absolute', left, top, opacity: k, transform: `scale(${0.7 + 0.3 * k})`}}>
+      <Img src={staticFile('isotipo-blanco.svg')} style={{height: h, filter: `drop-shadow(0 0 ${30 + 25 * glow}px rgba(245,130,32,.85))`}} />
+    </div>
   );
 };
 
+// ───────────────────────── escenas ─────────────────────────
+
+const Intro: React.FC = () => (
+  <>
+    <Fondo />
+    <Marca />
+    <Gallo h={440} left={790} top={130} />
+    <Titulo a="Ser socio" b="es gratis" top={210} size={112} d={6} />
+  </>
+);
+
 const Puntos: React.FC = () => {
   const fr = useCurrentFrame();
-  const t = fr / FPS;
   const r = (x: number) => x - T.intro;
   const k100 = spring({frame: fr - f(r(3.83)), fps: FPS, config: {damping: 13}});
   const v = Math.round(interpolate(fr - f(r(3.83)), [0, 22], [0, 100], {...clamp, easing: Easing.out(Easing.cubic)}));
   const giro = interpolate(fr - f(r(3.83)) - 14, [0, 18], [90, 0], {...clamp, easing: ease});
-  const sube = interpolate(t, [r(6.6), r(7.2)], [0, 1], {...clamp, easing: ease});
   return (
     <>
       <Fondo />
       <Marca />
       <Titulo a="Cada compra" b="suma puntos" />
-      <div style={{position: 'absolute', left: 0, right: 0, top: 640 - sube * 40, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 40,
-        opacity: k100, transform: `scale(${(0.8 + 0.2 * k100) * (1 - sube * 0.22)})`}}>
-        <div style={{fontFamily: SLAB, fontWeight: 800, fontSize: 250, color: '#fff', letterSpacing: -6}}>${v}</div>
-        <svg width="90" height="60" viewBox="0 0 90 60"><path d="M4 30h72M56 10l22 20-22 20" fill="none" stroke={O} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-        <div style={{width: 250, height: 250, borderRadius: '50%', perspective: 800}}>
+      <Ficha icono={<Icono tipo="regalo" />} t="Productos de regalo" on={r(7.9)} top={400} />
+      <Ficha icono={<Icono tipo="descuento" />} t="Descuentos" on={r(9.1)} top={530} />
+      <div style={{position: 'absolute', left: DER, width: ANCHO_DER, top: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14,
+        opacity: k100, transform: `scale(${0.8 + 0.2 * k100})`}}>
+        <div style={{fontFamily: SLAB, fontWeight: 800, fontSize: 124, color: '#fff', letterSpacing: -4}}>${v}</div>
+        <svg width="54" height="36" viewBox="0 0 90 60" style={{flexShrink: 0}}><path d="M4 30h72M56 10l22 20-22 20" fill="none" stroke={O} strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        <div style={{width: 190, height: 190, borderRadius: '50%', perspective: 800, flexShrink: 0}}>
           <div style={{width: '100%', height: '100%', borderRadius: '50%', transform: `rotateY(${giro}deg)`,
-            background: `radial-gradient(circle at 35% 30%, #ffb15c, ${O} 55%, #c25e0b)`, boxShadow: '0 25px 70px rgba(245,130,32,.55), inset 0 -10px 30px rgba(0,0,0,.25)',
-            border: '6px solid rgba(255,255,255,.25)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'}}>
-            <div style={{fontFamily: SLAB, fontWeight: 800, fontSize: 110, color: '#fff', lineHeight: 0.9}}>1</div>
-            <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 30, letterSpacing: 3, color: '#fff'}}>PUNTO</div>
+            background: `radial-gradient(circle at 35% 30%, #ffb15c, ${O} 55%, #c25e0b)`, boxShadow: '0 20px 60px rgba(245,130,32,.55), inset 0 -8px 24px rgba(0,0,0,.25)',
+            border: '5px solid rgba(255,255,255,.25)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'}}>
+            <div style={{fontFamily: SLAB, fontWeight: 800, fontSize: 86, color: '#fff', lineHeight: 0.9}}>1</div>
+            <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 24, letterSpacing: 3, color: '#fff'}}>PUNTO</div>
           </div>
         </div>
       </div>
-      <Ficha icono={<Icono tipo="regalo" />} t="Productos de regalo" on={r(7.9)} top={1020} />
-      <Ficha icono={<Icono tipo="descuento" />} t="Descuentos" on={r(9.1)} top={1202} />
     </>
   );
 };
@@ -274,8 +282,8 @@ const Formulario: React.FC = () => {
     <>
       <Fondo />
       <Marca />
-      <Titulo a="Asociarte" b="lleva un minuto" size={118} />
-      <Cartel top={570} pasos={[
+      <Titulo a="Asociarte" b="en un minuto" />
+      <Cartel top={420} pasos={[
         [r(10.4), 'Tocás “Quiero asociarme”'],
         [r(15.24), 'Nombre y DNI'],
         [r(16.6), 'Dirección y teléfono'],
@@ -284,8 +292,8 @@ const Formulario: React.FC = () => {
         [r(20.59), 'Aceptás los términos'],
         [r(21.9), 'Crear mi cuenta'],
       ]} />
-      <Pantalla top={770} h={1060} d={f(r(10.4))}
-        tomas={[[0, 'a_publica.png', 520], [r(14.6), 'b_alta.png', 120], [r(18.9), 'b_alta.png', 900], [r(20.4), 'b_alta.png', 1150]]}
+      <Pantalla d={f(r(10.4))}
+        tomas={[[0, 'a_publica.png', 560], [r(14.6), 'b_alta.png', 160], [r(17.6), 'b_alta.png', 700], [r(20.4), 'b_alta.png', 1300]]}
         marcas={[
           [r(12.2), [594, 975, 1066, 1080], true],
           [r(15.24), [60, 200, 1110, 620]],
@@ -309,10 +317,10 @@ const Lista: React.FC = () => {
       <Fondo />
       <Marca />
       <Titulo a="Tu credencial," b="al instante" />
-      <div style={{position: 'absolute', left: 110, top: 720}}>
-        <Credencial d={6} puntos={0} w={860} ry={interpolate(t, [0, 3.8], [-8, 6], clamp)} rx={4} destacaNumero={destaca} />
+      <Ficha icono={<Icono tipo="check" />} t="Número de socio" on={r(26.3)} top={420} />
+      <div style={{position: 'absolute', left: DER, top: 200}}>
+        <Credencial d={6} puntos={0} w={ANCHO_DER} ry={interpolate(t, [0, 3.8], [-10, 6], clamp)} rx={4} destacaNumero={destaca} />
       </div>
-      <Ficha icono={<Icono tipo="check" />} t="Con tu número de socio" on={r(26.3)} top={1340} />
     </>
   );
 };
@@ -324,20 +332,20 @@ const Mostras: React.FC = () => {
   const tCarga = r(30.9);
   const pts = Math.round(interpolate(t, [tCarga, tCarga + 1.1], [1250, 2480], {...clamp, easing: Easing.out(Easing.cubic)}));
   const kb = spring({frame: fr - f(tCarga), fps: FPS, config: {damping: 10}});
-  const sube = interpolate(t, [tCarga, tCarga + 1.4], [0, -70], clamp);
+  const sube = interpolate(t, [tCarga, tCarga + 1.4], [0, -50], clamp);
   return (
     <>
       <Fondo />
       <Marca />
       <Titulo a="Cuando" b="comprás" />
-      <Ficha icono={<Icono tipo="tienda" />} t="En el local o con envío" on={r(28.3)} top={580} />
-      <Ficha icono={<Icono tipo="check" />} t="Te cargamos los puntos" on={tCarga} top={762} />
-      <div style={{position: 'absolute', left: 110, top: 1010}}>
-        <Credencial d={4} puntos={pts} w={860} ry={interpolate(t, [0, 4.9], [6, -6], clamp)} rx={3} />
+      <Ficha icono={<Icono tipo="tienda" />} t="Local o envío" on={r(28.3)} top={400} />
+      <Ficha icono={<Icono tipo="check" />} t="Sumás tus puntos" on={tCarga} top={530} />
+      <div style={{position: 'absolute', left: DER, top: 200}}>
+        <Credencial d={4} puntos={pts} w={ANCHO_DER} ry={interpolate(t, [0, 4.9], [6, -8], clamp)} rx={3} />
       </div>
       {t >= tCarga && (
-        <div style={{position: 'absolute', right: 120, top: 970 + sube, background: O, color: '#111', fontFamily: SANS, fontWeight: 700, fontSize: 52,
-          borderRadius: 99, padding: '12px 32px', boxShadow: '0 16px 50px rgba(245,130,32,.55)', transform: `scale(${kb})`,
+        <div style={{position: 'absolute', left: DER + ANCHO_DER - 210, top: 150 + sube, background: O, color: '#111', fontFamily: SANS, fontWeight: 700, fontSize: 44,
+          borderRadius: 99, padding: '10px 26px', boxShadow: '0 14px 40px rgba(245,130,32,.55)', transform: `scale(${kb})`,
           opacity: interpolate(t, [tCarga + 1.6, tCarga + 2.2], [1, 0], clamp)}}>+1.230</div>
       )}
     </>
@@ -351,8 +359,8 @@ const Canje: React.FC = () => {
       <Fondo />
       <Marca />
       <Titulo a="Canjeás" b="tus premios" />
-      <Cartel top={570} pasos={[[r(33.1), 'Entrás a Premios'], [r(35.25), 'Elegís el que quieras'], [r(36.53), 'Te llega tu voucher']]} />
-      <Pantalla top={770} h={1060} d={f(r(33.2))}
+      <Cartel top={420} pasos={[[r(33.1), 'Entrás a Premios'], [r(35.25), 'Elegís el que quieras'], [r(36.53), 'Te llega tu voucher']]} />
+      <Pantalla d={f(r(33.2))}
         tomas={[[0, 'e_premios.png', 0], [r(36.5), 'f_voucher.png', 60]]}
         marcas={[[r(35.25), [20, 30, 1150, 320]], [r(35.6), [860, 70, 1130, 190], true]]} />
     </>
@@ -362,19 +370,17 @@ const Canje: React.FC = () => {
 const Cierre: React.FC = () => {
   const fr = useCurrentFrame();
   const k = spring({frame: fr - 16, fps: FPS, config: {damping: 15}});
-  const glow = 0.6 + 0.4 * Math.sin(fr / 12);
-  const flecha = Math.sin(fr / 6) * 10;
+  const flecha = Math.sin(fr / 6) * 8;
   return (
     <>
       <Fondo />
-      <div style={{position: 'absolute', left: 0, right: 0, top: 820, display: 'flex', justifyContent: 'center', ...useEntrada(0, 30)}}>
-        <Img src={staticFile('isotipo-blanco.svg')} style={{height: 420, filter: `drop-shadow(0 0 ${40 + 30 * glow}px rgba(245,130,32,.85))`}} />
-      </div>
-      <Titulo a="Asociate" b="ahora" top={300} size={140} d={4} />
-      <div style={{position: 'absolute', left: 0, right: 0, top: 1400, display: 'flex', justifyContent: 'center', opacity: k, transform: `translateY(${(1 - k) * 30}px)`}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: 20, background: O, borderRadius: 99, padding: '24px 46px', boxShadow: '0 20px 60px rgba(245,130,32,.45)'}}>
-          <svg width="44" height="44" viewBox="0 0 24 24" style={{transform: `translateY(${flecha}px)`}}><path d="M12 20V5M5 11l7-7 7 7" fill="none" stroke="#111" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 54, color: '#111'}}>Es gratis</div>
+      <Marca />
+      <Gallo h={400} left={800} top={150} />
+      <Titulo a="Asociate" b="ahora" top={170} size={112} d={4} />
+      <div style={{position: 'absolute', left: IZQ, top: 470, opacity: k, transform: `translateY(${(1 - k) * 24}px)`}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: 16, background: O, borderRadius: 99, padding: '18px 38px', boxShadow: '0 16px 50px rgba(245,130,32,.45)'}}>
+          <svg width="38" height="38" viewBox="0 0 24 24" style={{transform: `translateY(${flecha}px)`}}><path d="M12 20V5M5 11l7-7 7 7" fill="none" stroke="#111" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 46, color: '#111'}}>Es gratis</div>
         </div>
       </div>
     </>

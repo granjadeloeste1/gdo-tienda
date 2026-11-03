@@ -77,9 +77,9 @@ const Fondo: React.FC = () => {
 };
 
 const Marca: React.FC<{d?: number}> = ({d = 0}) => (
-  <div style={{position: 'absolute', left: 72, top: 120, display: 'flex', alignItems: 'center', gap: 18, ...useEntrada(d, 16)}}>
-    <Img src={staticFile('isotipo-blanco.svg')} style={{height: 58}} />
-    <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 30, letterSpacing: 7, color: '#fff'}}>GDO <span style={{color: O}}>CLUB</span></div>
+  <div style={{position: 'absolute', left: 72, top: 120, display: 'flex', alignItems: 'center', gap: 20, ...useEntrada(d, 16)}}>
+    <Img src={staticFile('isotipo-blanco.svg')} style={{height: 70}} />
+    <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 38, letterSpacing: 7, color: '#fff'}}>GDO <span style={{color: O}}>CLUB</span></div>
   </div>
 );
 
@@ -88,7 +88,7 @@ const Eyebrow: React.FC<{txt: string; top?: number; d?: number}> = ({txt, top = 
     color: AM, textTransform: 'uppercase', ...useEntrada(d, 16)}}>{txt}</div>
 );
 
-const Titulo: React.FC<{a: string; b: string; top?: number; size?: number; d?: number}> = ({a, b, top = 340, size = 112, d = 5}) => {
+const Titulo: React.FC<{a: string; b: string; top?: number; size?: number; d?: number}> = ({a, b, top = 300, size = 128, d = 5}) => {
   const e1 = useEntrada(d, 50), e2 = useEntrada(d + 5, 50);
   return (
     <div style={{position: 'absolute', left: 68, right: 68, top, fontFamily: SLAB, fontWeight: 800, fontSize: size, lineHeight: 1.02, letterSpacing: -1.5, color: '#fff'}}>
@@ -115,7 +115,7 @@ const Escena: React.FC<{a: number; b: number; children: React.ReactNode}> = ({a,
 };
 
 // Íconos de línea (en vez de emojis).
-const Icono: React.FC<{tipo: 'regalo' | 'descuento' | 'check' | 'qr'; size?: number; color?: string}> = ({tipo, size = 56, color = O}) => {
+const Icono: React.FC<{tipo: 'regalo' | 'descuento' | 'check' | 'qr'; size?: number; color?: string}> = ({tipo, size = 64, color = O}) => {
   const p = {fill: 'none', stroke: color, strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round'} as const;
   return (
     <svg width={size} height={size} viewBox="0 0 24 24">
@@ -187,19 +187,31 @@ const Credencial: React.FC<{d?: number; puntos: number; ry?: number; rx?: number
 };
 
 // Tarjeta con ícono y texto (beneficios, pasos).
-const Ficha: React.FC<{icono: React.ReactNode; t: string; s: string; on: number; activo?: boolean; top: number}> = ({icono, t, s, on, activo = true, top}) => {
+const Ficha: React.FC<{icono: React.ReactNode; t: string; on: number; activo?: boolean; top: number}> = ({icono, t, on, activo = true, top}) => {
   const fr = useCurrentFrame();
   const k = interpolate(fr - f(on), [0, 14], [0, 1], {...clamp, easing: ease});
   return (
-    <div style={{position: 'absolute', left: 68, right: 68, top, height: 132, borderRadius: 32, display: 'flex', alignItems: 'center', gap: 30, padding: '0 36px',
+    <div style={{position: 'absolute', left: 68, right: 68, top, height: 156, borderRadius: 36, display: 'flex', alignItems: 'center', gap: 32, padding: '0 38px',
       background: activo ? 'linear-gradient(90deg, rgba(245,130,32,.16), rgba(245,130,32,.04))' : 'rgba(255,255,255,.035)',
       border: `2px solid ${activo ? 'rgba(245,130,32,.7)' : 'rgba(255,255,255,.08)'}`,
       opacity: 0.25 + 0.75 * k, transform: `translateX(${(1 - k) * -50}px)`}}>
-      <div style={{width: 76, height: 76, borderRadius: 22, background: activo ? 'rgba(245,130,32,.14)' : 'rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{icono}</div>
-      <div>
-        <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 44, color: '#fff', lineHeight: 1.1}}>{t}</div>
-        <div style={{fontFamily: SANS, fontWeight: 500, fontSize: 30, color: 'rgba(255,255,255,.6)', marginTop: 4}}>{s}</div>
-      </div>
+      <div style={{width: 92, height: 92, borderRadius: 26, background: activo ? 'rgba(245,130,32,.14)' : 'rgba(255,255,255,.05)', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>{icono}</div>
+      <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 56, color: '#fff', lineHeight: 1.05}}>{t}</div>
+    </div>
+  );
+};
+
+// Paso actual de "Asociate", en grande, con los tres puntitos de avance.
+const Paso: React.FC<{n: number; txt: string; desde: number}> = ({n, txt, desde}) => {
+  const fr = useCurrentFrame();
+  const k = interpolate(fr - f(desde), [0, 12], [0, 1], {...clamp, easing: ease});
+  return (
+    <div style={{position: 'absolute', left: 68, right: 68, top: 600, height: 170, borderRadius: 40, display: 'flex', alignItems: 'center', gap: 34, padding: '0 40px',
+      background: 'linear-gradient(90deg, rgba(245,130,32,.18), rgba(245,130,32,.05))', border: '2px solid rgba(245,130,32,.75)'}}>
+      <div style={{width: 110, height: 110, borderRadius: '50%', background: O, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: SLAB, fontWeight: 800, fontSize: 68, color: '#111', transform: `scale(${0.8 + 0.2 * k})`}}>{n + 1}</div>
+      <div style={{flex: 1, fontFamily: SANS, fontWeight: 700, fontSize: 62, color: '#fff', opacity: k, transform: `translateY(${(1 - k) * 20}px)`}}>{txt}</div>
+      <div style={{display: 'flex', gap: 12}}>{[0, 1, 2].map((i) => <div key={i} style={{width: 16, height: 16, borderRadius: 99, background: i <= n ? O : 'rgba(255,255,255,.2)'}} />)}</div>
     </div>
   );
 };
@@ -232,8 +244,7 @@ const Intro: React.FC = () => (
   <>
     <Presentadora src="host_intro.mp4" />
     <Marca d={4} />
-    <Eyebrow txt="Te lo cuento rápido" top={250} d={10} />
-    <Titulo a="¿Qué es el" b="GDO Club?" top={300} size={120} d={14} />
+    <Titulo a="¿Qué es el" b="GDO Club?" top={250} size={136} d={10} />
   </>
 );
 
@@ -250,7 +261,6 @@ const QueEs: React.FC = () => {
     <>
       <Fondo />
       <Marca />
-      <Eyebrow txt="Es nuestro club de beneficios" />
       <Titulo a="Comprás" b="como siempre…" />
       <div style={{position: 'absolute', left: 68, right: 68, top: 640, display: 'flex', gap: 26,
         transform: `translateY(${sube * -40}px) scale(${1 - sube * 0.08})`, opacity: 1 - sube * 0.75}}>
@@ -261,7 +271,6 @@ const QueEs: React.FC = () => {
               transform: `translateY(${(1 - k) * 80}px)`, boxShadow: '0 30px 60px rgba(0,0,0,.5)', border: '2px solid rgba(255,255,255,.08)'}}>
               <Img src={staticFile(`fotos/${img}`)} style={{width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${1.12 - k * 0.08})`}} />
               <div style={{position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 50%, rgba(0,0,0,.75))'}} />
-              <div style={{position: 'absolute', left: 24, bottom: 22, fontFamily: SANS, fontWeight: 700, fontSize: 34, color: '#fff'}}>{txt}</div>
             </div>
           );
         })}
@@ -291,11 +300,10 @@ const Beneficios: React.FC = () => {
     <>
       <Fondo />
       <Marca />
-      <Eyebrow txt="Para qué sirven tus puntos" />
       <Titulo a="Los canjeás" b="por premios" />
-      <Ficha icono={<Icono tipo="regalo" />} t="Productos de regalo" s="huevos, milanesas, suprema…" on={r(9.8)} top={620} />
-      <Ficha icono={<Icono tipo="descuento" />} t="Descuentos" s="en tus próximas compras" on={r(11.1)} top={776} />
-      <Celular pantallas={[[0, 'e_premios.png']]} top={950} w={300} d={f(r(8.7))} scroll={30} />
+      <Ficha icono={<Icono tipo="regalo" />} t="Productos de regalo" on={r(9.8)} top={600} />
+      <Ficha icono={<Icono tipo="descuento" />} t="Descuentos" on={r(11.1)} top={782} />
+      <Celular pantallas={[[0, 'e_premios.png']]} top={1000} w={380} d={f(r(8.7))} scroll={30} />
     </>
   );
 };
@@ -307,36 +315,23 @@ const Asociate: React.FC = () => {
   const paso = t < r(17.68) ? 0 : t < r(18.63) ? 1 : 2;
   const tCred = r(18.63);
   const salePhone = interpolate(t, [tCred, tCred + 0.5], [0, 1], {...clamp, easing: ease});
-  const pasos: [string, string][] = [['lista.granjadeloeste.com', 'Entrás a la lista'], ['Tocás “Club”', 'y completás tus datos'], ['Credencial digital', 'lista al instante']];
+  const pasos = ['Entrás a la lista', 'Tocás “Club”', 'Tu credencial'];
   const toque = interpolate(t, [r(17.5), r(17.9)], [0, 1], clamp);
   return (
     <>
       <Fondo />
       <Marca />
-      <Eyebrow txt="Asociarte es gratis" />
-      <Titulo a="Tres pasos," b="y listo" />
-      <div style={{position: 'absolute', left: 68, right: 68, top: 620, display: 'flex', gap: 16}}>
-        {pasos.map(([a, b], i) => {
-          const on = i <= paso, act = i === paso;
-          return (
-            <div key={i} style={{flex: 1, borderRadius: 26, padding: '20px 22px', border: `2px solid ${act ? O : on ? 'rgba(245,130,32,.35)' : 'rgba(255,255,255,.08)'}`,
-              background: act ? 'rgba(245,130,32,.14)' : 'rgba(255,255,255,.03)'}}>
-              <div style={{fontFamily: SLAB, fontWeight: 800, fontSize: 40, color: on ? O : '#5f6461'}}>{i + 1}</div>
-              <div style={{fontFamily: SANS, fontWeight: 700, fontSize: 25, color: on ? '#fff' : '#7d8380', marginTop: 6, lineHeight: 1.15}}>{a}</div>
-              <div style={{fontFamily: SANS, fontWeight: 500, fontSize: 21, color: 'rgba(255,255,255,.5)', marginTop: 4}}>{b}</div>
-            </div>
-          );
-        })}
-      </div>
+      <Titulo a="Asociate" b="gratis" />
+      <Paso n={paso} txt={pasos[paso]} desde={paso === 0 ? r(14.6) : paso === 1 ? r(17.68) : r(18.63)} />
       <div style={{position: 'absolute', inset: 0, opacity: 1 - salePhone, transform: `translateY(${salePhone * 120}px)`}}>
-        <Celular pantallas={[[0, 'a_publica.png'], [r(17.85), 'b_alta.png']]} top={830} w={330} d={f(r(13.3))} />
+        <Celular pantallas={[[0, 'a_publica.png'], [r(17.85), 'b_alta.png']]} top={840} w={400} d={f(r(13.3))} />
         {toque > 0 && toque < 1 && (
-          <div style={{position: 'absolute', left: 585, top: 1140, width: 60, height: 60, marginLeft: -30, marginTop: -30, borderRadius: '50%',
+          <div style={{position: 'absolute', left: 595, top: 1215, width: 60, height: 60, marginLeft: -30, marginTop: -30, borderRadius: '50%',
             border: '4px solid #fff', opacity: 1 - toque, transform: `scale(${0.6 + toque * 1.6})`}} />
         )}
       </div>
       {t >= tCred && (
-        <div style={{position: 'absolute', left: 110, top: 930}}>
+        <div style={{position: 'absolute', left: 110, top: 960}}>
           <Credencial d={f(tCred)} puntos={0} w={860} ry={interpolate(t, [tCred, tCred + 2], [-8, 6], clamp)} rx={4} />
         </div>
       )}
@@ -356,15 +351,14 @@ const MostrasCredencial: React.FC = () => {
     <>
       <Fondo />
       <Marca />
-      <Eyebrow txt="Cuando comprás" />
       <Titulo a="Mostrás tu" b="credencial" />
-      <Ficha icono={<Icono tipo="qr" />} t="En el local o en tu envío" s="te la escaneamos al cobrar" on={r(20.8)} top={620} />
-      <Ficha icono={<Icono tipo="check" />} t="Los puntos se cargan solos" s="los ves al toque en tu cuenta" on={tCarga} top={776} activo={t >= tCarga} />
-      <div style={{position: 'absolute', left: 110, top: 990}}>
+      <Ficha icono={<Icono tipo="qr" />} t="En el local o en tu envío" on={r(20.8)} top={600} />
+      <Ficha icono={<Icono tipo="check" />} t="Se cargan solos" on={tCarga} top={782} activo={t >= tCarga} />
+      <div style={{position: 'absolute', left: 110, top: 1030}}>
         <Credencial d={4} puntos={pts} w={860} ry={interpolate(t, [0, 3.6], [6, -6], clamp)} rx={3} />
       </div>
       {t >= tCarga && (
-        <div style={{position: 'absolute', right: 120, top: 950 + sube, background: O, color: '#111', fontFamily: SANS, fontWeight: 700, fontSize: 48,
+        <div style={{position: 'absolute', right: 120, top: 990 + sube, background: O, color: '#111', fontFamily: SANS, fontWeight: 700, fontSize: 48,
           borderRadius: 99, padding: '12px 30px', boxShadow: '0 16px 50px rgba(245,130,32,.55)', transform: `scale(${kb})`,
           opacity: interpolate(t, [tCarga + 1.6, tCarga + 2.2], [1, 0], clamp)}}>+1.230</div>
       )}
@@ -379,12 +373,11 @@ const Cierre: React.FC = () => {
     <>
       <Presentadora src="host_cta.mp4" />
       <Marca d={2} />
-      <Eyebrow txt="Es gratis" top={250} d={6} />
-      <Titulo a="Hacete" b="socio hoy" top={300} size={120} d={8} />
+      <Titulo a="Hacete" b="socio hoy" top={250} size={136} d={6} />
       <div style={{position: 'absolute', left: 0, right: 0, top: 1300, display: 'flex', justifyContent: 'center', opacity: k, transform: `translateY(${(1 - k) * 30}px)`}}>
-        <div style={{background: 'rgba(10,11,11,.82)', backdropFilter: 'blur(10px)', border: `2px solid ${O}`, borderRadius: 99, padding: '20px 40px',
-          fontFamily: SANS, fontWeight: 700, fontSize: 44, color: '#fff', boxShadow: '0 20px 60px rgba(0,0,0,.5)'}}>
-          lista.granjadeloeste.com <span style={{color: O}}>→ Club</span>
+        <div style={{background: 'rgba(10,11,11,.82)', backdropFilter: 'blur(10px)', border: `2px solid ${O}`, borderRadius: 99, padding: '24px 44px',
+          fontFamily: SANS, fontWeight: 700, fontSize: 54, color: '#fff', boxShadow: '0 20px 60px rgba(0,0,0,.5)'}}>
+          lista.granjadeloeste.com
         </div>
       </div>
     </>
@@ -402,7 +395,6 @@ export const Club: React.FC = () => {
     <Escena a={T.benef} b={T.asoc + 0.25}><Asociate /></Escena>
     <Escena a={T.asoc} b={T.cred + 0.25}><MostrasCredencial /></Escena>
     <Sequence from={f(m(T.cred))}><Cierre /></Sequence>
-    <Subtitulos />
   </AbsoluteFill>
   );
 };

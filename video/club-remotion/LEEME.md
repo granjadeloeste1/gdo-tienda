@@ -2,7 +2,7 @@
 
 Video explicador del Club (qué es, para qué sirven los puntos, cómo te asociás), 9:16, ~28 s.
 Diseño: fondo oscuro de marca, titulares en Roboto Slab + Inter, pantallas reales del Club en un celular,
-credencial de socio animada y subtítulos discretos. La presentadora abre y cierra (tomas generadas en el local).
+credencial de socio animada. Pensado para celular: una idea grande por pantalla, sin letra chica ni subtítulos. La presentadora abre y cierra (tomas generadas en el local).
 
 En `public/` van, sin subir al repo:
 - `voz.wav`: locución (Valeria, ElevenLabs **eleven_v4**; "Club" se escribe "Clúb" para que no diga "clab").
@@ -10,7 +10,7 @@ En `public/` van, sin subir al repo:
 
 Sí están en el repo: `fonts/`, `fotos/` y las pantallas del Club (`a_publica.png` … `f_voucher.png`).
 
-Los tiempos de los subtítulos (`FRASES`) y de las escenas (`T`) están en `src/Club.tsx`, en segundos de la locución:
+Los tiempos de las frases (`FRASES`) y de las escenas (`T`) están en `src/Club.tsx`, en segundos de la locución:
 si cambia la voz, hay que ajustarlos.
 
 ```

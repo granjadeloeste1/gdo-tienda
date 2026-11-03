@@ -1057,19 +1057,41 @@ window.GDO = window.GDO || {};
     lista();
   }
   // Datos EN VIVO desde la hoja (mismo Apps Script que la mayorista, ?lista=minorista):
-  // devuelve { productos:[...], config:{...} }. Sin internet NO se muestran precios.
+  // devuelve { productos:[...], config:{...} }. Igual que combo.html: si la hoja no contesta desde el
+  // celular del cliente (clientes de la pauta decían "no abre el link"), se usa la copia del propio sitio,
+  // que renueva .github/workflows/copia-lista.yml cada 30 min; vencida (24 h) no se usa y no hay precios.
   (function(){
     var API='https://script.google.com/macros/s/AKfycbwH6JW35BRYcBk958OEr4sEvfVIfzgqzQeGwvz63xZYgukwxik8EsIego4d9O456bHURg/exec';
-    fetch(API+'?lista=minorista')
-      .then(function(r){ return r.json(); })
-      .then(function(d){
-        window.MIN_DATA = (d && d.productos) ? d.productos : [];
-        if(d && d.config){ CFG = d.config; }
-        boot();
-      })
-      .catch(function(){
-        app.innerHTML='<div class="lead" style="margin-top:40px">No se pudo cargar la lista. Revisá tu conexión y recargá.</div>';
+    function pedirLista(quedan){
+      var espera=new Promise(function(_,no){ setTimeout(function(){ no(new Error('tiempo')); },8000); });
+      return Promise.race([fetch(API+'?lista=minorista&t='+Date.now()).then(function(r){ return r.json(); }),espera]).catch(function(e){
+        if(quedan<=0 || e.message==='tiempo') throw e;
+        return new Promise(function(r){ setTimeout(r,1000); }).then(function(){ return pedirLista(quedan-1); });
       });
+    }
+    function pedirCopia(e){
+      return fetch('lista-minorista.json?t='+Date.now()).then(function(r){ return r.json(); }).then(function(d){
+        if(!(Date.now()-d.generado<24*3600e3)) throw e;
+        return d;
+      });
+    }
+    function cargar(){
+      app.innerHTML='<div class="lead" style="margin-top:40px">Cargando la lista de precios…</div>';
+      pedirLista(1).catch(pedirCopia)
+        .then(function(d){
+          if(!d || !d.productos || !d.productos.length) throw new Error('vacia');
+          window.MIN_DATA = d.productos;
+          if(d.config){ CFG = d.config; }
+          boot();
+        })
+        .catch(function(){
+          app.innerHTML='<div class="lead" style="margin-top:40px">No se pudo cargar la lista. Revisá tu conexión y probá de nuevo.</div>'+
+            '<div style="text-align:center"><button type="button" id="reintentar" style="background:#F58220;color:#fff;border:0;border-radius:12px;padding:12px 22px;font:700 15px inherit;cursor:pointer">Reintentar</button>'+
+            '<p class="lead">o pedinos los precios por <a href="https://wa.me/5491135800164" style="color:#F58220;font-weight:700">WhatsApp</a></p></div>';
+          document.getElementById('reintentar').onclick=cargar;
+        });
+    }
+    cargar();
   })();
 </script>
 </body></html>

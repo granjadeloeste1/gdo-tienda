@@ -1,17 +1,18 @@
-# Video GDO CLUB (Remotion)
+# Video del club de socios (Remotion)
 
-Video explicador del Club (qué es, para qué sirven los puntos, cómo te asociás), 9:16, ~28 s.
-Diseño: fondo oscuro de marca, titulares en Roboto Slab + Inter, pantallas reales del Club en un celular,
-credencial de socio animada. Pensado para celular: una idea grande por pantalla, sin letra chica ni subtítulos. La presentadora abre y cierra (tomas generadas en el local).
+Video institucional para la sección de alta de la página del Club (la gente ya está ahí para asociarse):
+qué es, cómo se completa el formulario, la credencial, cómo se suman y se canjean los puntos. 9:16, ~42 s.
+No nombra la lista ni "GDO Club": el que lo mira ya está adentro.
 
-En `public/` van, sin subir al repo:
-- `voz.wav`: locución (Valeria, ElevenLabs **eleven_v4**; "Club" se escribe "Clúb" para que no diga "clab").
-- `host_intro.mp4` y `host_cta.mp4`: tomas de la presentadora (apertura y cierre).
+Diseño: fondo oscuro de marca, titulares en Roboto Slab + Inter, el formulario real ampliado con un
+recuadro que marca cada dato cuando la voz lo nombra, credencial de socio animada. Pensado para celular:
+una idea grande por pantalla, sin letra chica ni subtítulos.
 
-Sí están en el repo: `fonts/`, `fotos/` y las pantallas del Club (`a_publica.png` … `f_voucher.png`).
+En `public/` va, sin subir al repo, `voz.wav` (Valeria, ElevenLabs **eleven_v4**).
+Sí están en el repo: `fonts/`, `fotos/` y las capturas del sitio (`a_publica.png` … `f_voucher.png`).
 
-Los tiempos de las frases (`FRASES`) y de las escenas (`T`) están en `src/Club.tsx`, en segundos de la locución:
-si cambia la voz, hay que ajustarlos.
+Los tiempos de las escenas (`T`) y de cada marca están en `src/Club.tsx`, en segundos de la locución
+(las frases clave están anotadas arriba). Si cambia la voz o el formulario, hay que ajustarlos.
 
 ```
 npm install

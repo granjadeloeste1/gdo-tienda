@@ -2,7 +2,7 @@
 <html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Combo fin de mes · Granja del Oeste</title>
-<meta name="description" content="Pollo, milanesas, hamburguesas y huevos para toda la semana a precio de distribuidor. La tarta va de regalo.">
+<meta name="description" content="Pollo, milanesas, hamburguesas y huevos para toda la semana a precio de distribuidor.">
 <meta name="theme-color" content="#111111">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -205,7 +205,9 @@ window.GDO = window.GDO || {};
 <script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
-  var VERSION='combo v3.2';
+  var VERSION='combo v3.3';
+  // 3-nov-2026: se terminó la promo de la tarta de regalo con el combo de fin de mes. Volverla a prender = true.
+  var REGALO_TARTA=false;
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
   // el monto calculado allá con la lista en vivo. (Los links de pago de Nave son de un solo uso.)
   // Si el servidor dice que está apagado o no responde, se ofrece solo pagar al recibir.
@@ -388,7 +390,7 @@ window.GDO = window.GDO || {};
         '<span class="eyebrow">Combos Granja del Oeste</span>'+
         '<h1>Llegá a fin de mes con la heladera llena.</h1>'+
         '<p>Elegí el combo que te sirve y resolvé la semana, a precio de distribuidor.</p></div></div>'+
-      (FIN&&AHORRO?'<div class="elige"><button type="button" class="cb" data-combo="fin"><small>El de fin de mes</small><b>Combo fin de mes</b><span class="pr">'+money(FIN.precio)+'</span><em>Con tarta de regalo</em></button><button type="button" class="cb" data-combo="ahorro"><small>El más completo</small><b>Combo Ahorro</b><span class="pr">'+money(AHORRO.precio)+'</span><em>Envío sin cargo</em></button></div>':'')+
+      (FIN&&AHORRO?'<div class="elige"><button type="button" class="cb" data-combo="fin"><small>El de fin de mes</small><b>Combo fin de mes</b><span class="pr">'+money(FIN.precio)+'</span><em>'+(REGALO_TARTA?'Con tarta de regalo':'Una semana resuelta')+'</em></button><button type="button" class="cb" data-combo="ahorro"><small>El más completo</small><b>Combo Ahorro</b><span class="pr">'+money(AHORRO.precio)+'</span><em>Envío sin cargo</em></button></div>':'')+
       '<div id="comboPrecio"></div>'+
       '<div class="gratisbar">🚚 Envío <b>sin cargo</b> comprando desde <b>'+money(CFG.envioGratisDesde)+'</b></div>'+
       '<div id="comboIncluye"></div>'+
@@ -445,11 +447,11 @@ window.GDO = window.GDO || {};
   function pintarCombo(regalo){
     app.querySelectorAll('[data-combo]').forEach(function(b){ b.classList.toggle('on',(b.dataset.combo==='ahorro')===esAhorro()); });
     $('comboPrecio').innerHTML='<div class="price"><div class="a"><small>Todo el combo</small><div class="n">'+money(COMBO.precio)+'</div></div>'+
-      (esAhorro()?'<div class="g"><span>Envío sin cargo<b>En las zonas de reparto</b></span></div>':'<div class="g"><img src="assets/combo/tarta.png" alt=""><span>Tarta individual de regalo<b>'+regalo+'</b></span></div>')+'</div>';
+      (esAhorro()?'<div class="g"><span>Envío sin cargo<b>En las zonas de reparto</b></span></div>':!REGALO_TARTA?'':'<div class="g"><img src="assets/combo/tarta.png" alt=""><span>Tarta individual de regalo<b>'+regalo+'</b></span></div>')+'</div>';
     var filas=esAhorro()
       ? GDO.Prep.detalleCombo(COMBO.desc,[],1).map(function(x){ var im=IMG_AHORRO.filter(function(i){ return i[0].test(x.nombre); })[0]; return '<div class="it">'+(im?'<img src="assets/combo/'+im[1]+'.jpg" alt="">':'')+'<span class="q">'+x.cantidad+(x.unidad==='kg'?' kg':'')+'</span><span class="d">'+esc(x.nombre)+'</span></div>'; }).join('')
-      : ITEMS.map(function(x){ return '<div class="it"><img src="assets/combo/'+x[2]+'.jpg" alt=""><span class="q">'+x[0]+'</span><span class="d">'+x[1]+'</span></div>'; }).join('')+
-        '<div class="it gift"><img src="assets/combo/tarta.png" alt=""><span class="q">+1</span><span class="d">Tarta individual a elección<span class="tag">REGALO</span></span></div>';
+      : ITEMS.map(function(x){ return '<div class="it"><img src="assets/combo/'+x[2]+'.jpg" alt=""><span class="q">'+x[0]+'</span><span class="d">'+x[1]+'</span></div>'; }).join('')+(!REGALO_TARTA?'':
+        '<div class="it gift"><img src="assets/combo/tarta.png" alt=""><span class="q">+1</span><span class="d">Tarta individual a elección<span class="tag">REGALO</span></span></div>');
     $('comboIncluye').innerHTML='<div class="sec"><div class="h2">Qué incluye</div><h3>'+(esAhorro()?'Para llenar el freezer.':'Una semana de comidas, resuelta.')+'</h3><div class="box">'+filas+'</div></div>';
   }
   // Combo Ahorro: una opción de cada grupo (hamburguesas o albóndigas, patitas o medallones, canelones).
@@ -471,7 +473,7 @@ window.GDO = window.GDO || {};
     // Una tarta de regalo por combo: se eligen TODAS desde un mismo renglón (se pueden repetir).
     if(st.tartas.length>st.cant) st.tartas.length=st.cant;
     pintarTartas();
-    $('qn').textContent=st.cant; $('tc').textContent=st.cant; $('tnom').textContent=nombreCombo(); $('tartaL').style.display=esAhorro()?'none':'flex';
+    $('qn').textContent=st.cant; $('tc').textContent=st.cant; $('tnom').textContent=nombreCombo(); $('tartaL').style.display=esAhorro()||!REGALO_TARTA?'none':'flex';
     var e=envio(), s=sub(), pr=productos(), tn=$('tn');
     $('ts').textContent=money(s);
     $('exL').innerHTML=Object.keys(st.extras).filter(function(n){ return st.extras[n]>0; }).map(function(n){ var x=EXTRA[n], q=st.extras[n]; return '<div class="ln"><span>'+esc(x.label)+' · '+uniExtra(x,q)+'</span><span>'+money(precioExtra(x,q)*q)+'</span></div>'; }).join('');
@@ -509,6 +511,7 @@ window.GDO = window.GDO || {};
   function tartasTxt(){ var c={}; st.tartas.forEach(function(t){ c[t]=(c[t]||0)+1; }); return Object.keys(c).map(function(t){ return (c[t]>1?c[t]+' de ':'')+t.toLowerCase(); }).join(', '); }
   function pintarTartas(){
     if(esAhorro()) return pintarElecciones();
+    if(!REGALO_TARTA){ $('tartasBox').innerHTML=''; return; }
     var n=st.cant, k=st.tartas.length, c={}; st.tartas.forEach(function(t){ c[t]=(c[t]||0)+1; });
     $('tartasBox').innerHTML='<label class="fl">'+(n>1?'Tenés para elegir '+n+' tartas de regalo (podés repetir sabor)':'Tu tarta de regalo — elegí el sabor')+'</label>'+
       (n>1?'<div class="tcount'+(k===n?' ok':'')+'">'+(k===n?'✓ Listo: elegiste las '+n:'Elegiste '+k+' de '+n)+'</div>':'')+
@@ -554,7 +557,7 @@ window.GDO = window.GDO || {};
     var nom=$('nom').value.trim(), tel=$('tel').value.trim(), pago=$('pago').value;
     function falla(t, el){ err.textContent=t; if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); }
     if(esAhorro()){ var grE=GDO.Prep.elecciones('COMBO AHORRO')||[]; for(var ge=0;ge<grE.length;ge++) if(!st.elecciones[ge]) return falla('Elegí: '+grE[ge].titulo, $('tartasBox')); }
-    else if(st.tartas.length!==st.cant) return falla(st.cant>1?'Elegí las '+st.cant+' tartas de regalo.':'Elegí el sabor de tu tarta de regalo.', $('tartasBox'));
+    else if(REGALO_TARTA && st.tartas.length!==st.cant) return falla(st.cant>1?'Elegí las '+st.cant+' tartas de regalo.':'Elegí el sabor de tu tarta de regalo.', $('tartasBox'));
     if(st.modo==='envio'){ if(st.zona==null) return falla('Elegí tu zona de entrega.', $('zona')); if(!st.dia) return falla('Elegí el día de entrega.', $('diasBox')); if(!$('dir').value.trim()) return falla('Completá tu dirección.', $('dir')); }
     if(!nom) return falla('Completá tu nombre.', $('nom'));
     if(tel.replace(/\D/g,'').length<8) return falla('Revisá tu número de WhatsApp.', $('tel'));
@@ -568,7 +571,7 @@ window.GDO = window.GDO || {};
     var items=[{ producto:esAhorro()?NOMC:NOMC+' ('+COMBO.desc+')', cantidad:st.cant, unidad:'unidad', precio:COMBO.precio, preparacion:'', nota:esAhorro()?st.elecciones.join(', '):'' }];
     function detalleCombo(){ return GDO.Prep.detalleCombo(COMBO.desc, esAhorro()?st.elecciones:[], st.cant); }
     detalleCombo().forEach(function(x){ items.push({ producto:x.nombre, cantidad:x.cantidad, unidad:x.unidad, precio:0, preparacion:'', nota:'Dentro de '+NOMC, enCombo:true }); });
-    var cuenta={}; if(!esAhorro()) st.tartas.forEach(function(t){ cuenta[t]=(cuenta[t]||0)+1; });
+    var cuenta={}; if(REGALO_TARTA && !esAhorro()) st.tartas.forEach(function(t){ cuenta[t]=(cuenta[t]||0)+1; });
     Object.keys(cuenta).forEach(function(t){ items.push({ producto:'TARTA INDIVIDUAL DE '+t.toUpperCase()+' (REGALO COMBO)', cantidad:cuenta[t], unidad:'unidad', precio:0, preparacion:'', nota:'' }); });
     var extras=Object.keys(st.extras).filter(function(n){ return st.extras[n]>0; });
     extras.forEach(function(n){ var x=EXTRA[n], q=st.extras[n]; items.push(x.porKg
@@ -614,7 +617,7 @@ window.GDO = window.GDO || {};
       L.push('*1) '+nombreCombo()+'*');
       detalleCombo().forEach(function(x,j){ L.push('    '+(j+1)+'. '+x.texto); });
       L.push('    '+st.cant+' combo'+(st.cant>1?'s':'')+' × '+money(COMBO.precio)+' = *'+money(s)+'*','');
-      var nro=2; if(!esAhorro()){ L.push('*2) Tarta'+(st.cant>1?'s':'')+' de '+tartasTxt()+' (regalo)*','    Sin cargo',''); nro=3; }
+      var nro=2; if(REGALO_TARTA && !esAhorro()){ L.push('*2) Tarta'+(st.cant>1?'s':'')+' de '+tartasTxt()+' (regalo)*','    Sin cargo',''); nro=3; }
       extras.forEach(function(n,i){ var x=EXTRA[n], q=st.extras[n]; L.push('*'+(i+nro)+') '+x.label+'*','    '+uniExtra(x,q)+' × '+money(precioExtra(x,q))+' = *'+money(precioExtra(x,q)*q)+'*',''); });
       L.push('━━━━━━━━━━━━━━');
       if(esEnv) L.push('• *Envío:* '+(e===0?'sin cargo':money(e)));
@@ -627,7 +630,7 @@ window.GDO = window.GDO || {};
       window.scrollTo(0,0);
       app.innerHTML=TOP+'<div class="ok"><div class="ic">✓</div><h1>Pedido enviado, '+esc(nom.split(' ')[0])+'.</h1>'+
         '<p>Mandalo por WhatsApp y te lo confirmamos por ahí. '+(esEnv?'Entrega: <b>'+esc(st.dia)+' '+esc(st.diaF)+'</b>.':'Retiro en <b>'+esc(CFG.sucursal)+'</b>.')+'</p>'+
-        '<div class="card sum"><div class="ln"><span>'+st.cant+' × '+nombreCombo()+'</span><span>'+money(s)+'</span></div>'+(esAhorro()?'':'<div class="ln"><span>Tarta'+(st.cant>1?'s':'')+' de '+esc(tartasTxt())+'</span><span>Regalo</span></div>')+
+        '<div class="card sum"><div class="ln"><span>'+st.cant+' × '+nombreCombo()+'</span><span>'+money(s)+'</span></div>'+(esAhorro()||!REGALO_TARTA?'':'<div class="ln"><span>Tarta'+(st.cant>1?'s':'')+' de '+esc(tartasTxt())+'</span><span>Regalo</span></div>')+
           extras.map(function(n){ var x=EXTRA[n], q=st.extras[n]; return '<div class="ln"><span>'+esc(x.label)+' · '+uniExtra(x,q)+'</span><span>'+money(precioExtra(x,q)*q)+'</span></div>'; }).join('')+
           (esEnv?'<div class="ln"><span>Envío</span><span>'+(e===0?'Sin cargo':money(e))+'</span></div>':'')+'<div class="ln big"><span>Total</span><span>'+money(total)+'</span></div></div>'+
         (falloPago?'<p style="font-size:14px;color:#6d665e">No pudimos abrir el pago online en este momento. Tu pedido quedó tomado igual: '+esc(textoPago(pago, esEnv)).replace(/^./,function(c){ return c.toLowerCase(); })+'</p>':'<p style="font-size:14px;color:#6d665e">'+esc(textoPago(pago, esEnv))+'</p>')+

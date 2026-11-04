@@ -382,8 +382,20 @@ window.GDO = window.GDO || {};
     document.body.appendChild(ov); pintar();
   }
 
+  // ====== Localidades de reparto ======
+  // El cliente elige su LOCALIDAD (no la zona): cada zona de la hoja es una lista de localidades
+  // separadas por coma ("HURLINGHAM, MORRIS, ..."). La zona se deduce de la localidad elegida.
+  var ACENTOS={ 'moron':'Morón','ituzaingo':'Ituzaingó','ramos mejia':'Ramos Mejía','ciudad jardin':'Ciudad Jardín','barrio altos de podesta':'Barrio Altos de Podestá','podesta':'Podestá','villa tesei':'Villa Tesei' };
+  function nombreLoc(t){ var k=String(t||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    return ACENTOS[k] || k.replace(/[a-zñ]+/g,function(w){ return /^(de|del|y)$/.test(w)?w:w.charAt(0).toUpperCase()+w.slice(1); }); }
+  function localidadesReparto(){ var out=[];
+    (CFG.zonas||[]).forEach(function(z,zi){ String(z.nombre||'').split(/\s*,\s*/).filter(Boolean).forEach(function(l){ out.push({ nombre:nombreLoc(l), zi:zi }); }); });
+    return out.sort(function(a,b){ return a.nombre.localeCompare(b.nombre,'es'); }); }
+  var LOCS=[];
+
   function render(){
-    var zonas=(CFG.zonas||[]).map(function(z,i){ return '<option value="'+i+'">'+esc(String(z.nombre).toLowerCase().replace(/[a-záéíóúñ]+/g,function(w){ return /^(de|del|y)$/.test(w)?w:w.charAt(0).toUpperCase()+w.slice(1); }))+'</option>'; }).join('');
+    LOCS=localidadesReparto();
+    var locOpts=LOCS.map(function(l,i){ return '<option value="'+i+'">'+esc(l.nombre)+'</option>'; }).join('');
     var regalo=TARTA_PRECIO?'valor '+money(TARTA_PRECIO):'a elección';
     app.innerHTML=TOP+
       '<div class="hero"><img src="assets/suprema/hero.jpg" alt="Caja de suprema congelada de Granja del Oeste"><div class="hcap">'+
@@ -405,9 +417,9 @@ window.GDO = window.GDO || {};
       '<div class="sec"><div class="h2">Paso 2</div><h3>¿Cómo lo recibís?</h3><div class="box pad">'+
         '<div class="seg"><button type="button" class="opt on" data-m="envio">Envío a domicilio<small id="envSmall">Sin cargo</small></button><button type="button" class="opt" data-m="retiro">Retiro en el local<small>Lunes a sábado</small></button></div>'+
         '<div class="envnota" id="envNota"></div>'+
-        '<div id="envBox"><div class="hint" id="envHint"></div><a class="linkmapa linkm" role="button">📍 Tocá acá y fijate si llegamos a tu zona</a><label class="fl">Zona</label><select id="zona" class="fin"><option value="">Elegí tu zona</option>'+zonas+'</select><div id="diasBox"></div>'+
+        '<div id="envBox"><div class="hint" id="envHint"></div><a class="linkmapa linkm" role="button">📍 Ver en el mapa dónde entregamos</a><label class="fl">Localidad</label><select id="zona" class="fin"><option value="">Elegí tu localidad</option>'+locOpts+'</select><div id="diasBox"></div>'+
           '<label class="fl">Dirección</label><input id="dir" class="fin" autocomplete="street-address" placeholder="Calle y número">'+
-          '<label class="fl">Entre calles <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="entre" class="fin" placeholder="Ayuda al repartidor"></div>'+
+          '<label class="fl">Entre calles</label><input id="entre" class="fin" placeholder="Ayuda al repartidor"></div>'+
         '<div id="retBox" style="display:none"><div class="hint">Retiralo en <b>'+esc(CFG.sucursal)+'</b>, de '+HORARIO_RETIRO+'.</div><label class="fl">¿Qué día pasás? <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="diaR" class="fin" placeholder="Por ejemplo, jueves"></div>'+
       '</div></div>'+
       '<div class="sec"><div class="h2">Paso 3</div><h3>Tus datos</h3><div class="box pad">'+
@@ -434,7 +446,7 @@ window.GDO = window.GDO || {};
     $('qm').onclick=function(){ if(st.cant>1){ st.cant--; upd(); } };
     $('qp').onclick=function(){ if(st.cant<10){ st.cant++; upd(); } };
     app.querySelectorAll('[data-m]').forEach(function(b){ b.onclick=function(){ st.modo=b.dataset.m; app.querySelectorAll('[data-m]').forEach(function(x){ x.classList.toggle('on',x===b); }); $('envBox').style.display=st.modo==='envio'?'block':'none'; $('retBox').style.display=st.modo==='retiro'?'block':'none'; upd(); }; });
-    $('zona').onchange=function(){ st.zona=this.value===''?null:+this.value; st.dia=null; dias(); upd(); };
+    $('zona').onchange=function(){ var l=this.value===''?null:LOCS[+this.value]; st.loc=l?l.nombre:''; st.zona=l?l.zi:null; st.dia=null; dias(); upd(); };
     var empezo=false; function inicio(){ if(!empezo){ empezo=true; gdoPx('InitiateCheckout',{value:sub(),currency:'ARS',num_items:st.cant}); } }
     app.addEventListener('input',inicio); app.addEventListener('change',inicio);
     $('go').onclick=enviar;
@@ -547,7 +559,7 @@ window.GDO = window.GDO || {};
   }
   function verMapa(){
     var ov=document.createElement('div'); ov.className='mapa';
-    ov.innerHTML='<div class="mbox"><div class="mhd"><span>¿Llegamos a tu zona?</span><button type="button" aria-label="Cerrar">×</button></div><iframe src="mapa-zona-oeste.html" title="Zonas de reparto"></iframe><div class="mft"><button type="button" class="volver">← Volver a mi pedido</button></div></div>';
+    ov.innerHTML='<div class="mbox"><div class="mhd"><span>¿Llegamos a tu localidad?</span><button type="button" aria-label="Cerrar">×</button></div><iframe src="mapa-zona-oeste.html" title="Zonas de reparto"></iframe><div class="mft"><button type="button" class="volver">← Volver a mi pedido</button></div></div>';
     ov.querySelectorAll('.mhd button, .volver').forEach(function(b){ b.onclick=function(){ ov.remove(); }; }); ov.onclick=function(e){ if(e.target===ov) ov.remove(); };
     document.body.appendChild(ov);
   }
@@ -558,13 +570,13 @@ window.GDO = window.GDO || {};
     function falla(t, el){ err.textContent=t; if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); }
     if(esAhorro()){ var grE=GDO.Prep.elecciones('COMBO AHORRO')||[]; for(var ge=0;ge<grE.length;ge++) if(!st.elecciones[ge]) return falla('Elegí: '+grE[ge].titulo, $('tartasBox')); }
     else if(false) return falla(st.cant>1?'Elegí las '+st.cant+' tartas de regalo.':'Elegí el sabor de tu tarta de regalo.', $('tartasBox'));
-    if(st.modo==='envio'){ if(st.zona==null) return falla('Elegí tu zona de entrega.', $('zona')); if(!st.dia) return falla('Elegí el día de entrega.', $('diasBox')); if(!$('dir').value.trim()) return falla('Completá tu dirección.', $('dir')); }
+    if(st.modo==='envio'){ if(st.zona==null) return falla('Elegí tu localidad.', $('zona')); if(!st.dia) return falla('Elegí el día de entrega.', $('diasBox')); if(!$('dir').value.trim()) return falla('Completá tu dirección.', $('dir')); if(!$('entre').value.trim()) return falla('Completá entre qué calles está.', $('entre')); }
     if(!nom) return falla('Completá tu nombre.', $('nom'));
     if(tel.replace(/\D/g,'').length<8) return falla('Revisá tu número de WhatsApp.', $('tel'));
     // Envío por debajo del monto de envío gratis: antes de confirmar se ofrece sumar productos.
     if(listo!==true && UPG.length && (!st.ofrecido || (st.modo==='envio' && CFG.envioGratis && productos()<CFG.envioGratisDesde))){ st.ofrecido=true; return sumarMas(); }
     var s=sub(), px=extrasTotal(), e=envio(), total=s+px+e, esEnv=st.modo==='envio';
-    var dir=esEnv?$('dir').value.trim():'', entre=esEnv?$('entre').value.trim():'', zona=esEnv?CFG.zonas[st.zona].nombre:'';
+    var dir=esEnv?$('dir').value.trim():'', entre=esEnv?$('entre').value.trim():'', zona=esEnv?CFG.zonas[st.zona].nombre:'', loc=esEnv?st.loc:'';
     var diaR=esEnv?'':$('diaR').value.trim();
     var lat=null,lng=null; if(st.geo && st.geo.lat!=null && st.geo.direccion && st.geo.direccion.toLowerCase()===dir.toLowerCase()){ lat=st.geo.lat; lng=st.geo.lng!=null?st.geo.lng:st.geo.lon; }
     var NOMC=nombreCombo().toUpperCase();
@@ -578,13 +590,13 @@ window.GDO = window.GDO || {};
     extras.forEach(function(n){ var x=EXTRA[n], q=st.extras[n]; items.push(x.porKg
       ? { producto:x.nombre, cantidad:q, unidad:'kg', precio:precioExtra(x,q), preparacion:'', nota:'' }
       : { producto:x.nombre+' ('+x.vars[0].variedad+')', cantidad:q, unidad:'unidad', precio:x.vars[0].precio, preparacion:'', nota:'' }); });
-    var esp=esEnv?['MINORISTA','SUPREMA EN CAJA (anuncio)','Zona: '+zona,'Día de entrega: '+st.dia+' '+st.diaF,'Envío: '+(e===0?'sin cargo':money(e))]
+    var esp=esEnv?['MINORISTA','SUPREMA EN CAJA (anuncio)','Localidad: '+loc,'Día de entrega: '+st.dia+' '+st.diaF,'Envío: '+(e===0?'sin cargo':money(e))]
                  :['MINORISTA','SUPREMA EN CAJA (anuncio)','Retiro en sucursal: '+CFG.sucursal].concat(diaR?['Día de retiro: '+diaR]:[]);
     var online=(pago===ONLINE)&&hayOnline();
     if(online) esp.push('PAGO ONLINE NAVE: verificar que se acreditó '+money(total)+' antes de entregar');
     esp.push('TOTAL a cobrar: '+money(total));
     var pedido={ id:nid(), origen:'tienda', lista:'minorista', fuente:'landing-suprema-caja', cliente:nom, telefono:tel,
-      modalidad:esEnv?'envio':'retiro', direccion:dir, localidad:'', entrecalles:entre, lat:lat, lng:lng,
+      modalidad:esEnv?'envio':'retiro', direccion:dir, localidad:loc, entrecalles:entre, lat:lat, lng:lng,
       items:items, fechaEntrega:esEnv?st.diaIso:'', especificaciones:esp.join(' · '), formaPago:pago, prioridad:'normal',
       estado:'pendiente', creadoPor:null, rutaId:null, clienteUid:null, totalEstimado:Math.round(s+px), descuento:null,
       zona:zona, diaEntrega:esEnv?st.dia:diaR, envio:Math.round(e), ventana:'', historia:[], creado:Date.now(), ts:Date.now() };
@@ -610,7 +622,7 @@ window.GDO = window.GDO || {};
       // reconoce y no lo vuelve a cargar). Pestaña nueva y sincrónico al click, para que no lo bloquee
       // el celular y el guardado siga vivo; si igual lo bloquea, se navega a los 2,5 s.
       var L=['🛒 *NUEVO PEDIDO MINORISTA*','*Granja del Oeste*','','━━━━━━━━━━━━━━','👤 *DATOS DEL CLIENTE*','','• *Nombre:* '+nom,'• *Teléfono:* '+tel];
-      if(esEnv) L.push('• *Modalidad:* Envío a domicilio','• *Zona:* '+zona,'• *Día de entrega:* '+st.dia+' '+st.diaF,'• *Dirección:* '+dir);
+      if(esEnv) L.push('• *Modalidad:* Envío a domicilio','• *Localidad:* '+loc,'• *Día de entrega:* '+st.dia+' '+st.diaF,'• *Dirección:* '+dir);
       else L.push('• *Modalidad:* Retiro en sucursal','• *Retiro en:* '+CFG.sucursal);
       if(esEnv && entre) L.push('• *Entre calles:* '+entre);
       if(!esEnv && diaR) L.push('• *Día de retiro:* '+diaR);

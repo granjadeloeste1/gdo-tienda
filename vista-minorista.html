@@ -282,6 +282,16 @@ window.GDO = window.GDO || {};
     ]
   };
 
+  // ====== Localidades de reparto ======
+  // El cliente elige su LOCALIDAD (no la zona): cada zona de la hoja es una lista de localidades
+  // separadas por coma ("HURLINGHAM, MORRIS, ..."). La zona se deduce de la localidad elegida.
+  var ACENTOS={ 'moron':'Morón','ituzaingo':'Ituzaingó','ramos mejia':'Ramos Mejía','ciudad jardin':'Ciudad Jardín','barrio altos de podesta':'Barrio Altos de Podestá','podesta':'Podestá','villa tesei':'Villa Tesei' };
+  function nombreLoc(t){ var k=String(t||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    return ACENTOS[k] || k.replace(/[a-zñ]+/g,function(w){ return /^(de|del|y)$/.test(w)?w:w.charAt(0).toUpperCase()+w.slice(1); }); }
+  function localidadesReparto(){ var out=[];
+    (CFG.zonas||[]).forEach(function(z,zi){ String(z.nombre||'').split(/\s*,\s*/).filter(Boolean).forEach(function(l){ out.push({ nombre:nombreLoc(l), zi:zi }); }); });
+    return out.sort(function(a,b){ return a.nombre.localeCompare(b.nombre,'es'); }); }
+
   // ====== Escala por kg (igual que la mayorista) ======
   // En la hoja, las filas "N kg" guardan el PRECIO POR KG de ese escalón.
   // Ej: 1 kg=7500/kg, 2 kg=7000/kg, 5 kg=6500/kg. Si TODAS las variedades de un
@@ -580,7 +590,7 @@ window.GDO = window.GDO || {};
     var env=esRet?0:d.env;
     var esp=esRet
       ? ['MINORISTA','Retiro en sucursal: '+CFG.sucursal].concat(d.dia?['Día de retiro: '+d.dia]:[])
-      : ['MINORISTA','Zona: '+d.zona,'Día de entrega: '+diaTxt,'Envío: '+(env===0?'sin cargo':money(env))];
+      : ['MINORISTA','Localidad: '+d.loc,'Día de entrega: '+diaTxt,'Envío: '+(env===0?'sin cargo':money(env))];
     if(d.desc) esp.push('Descuento '+d.desc.codigo+' ('+d.desc.pct+'%): −'+money(des));
     esp.push('TOTAL a cobrar: '+money(d.sub-des+env));
     if(d.notas) esp.push('Notas: '+d.notas);
@@ -627,13 +637,14 @@ window.GDO = window.GDO || {};
   function checkout(){
     var modo='envio', zona=null, dia=null, diaFecha=null, diaIso=null;
     var ov=document.createElement('div'); ov.id='ckov'; ov.className='cartov';
-    var zonaOpts=CFG.zonas.map(function(z,i){ return '<option value="'+i+'">'+esc(z.nombre)+'</option>'; }).join('');
+    var LOCS=localidadesReparto(), loc='';
+    var locOpts=LOCS.map(function(l,i){ return '<option value="'+i+'">'+esc(l.nombre)+'</option>'; }).join('');
     ov.innerHTML='<div class="cartsheet"><div class="csh"><img src="assets/isotipo-blanco.svg" alt="GDO"/><b>Finalizar pedido</b><button class="x" id="ckx">&times;</button></div>'+
       '<div class="cbody">'+
         '<label class="fl">¿Cómo lo recibís?</label>'+
         '<div class="seg"><button type="button" data-mod="envio" class="on">🚚 Envío a domicilio</button><button type="button" data-mod="retiro">🏪 Retiro en sucursal</button></div>'+
-        '<div id="ckEnvio"><label class="fl">Zona de entrega *</label>'+
-          '<select id="ckZona" class="fin"><option value="">Elegí tu zona…</option>'+zonaOpts+'</select>'+
+        '<div id="ckEnvio"><label class="fl">Localidad *</label>'+
+          '<select id="ckLocSel" class="fin"><option value="">Elegí tu localidad…</option>'+locOpts+'</select>'+
           '<div id="ckDias"></div></div>'+
         '<div id="ckRetiro" style="display:none"><div class="note2">🏪 Retirás en <b>'+esc(CFG.sucursal)+'</b> · '+esc(CFG.horario)+'<br><a href="'+mapsUrl()+'" target="_blank" rel="noopener" style="color:#a85f1a;font-weight:800">📍 Cómo llegar (Google Maps)</a></div>'+
           '<label class="fl">¿Qué día venís? (opcional)</label><input id="ckDiaR" class="fin" placeholder="Ej: jueves"/></div>'+
@@ -641,8 +652,7 @@ window.GDO = window.GDO || {};
         '<label class="fl">Teléfono / WhatsApp *</label><input id="ckTel" class="fin" inputmode="tel" placeholder="11 1234-5678"/>'+
         '<div id="ckDom">'+
           '<label class="fl">Dirección *</label><input id="ckDir" class="fin" placeholder="Calle y número (ej: Bombero Celiz 1200)"/>'+
-          '<label class="fl">Localidad</label><input id="ckLoc" class="fin" placeholder="Ej: Hurlingham, Villa Tesei…"/>'+
-          '<label class="fl">Entre calles</label><input id="ckEntre" class="fin" placeholder="Ej: entre Av. Vergara y Pedernera"/>'+
+          '<label class="fl">Entre calles *</label><input id="ckEntre" class="fin" placeholder="Ej: entre Av. Vergara y Pedernera"/>'+
         '</div>'+
         '<label class="fl">Forma de pago</label><select id="ckPago" class="fin">'+CFG.formasPago.map(function(f){return '<option>'+esc(f)+'</option>';}).join('')+'</select>'+
         '<label class="fl">Notas / aclaraciones</label><textarea id="ckNotas" class="fin" rows="2" placeholder="Horario, comentarios…"></textarea>'+
@@ -676,7 +686,6 @@ window.GDO = window.GDO || {};
       if(window.GDO && GDO.Geo && GDO.Geo.attachAutocomplete){
         GDO.Geo.attachAutocomplete(document.getElementById('ckDir'), function(it){
           geoSel = it || null;
-          if(it && it.localidad){ var lc=document.getElementById('ckLoc'); if(lc && !lc.value.trim()) lc.value=it.localidad; }
         }, { provincia:'Buenos Aires', departamento:'Hurlingham' });
       }
     }catch(e){}
@@ -693,8 +702,8 @@ window.GDO = window.GDO || {};
       document.getElementById('ckTot').textContent=money(sub-des+env);
     }
     ov.querySelectorAll('[data-mod]').forEach(function(b){ b.onclick=function(){ modo=b.dataset.mod; ov.querySelectorAll('[data-mod]').forEach(function(x){x.classList.toggle('on',x===b)}); document.getElementById('ckEnvio').style.display=modo==='envio'?'block':'none'; document.getElementById('ckRetiro').style.display=modo==='retiro'?'block':'none'; document.getElementById('ckDom').style.display=modo==='envio'?'block':'none'; recalc(); }; });
-    document.getElementById('ckZona').onchange=function(){
-      zona=this.value===''?null:+this.value; dia=null; diaFecha=null; diaIso=null;
+    document.getElementById('ckLocSel').onchange=function(){
+      var l=this.value===''?null:LOCS[+this.value]; loc=l?l.nombre:''; zona=l?l.zi:null; dia=null; diaFecha=null; diaIso=null;
       var cd=document.getElementById('ckDias');
       if(zona==null){ cd.innerHTML=''; recalc(); return; }
       // Los días salen ORDENADOS POR FECHA REAL, no en el orden de la config: si
@@ -705,14 +714,14 @@ window.GDO = window.GDO || {};
         var f=x.f, fl=fmtFechaCorta(f);
         return '<button type="button" class="diab" data-d="'+esc(x.d)+'" data-fec="'+esc(fl)+'" data-iso="'+esc(isoFecha(f))+'"><b>'+esc(x.d)+'</b>'+(fl?'<span class="difec">'+fl+'</span>':'')+'</button>';
       }).join('')+'</div>'+
-        '<div class="note2">🕒 Los pedidos se toman con <b>24 hs de anticipación</b>. Te mostramos la <b>próxima entrega</b> disponible para tu zona (no se entrega el mismo día).</div>';
+        '<div class="note2">🕒 Los pedidos se toman con <b>24 hs de anticipación</b>. Te mostramos la <b>próxima entrega</b> disponible para tu localidad (no se entrega el mismo día).</div>';
       cd.querySelectorAll('.diab').forEach(function(b){ b.onclick=function(){ dia=b.dataset.d; diaFecha=b.dataset.fec; diaIso=b.dataset.iso; cd.querySelectorAll('.diab').forEach(function(x){x.classList.toggle('on',x===b)}); }; });
       recalc();
     };
     document.getElementById('ckSend').onclick=function(){
       var nom=(val('ckNom')||'').trim(), tel=(val('ckTel')||'').trim(), msg=document.getElementById('ckMsg');
       if(!nom||!tel){ msg.textContent='Completá tu nombre y teléfono.'; return; }
-      if(modo==='envio'){ if(zona==null){ msg.textContent='Elegí tu zona de entrega.'; return; } if(!dia){ msg.textContent='Elegí el día de entrega.'; return; } if(!(val('ckDir')||'').trim()){ msg.textContent='Completá tu dirección.'; return; } }
+      if(modo==='envio'){ if(zona==null){ msg.textContent='Elegí tu localidad.'; return; } if(!dia){ msg.textContent='Elegí el día de entrega.'; return; } if(!(val('ckDir')||'').trim()){ msg.textContent='Completá tu dirección.'; return; } if(!(val('ckEntre')||'').trim()){ msg.textContent='Completá entre qué calles está.'; return; } }
       // Mínimo por producto (las milanesas van por 2 kg), medido sobre el TOTAL
       // de la línea: se avisa recién acá para no corregirle los kilos al cliente
       // mientras reparte el pedido entre los cortes.
@@ -724,7 +733,7 @@ window.GDO = window.GDO || {};
       // personal) no se manda: el cuadro del código ya dice por qué.
       if(cup && cup.aplicado() && !cup.valido()){ msg.textContent='Revisá el código de descuento (o quitalo) para enviar el pedido.'; return; }
       var sub=cartTotal(), env=envioCosto(), des=cup?cup.monto():0;
-      var addr=(val('ckDir')||'').trim(), loc=(val('ckLoc')||'').trim(), entre=(val('ckEntre')||'').trim(), pago=(val('ckPago')||''), notas=(val('ckNotas')||'').trim();
+      var addr=(val('ckDir')||'').trim(), entre=(val('ckEntre')||'').trim(), pago=(val('ckPago')||''), notas=(val('ckNotas')||'').trim();
       var diaRet=(val('ckDiaR')||'').trim();
       var L=[];
       L.push('🛒 *NUEVO PEDIDO MINORISTA*');
@@ -737,11 +746,10 @@ window.GDO = window.GDO || {};
       L.push('• *Teléfono:* '+tel);
       if(modo==='envio'){
         L.push('• *Modalidad:* Envío a domicilio');
-        L.push('• *Zona:* '+CFG.zonas[zona].nombre);
+        L.push('• *Localidad:* '+loc);
         L.push('• *Día de entrega:* '+dia+(diaFecha?' '+diaFecha:''));
         L.push('• *Dirección:* '+addr);
-        if(loc) L.push('• *Localidad:* '+loc);
-        if(entre) L.push('• *Entre calles:* '+entre);
+        L.push('• *Entre calles:* '+entre);
       } else {
         L.push('• *Modalidad:* Retiro en sucursal');
         L.push('• *Retiro en:* '+CFG.sucursal);
@@ -924,7 +932,7 @@ window.GDO = window.GDO || {};
     d.innerHTML='<div class="okbox" style="max-width:360px">'+
       '<div class="okic" style="background:var(--naranja);font-size:38px">🕒</div>'+
       '<h2>Pedidos con 24 hs de anticipación</h2>'+
-      '<p>Los envíos a domicilio se preparan con un día de anticipación.<br><b>No realizamos entregas el mismo día del pedido.</b><br>Al elegir tu zona vas a ver la próxima fecha de entrega disponible.</p>'+
+      '<p>Los envíos a domicilio se preparan con un día de anticipación.<br><b>No realizamos entregas el mismo día del pedido.</b><br>Al elegir tu localidad vas a ver la próxima fecha de entrega disponible.</p>'+
       '<button class="btn-conf" id="avook" style="background:var(--naranja)">Entendido</button>'+
     '</div>';
     document.body.appendChild(d);
@@ -943,7 +951,7 @@ window.GDO = window.GDO || {};
 
       (CFG.envioGratis? '<div class="freebar">🚚 <b>ENVÍO GRATIS</b> en tus compras a partir de <b class="big">'+money(CFG.envioGratisDesde)+'</b></div>':'')+
       '<div class="infostrip">🛒 Pedido mínimo <b>'+money(CFG.minPedido)+'</b> · 🕒 '+CFG.horario+'</div>'+
-      '<details class="mapwrap" id="mapaDet"><summary class="maphead">🗺️ Mirá en el mapa qué días llegamos a tu zona <span class="mapchev">▾</span></summary>'+
+      '<details class="mapwrap" id="mapaDet"><summary class="maphead">🗺️ Mirá en el mapa qué días llegamos a tu localidad <span class="mapchev">▾</span></summary>'+
         '<iframe id="mapaReparto" src="mapa-zona-oeste.html?v=4" title="Zona de reparto Oeste" loading="lazy" style="width:100%;border:0;display:block;min-height:420px"></iframe></details>'+
       '<style>.mapwrap{margin:10px 0;border:1px solid #eee;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)}.mapwrap>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#fff;background:#F58220;padding:13px 16px}.mapwrap>summary::-webkit-details-marker{display:none}.mapwrap .mapchev{margin-left:auto;transition:transform .2s}.mapwrap[open] .mapchev{transform:rotate(180deg)}</style>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+

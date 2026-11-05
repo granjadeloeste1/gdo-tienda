@@ -300,6 +300,7 @@ td.l{color:#3a4048}
    El cliente elige QUÉ DÍA pasa a buscar el pedido. Con eso el local sabe para
    cuándo prepararlo y queda registrado en la ficha del cliente. */
 .dias{display:flex;gap:7px;flex-wrap:wrap}
+.diab.fer{border-color:#E53935;background:#fdecea;color:#E53935;cursor:not-allowed}.diab.fer span,.diab.fer small,.diab.fer .difec{color:#E53935;opacity:1}
 .diab{background:#fff;border:1px solid #e4e6ea;color:#3a4048;border-radius:10px;
   padding:9px 12px;font:700 13px system-ui,'Segoe UI',Arial,sans-serif;cursor:pointer;line-height:1.25;text-align:center}
 .diab small{display:block;font-weight:600;font-size:10.5px;color:#8a929c;margin-top:2px}
@@ -989,21 +990,34 @@ function franjasDe(iso){
   var min=ahora.getHours()*60+ahora.getMinutes()+MARGEN;
   return franjas().filter(function(f){ return f.ini>=min; });
 }
+// ====== Feriados: el local está CERRADO (no hay retiro ni envíos). Mismo listado que el bot (src/feriados.js). ======
+var FERIADOS={'2026-11-09':'visita del Papa','2026-11-23':'Día de la Soberanía','2026-12-08':'Inmaculada Concepción','2026-12-25':'Navidad',
+  '2027-01-01':'Año Nuevo','2027-02-08':'Carnaval','2027-02-09':'Carnaval','2027-03-24':'Día de la Memoria','2027-03-26':'Viernes Santo','2027-04-02':'Malvinas',
+  '2027-05-01':'Día del Trabajador','2027-05-25':'25 de Mayo','2027-06-20':'Día de la Bandera','2027-07-09':'9 de Julio','2027-12-08':'Inmaculada Concepción','2027-12-25':'Navidad'};
+function isoFer(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function esFeriado(d){ return !!FERIADOS[isoFer(d)]; }
+// "Cerramos por feriado el lunes 9/11 (visita del Papa)." si hay alguno en los próximos 14 días.
+function avisoFeriado(){
+  var N=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'], d=new Date(), out=[]; d.setHours(0,0,0,0);
+  for(var i=0;i<14;i++){ var m=FERIADOS[isoFer(d)]; if(m) out.push('el '+N[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1)+' ('+m+')'); d.setDate(d.getDate()+1); }
+  return out.length ? 'Cerramos por feriado '+out.join(', ')+'.' : '';
+}
 function diasRetiro(){
   var hoy=new Date(); hoy.setHours(0,0,0,0);
   var c=new Date(hoy);
   // Hoy solo entra si es día hábil Y queda alguna franja libre.
-  if(c.getDay()===0 || !franjasDe(isoDe(c)).length) c.setDate(c.getDate()+1);
+  if(c.getDay()===0 || esFeriado(c) || !franjasDe(isoDe(c)).length) c.setDate(c.getDate()+1);
   var out=[];
-  while(out.length<7){
+  // Los feriados aparecen en rojo (no se pueden elegir) y no cuentan entre los 7 días.
+  while(out.filter(function(x){ return !x.fer; }).length<7){
     if(c.getDay()!==0){
-      var dif=Math.round((c-hoy)/86400000);
+      var fer=esFeriado(c), dif=Math.round((c-hoy)/86400000);
       var fecha=c.getDate()+"/"+(c.getMonth()+1);
       out.push({
         iso:isoDe(c), fecha:fecha,
         corto: dif===0?"Hoy":(dif===1?"Mañana":DIA_COR[c.getDay()]),
         txt: (dif===0?"Hoy":(dif===1?"Mañana":DIA_NOM[c.getDay()]))+" "+fecha,
-        nombre: DIA_NOM[c.getDay()]
+        nombre: DIA_NOM[c.getDay()], fer:fer
       });
     }
     c.setDate(c.getDate()+1);
@@ -1014,8 +1028,9 @@ function pintarDiasRetiro(){
   var box=document.getElementById("cDiaOpts"); if(!box) return;
   var ds=diasRetiro();
   // Un día guardado que ya pasó no vale más: se limpia la elección (y su horario).
-  if(diaRetiro && !ds.some(function(x){ return x.iso===diaRetiro.iso; })){ diaRetiro=null; horaRetiro=null; }
+  if(diaRetiro && !ds.some(function(x){ return x.iso===diaRetiro.iso && !x.fer; })){ diaRetiro=null; horaRetiro=null; }
   box.innerHTML=ds.map(function(x){
+    if(x.fer) return '<button type="button" class="diab fer" disabled title="Feriado: cerramos">'+x.corto+'<small>'+x.fecha+' · Feriado</small></button>';
     return '<button type="button" class="diab'+(diaRetiro&&diaRetiro.iso===x.iso?" on":"")+'" data-iso="'+x.iso+'" data-txt="'+x.txt+'" data-nom="'+x.nombre+'">'+x.corto+'<small>'+x.fecha+'</small></button>';
   }).join("");
   [].forEach.call(box.querySelectorAll(".diab"), function(b){

@@ -138,6 +138,7 @@ function gdoPx(ev, p){ try{ if(window.fbq) fbq('track', ev, p||{}); }catch(e){} 
   .seg button.on{ background:var(--naranja); color:#fff; border-color:var(--naranja) }
   .dias{ display:flex; flex-wrap:wrap; gap:8px }
   .diab{ padding:8px 14px; border:1px solid #cfd4da; background:#fff; border-radius:16px; font-weight:700; font-size:13px; cursor:pointer; line-height:1.15; text-align:center }
+  .diab.fer{border-color:#E53935;background:#fdecea;color:#E53935;cursor:not-allowed}.diab.fer span,.diab.fer small,.diab.fer .difec{color:#E53935;opacity:1}
   .diab.on{ background:#111; color:#fff; border-color:#111 }
   .diab b{ display:block; font-weight:800 }
   .diab .difec{ display:block; font-size:11px; font-weight:600; opacity:.75; margin-top:1px }
@@ -252,16 +253,29 @@ window.GDO = window.GDO || {};
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]}) }
   function toast(t){ var e=$('#toast'); e.textContent=t; e.classList.add('show'); setTimeout(function(){e.classList.remove('show')},1400) }
 
+  // ====== Feriados: el local está CERRADO (no hay retiro ni envíos). Mismo listado que el bot (src/feriados.js). ======
+  var FERIADOS={'2026-11-09':'visita del Papa','2026-11-23':'Día de la Soberanía','2026-12-08':'Inmaculada Concepción','2026-12-25':'Navidad',
+    '2027-01-01':'Año Nuevo','2027-02-08':'Carnaval','2027-02-09':'Carnaval','2027-03-24':'Día de la Memoria','2027-03-26':'Viernes Santo','2027-04-02':'Malvinas',
+    '2027-05-01':'Día del Trabajador','2027-05-25':'25 de Mayo','2027-06-20':'Día de la Bandera','2027-07-09':'9 de Julio','2027-12-08':'Inmaculada Concepción','2027-12-25':'Navidad'};
+  function isoFer(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function esFeriado(d){ return !!FERIADOS[isoFer(d)]; }
+  // "Cerramos por feriado el lunes 9/11 (visita del Papa)." si hay alguno en los próximos 14 días.
+  function avisoFeriado(){
+    var N=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'], d=new Date(), out=[]; d.setHours(0,0,0,0);
+    for(var i=0;i<14;i++){ var m=FERIADOS[isoFer(d)]; if(m) out.push('el '+N[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1)+' ('+m+')'); d.setDate(d.getDate()+1); }
+    return out.length ? 'Cerramos por feriado '+out.join(', ')+'.' : '';
+  }
   // ====== Fechas de entrega (regla: 24 hs de anticipación, NUNCA el mismo día) ======
   var DIA_IDX={ domingo:0, lunes:1, martes:2, miercoles:3, 'miércoles':3, jueves:4, viernes:5, sabado:6, 'sábado':6 };
   // Próxima fecha (a las 00:00) de ese día de la semana EXCLUYENDO hoy: si hoy cae
   // en ese día, salta a la semana que viene. Así "Martes" un martes = el martes próximo.
-  function proxFechaDia(nombre){
+  function proxFechaDia(nombre,conFeriado){
     var n=String(nombre||'').trim().toLowerCase(), di=DIA_IDX[n];
     if(di==null) return null;
     var b=new Date(); b.setHours(0,0,0,0);
     var diff=(di-b.getDay()+7)%7; if(diff===0) diff=7;
     b.setDate(b.getDate()+diff);
+    while(!conFeriado && esFeriado(b)) b.setDate(b.getDate()+7); // feriado: cerramos, va la semana siguiente
     return b;
   }
   function fmtFechaCorta(d){ return d ? d.getDate()+'/'+(d.getMonth()+1)+'/'+String(d.getFullYear()).slice(-2) : ''; }
@@ -647,7 +661,7 @@ window.GDO = window.GDO || {};
           '<select id="ckLocSel" class="fin"><option value="">Elegí tu localidad…</option>'+locOpts+'</select>'+
           '<div id="ckDias"></div></div>'+
         '<div id="ckRetiro" style="display:none"><div class="note2">🏪 Retirás en <b>'+esc(CFG.sucursal)+'</b> · '+esc(CFG.horario)+'<br><a href="'+mapsUrl()+'" target="_blank" rel="noopener" style="color:#a85f1a;font-weight:800">📍 Cómo llegar (Google Maps)</a></div>'+
-          '<label class="fl">¿Qué día venís? (opcional)</label><input id="ckDiaR" class="fin" placeholder="Ej: jueves"/></div>'+
+          (avisoFeriado()?'<div class="hint"><b>'+avisoFeriado()+'</b></div>':'')+'<label class="fl">¿Qué día venís? (opcional)</label><input id="ckDiaR" class="fin" placeholder="Ej: jueves"/></div>'+
         '<label class="fl">Nombre y apellido *</label><input id="ckNom" class="fin" placeholder="Tu nombre"/>'+
         '<label class="fl">Teléfono / WhatsApp *</label><input id="ckTel" class="fin" inputmode="tel" placeholder="11 1234-5678"/>'+
         '<div id="ckDom">'+
@@ -708,10 +722,12 @@ window.GDO = window.GDO || {};
       if(zona==null){ cd.innerHTML=''; recalc(); return; }
       // Los días salen ORDENADOS POR FECHA REAL, no en el orden de la config: si
       // hoy es martes, "Miércoles 26/8" tiene que aparecer antes que "Lunes 31/8".
-      var diasOrd=CFG.zonas[zona].dias.map(function(d){ return { d:d, f:proxFechaDia(d) }; })
-        .sort(function(a,b){ return (a.f?a.f.getTime():Infinity)-(b.f?b.f.getTime():Infinity); });
+      // Un feriado aparece en rojo y no se puede elegir; al lado, la fecha siguiente de ese día.
+      var diasOrd=[]; CFG.zonas[zona].dias.forEach(function(d){ var r=proxFechaDia(d,true); if(r && esFeriado(r)) diasOrd.push({ d:d, f:r, fer:true }); diasOrd.push({ d:d, f:proxFechaDia(d) }); });
+      diasOrd.sort(function(a,b){ return (a.f?a.f.getTime():Infinity)-(b.f?b.f.getTime():Infinity); });
       cd.innerHTML='<label class="fl">Día de entrega *</label><div class="dias">'+diasOrd.map(function(x){
         var f=x.f, fl=fmtFechaCorta(f);
+        if(x.fer) return '<button type="button" class="diab fer" disabled title="Feriado: cerramos"><b>'+esc(x.d)+'</b><span class="difec">'+fl+' · Feriado</span></button>';
         return '<button type="button" class="diab" data-d="'+esc(x.d)+'" data-fec="'+esc(fl)+'" data-iso="'+esc(isoFecha(f))+'"><b>'+esc(x.d)+'</b>'+(fl?'<span class="difec">'+fl+'</span>':'')+'</button>';
       }).join('')+'</div>'+
         '<div class="note2">🕒 Los pedidos se toman con <b>24 hs de anticipación</b>. Te mostramos la <b>próxima entrega</b> disponible para tu localidad (no se entrega el mismo día).</div>';
@@ -955,7 +971,7 @@ window.GDO = window.GDO || {};
         '<iframe id="mapaReparto" src="mapa-zona-oeste.html?v=4" title="Zona de reparto Oeste" loading="lazy" style="width:100%;border:0;display:block;min-height:420px"></iframe></details>'+
       '<style>.mapwrap{margin:10px 0;border:1px solid #eee;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)}.mapwrap>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#fff;background:#F58220;padding:13px 16px}.mapwrap>summary::-webkit-details-marker{display:none}.mapwrap .mapchev{margin-left:auto;transition:transform .2s}.mapwrap[open] .mapchev{transform:rotate(180deg)}</style>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+
-      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.7<br>Todos los derechos reservados</p>';
+      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.8<br>Todos los derechos reservados</p>';
     render(cats);
     // Ajusta la altura del mapa (iframe mismo-origen) a su contenido, y al abrir/cerrar el desplegable.
     (function(){ var det=$('#mapaDet'), f=$('#mapaReparto'); if(!f) return;

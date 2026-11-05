@@ -105,6 +105,7 @@ select.fin{background-image:linear-gradient(45deg,transparent 50%,#999 50%),line
 .dias::-webkit-scrollbar{display:none}
 .diab{flex:none;font:600 14px var(--sans);padding:10px 14px;border:1.5px solid var(--li);border-radius:12px;background:#fff;text-align:center;min-width:76px}
 .diab span{display:block;font-weight:500;font-size:12px;color:var(--mu);margin-top:2px}
+.diab.fer{border-color:#E53935;background:#fdecea;color:#E53935;cursor:not-allowed}.diab.fer span,.diab.fer small,.diab.fer .difec{color:#E53935;opacity:1}
 .diab.on{border-color:var(--ne);background:var(--ne);color:#fff}.diab.on span{color:#cfc7bd}
 .qty{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid var(--li);border-radius:12px;padding:6px}
 .qty button{width:42px;height:42px;border-radius:10px;border:0;background:var(--cr);color:var(--tx);font:700 22px var(--sans)}
@@ -211,7 +212,7 @@ window.GDO = window.GDO || {};
 <script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
-  var VERSION='combo v3.4';
+  var VERSION='combo v3.5';
   // 3-nov-2026: se terminó la promo de la tarta de regalo con el combo de fin de mes. Volverla a prender = true.
   var REGALO_TARTA=false;
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
@@ -249,9 +250,21 @@ window.GDO = window.GDO || {};
   var TOP='<div class="top"><img src="assets/logo-horizontal-puntos.svg" alt="Granja del Oeste" class="logo"></div>';
 
   // Fechas: igual que la tienda (24 hs de anticipación, nunca el mismo día).
+  // ====== Feriados: el local está CERRADO (no hay retiro ni envíos). Mismo listado que el bot (src/feriados.js). ======
+  var FERIADOS={'2026-11-09':'visita del Papa','2026-11-23':'Día de la Soberanía','2026-12-08':'Inmaculada Concepción','2026-12-25':'Navidad',
+    '2027-01-01':'Año Nuevo','2027-02-08':'Carnaval','2027-02-09':'Carnaval','2027-03-24':'Día de la Memoria','2027-03-26':'Viernes Santo','2027-04-02':'Malvinas',
+    '2027-05-01':'Día del Trabajador','2027-05-25':'25 de Mayo','2027-06-20':'Día de la Bandera','2027-07-09':'9 de Julio','2027-12-08':'Inmaculada Concepción','2027-12-25':'Navidad'};
+  function isoFer(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+  function esFeriado(d){ return !!FERIADOS[isoFer(d)]; }
+  // "Cerramos por feriado el lunes 9/11 (visita del Papa)." si hay alguno en los próximos 14 días.
+  function avisoFeriado(){
+    var N=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'], d=new Date(), out=[]; d.setHours(0,0,0,0);
+    for(var i=0;i<14;i++){ var m=FERIADOS[isoFer(d)]; if(m) out.push('el '+N[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1)+' ('+m+')'); d.setDate(d.getDate()+1); }
+    return out.length ? 'Cerramos por feriado '+out.join(', ')+'.' : '';
+  }
   var DIA_IDX={domingo:0,lunes:1,martes:2,miercoles:3,jueves:4,viernes:5,sabado:6};
   function sinTilde(s){ return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').trim().toLowerCase(); }
-  function proxFechaDia(n){ var di=DIA_IDX[sinTilde(n)]; if(di==null) return null; var b=new Date(); b.setHours(0,0,0,0); var d=(di-b.getDay()+7)%7; if(d===0) d=7; b.setDate(b.getDate()+d); return b; }
+  function proxFechaDia(n,conFeriado){ var di=DIA_IDX[sinTilde(n)]; if(di==null) return null; var b=new Date(); b.setHours(0,0,0,0); var d=(di-b.getDay()+7)%7; if(d===0) d=7; b.setDate(b.getDate()+d); while(!conFeriado && esFeriado(b)) b.setDate(b.getDate()+7); return b; }
   var NOMDIA=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   function fmtF(d){ return d? d.getDate()+'/'+(d.getMonth()+1) : ''; }
   function isoF(d){ return d? d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0') : ''; }
@@ -425,7 +438,7 @@ window.GDO = window.GDO || {};
         '<div id="envBox" style="display:none"><div class="hint" id="envHint"></div><a class="linkmapa linkm" role="button">📍 Ver en el mapa dónde entregamos</a><label class="fl">Localidad</label><select id="zona" class="fin"><option value="">Elegí tu localidad</option>'+locOpts+'</select><div id="diasBox"></div>'+
           '<label class="fl">Dirección</label><input id="dir" class="fin" autocomplete="street-address" placeholder="Calle y número">'+
           '<label class="fl">Entre calles</label><input id="entre" class="fin" placeholder="Ayuda al repartidor"></div>'+
-        '<div id="retBox"><div class="hint">Retiralo en <b>'+esc(CFG.sucursal)+'</b>, de '+HORARIO_RETIRO+'.</div><label class="fl">¿Qué día pasás? <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="diaR" class="fin" placeholder="Por ejemplo, jueves"></div>'+
+        '<div id="retBox"><div class="hint">Retiralo en <b>'+esc(CFG.sucursal)+'</b>, de '+HORARIO_RETIRO+'.'+(avisoFeriado()?' <b>'+avisoFeriado()+'</b>':'')+'</div><label class="fl">¿Qué día pasás? <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="diaR" class="fin" placeholder="Por ejemplo, jueves"></div>'+
       '</div></div>'+
       '<div class="sec"><div class="h2">Paso 3</div><h3>Tus datos</h3><div class="box pad">'+
         '<label class="fl">Nombre y apellido</label><input id="nom" class="fin" autocomplete="name" placeholder="Cómo te llamás">'+
@@ -481,8 +494,10 @@ window.GDO = window.GDO || {};
   }
   function dias(){
     var box=$('diasBox'); if(st.zona==null){ box.innerHTML=''; return; }
-    var ds=CFG.zonas[st.zona].dias.map(function(d){ return proxFechaDia(d); }).filter(Boolean).sort(function(a,b){ return a-b; });
-    box.innerHTML='<label class="fl">Día de entrega</label><div class="dias">'+ds.map(function(f){ var n=NOMDIA[f.getDay()]; return '<button type="button" class="diab" data-d="'+n+'" data-f="'+fmtF(f)+'" data-i="'+isoF(f)+'">'+n+'<span>'+fmtF(f)+'</span></button>'; }).join('')+'</div>'+
+    // Un feriado aparece en rojo y no se puede elegir; al lado, la fecha siguiente de ese día.
+    var ds=[]; CFG.zonas[st.zona].dias.forEach(function(d){ var r=proxFechaDia(d,true); if(!r) return; if(esFeriado(r)) ds.push(r); ds.push(proxFechaDia(d)); });
+    ds.sort(function(a,b){ return a-b; });
+    box.innerHTML='<label class="fl">Día de entrega</label><div class="dias">'+ds.map(function(f){ var n=NOMDIA[f.getDay()]; if(esFeriado(f)) return '<button type="button" class="diab fer" disabled title="Feriado: cerramos">'+n+'<span>'+fmtF(f)+' · Feriado</span></button>'; return '<button type="button" class="diab" data-d="'+n+'" data-f="'+fmtF(f)+'" data-i="'+isoF(f)+'">'+n+'<span>'+fmtF(f)+'</span></button>'; }).join('')+'</div>'+
       '<div class="hint">Entregamos '+esc(String(CFG.horario||'').replace(/^entregamos\s*/i,''))+'. Los pedidos se preparan con 24 hs de anticipación.</div>';
     box.querySelectorAll('.diab').forEach(function(b){ b.onclick=function(){ st.dia=b.dataset.d; st.diaF=b.dataset.f; st.diaIso=b.dataset.i; box.querySelectorAll('.diab').forEach(function(x){ x.classList.toggle('on',x===b); }); }; });
   }

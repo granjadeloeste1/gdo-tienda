@@ -230,7 +230,8 @@
     ['¿Qué compras suman puntos?', 'Solo suman puntos los <b>pedidos minoristas</b> y las <b>compras presenciales en sucursal</b>.'],
     ['Compro por mayor con un vendedor, ¿puedo ser socio?', 'Las <b>cuentas mayoristas de vendedores</b> (las que se crean en el link de un vendedor para hacer pedidos por mayor) <b>no tienen acceso al GDO CLUB</b> ni a sus beneficios. Solo suman puntos los <b>pedidos minoristas</b> y las <b>compras presenciales en sucursal</b>.'],
     ['¿Los premios y los puntos pueden cambiar?', 'Sí. Los premios dependen del <b>stock</b> y GDO puede agregar, sacar o cambiar su costo en puntos. El sistema de puntos también puede ajustarse. Siempre te mostramos los valores vigentes.'],
-    ['¿Qué necesito para asociarme?', 'Nombre y apellido, DNI, dirección, teléfono y email. Tenés que ser <b>mayor de 18 años</b> y se permite <b>una cuenta por persona</b>.'],
+    ['¿Qué necesito para asociarme?', 'Nombre y apellido, DNI, fecha de nacimiento, dirección, teléfono y email. Tenés que ser <b>mayor de 18 años</b> y se permite <b>una cuenta por persona</b>.'],
+    ['¿Un menor de 18 años puede ser socio?', 'No. El GDO CLUB es <b>solo para mayores de 18 años</b>. Al asociarte te pedimos la fecha de nacimiento y, si no tenés 18 cumplidos, no se puede crear la cuenta. Si detectamos una cuenta de un menor, se da de baja.'],
     ['Olvidé mi contraseña, ¿qué hago?', 'En la pestaña <b>“Ya soy socio”</b> tocá <b>“Olvidé mi contraseña”</b> y te llega un mail para recuperarla.'],
     ['¿Cómo doy de baja mi cuenta o mis datos?', 'Desde tu cuenta, al final de la pantalla, tocá <b>"Eliminar mi cuenta"</b>: se borran tus datos y tus puntos al instante (te pedimos la contraseña para confirmar). También podés escribirnos por WhatsApp.'],
   ];
@@ -393,6 +394,7 @@
         '<div id="msg"></div>'+
         '<label>Nombre y apellido *</label><input id="nombre" type="text" autocomplete="name" placeholder="Ej: Matías Pérez"/>'+
         '<label>DNI *</label><input id="dni" type="text" inputmode="numeric" autocomplete="off" placeholder="Ej: 30123456"/>'+
+        '<label>Fecha de nacimiento * <span class="small muted">(solo mayores de 18)</span></label><input id="nacimiento" type="date" autocomplete="bday" max="'+fechaMax18()+'"/>'+
         '<label>Dirección *</label><input id="direccion" type="text" autocomplete="street-address" placeholder="Calle, número, localidad"/>'+
         '<label>Teléfono / WhatsApp *</label><input id="telefono" type="tel" inputmode="tel" autocomplete="tel" placeholder="Ej: 11 1234-5678"/>'+
         '<label>Email *</label><input id="email" type="email" autocomplete="email" placeholder="tucorreo@ejemplo.com"/>'+
@@ -440,7 +442,7 @@
           if (c.exists) tx.update(cref, {n:n}); else tx.set(cref, {n:n});
           var perfil = {
             nombre: datos.nombre||'', email: datos.email||'',
-            dni: datos.dni||'', direccion: datos.direccion||'', telefono: datos.telefono||'',
+            dni: datos.dni||'', nacimiento: datos.nacimiento||'', direccion: datos.direccion||'', telefono: datos.telefono||'',
             puntos:0, nroSocio:n, creado: firebase.firestore.FieldValue.serverTimestamp()
           };
           if (datos.aceptoTerminos) {            // queda registrado qué versión de los T&C aceptó y cuándo
@@ -455,13 +457,25 @@
     });
   }
 
+  // Mayoría de edad: el Club es solo para mayores de 18 (T&C, Elegibilidad).
+  function fechaMax18(){ var d=new Date(); d.setFullYear(d.getFullYear()-18); return d.toISOString().slice(0,10); }
+  function edad(iso){
+    var p=/^(\d{4})-(\d{2})-(\d{2})$/.exec(iso||''); if(!p) return -1;
+    var h=new Date(), e=h.getFullYear()-(+p[1]), m=h.getMonth()+1-(+p[2]);
+    if(m<0 || (m===0 && h.getDate()<(+p[3]))) e--;
+    return e;
+  }
+
   function doRegistro(){
     var g=function(id){ var el=document.getElementById(id); return el?(el.value||'').trim():''; };
-    var nombre=g('nombre'), dni=g('dni'), direccion=g('direccion'), telefono=g('telefono'), email=g('email');
+    var nombre=g('nombre'), dni=g('dni'), nacimiento=g('nacimiento'), direccion=g('direccion'), telefono=g('telefono'), email=g('email');
     var pass=(document.getElementById('pass')||{}).value||'';
     var dniNum=dni.replace(/\D/g,''), telNum=telefono.replace(/\D/g,'');
     if(!nombre || nombre.indexOf(' ')<1){ setMsg('Poné tu nombre y apellido completos.'); return; }
     if(!/^\d{7,8}$/.test(dniNum)){ setMsg('Poné un DNI válido (7 u 8 números, sin puntos).'); return; }
+    var anios=edad(nacimiento);
+    if(anios<0 || anios>110){ setMsg('Poné tu fecha de nacimiento.'); return; }
+    if(anios<18){ setMsg('El GDO CLUB es solo para <b>mayores de 18 años</b>.'); return; }
     if(!direccion){ setMsg('Poné tu dirección.'); return; }
     if(telNum.length<8){ setMsg('Poné un teléfono válido.'); return; }
     if(!email){ setMsg('Poné tu email.'); return; }
@@ -470,7 +484,7 @@
     if(!acepto || !acepto.checked){ setMsg('Para asociarte tenés que aceptar los Términos y Condiciones.'); return; }
     var b=document.getElementById('goReg'); b.disabled=true; b.textContent='Creando…';
     auth.createUserWithEmailAndPassword(email, pass).then(function(cred){
-      return crearSocio(cred.user.uid, { nombre:nombre, email:email, dni:dniNum, direccion:direccion, telefono:telefono, aceptoTerminos:true });
+      return crearSocio(cred.user.uid, { nombre:nombre, email:email, dni:dniNum, nacimiento:nacimiento, direccion:direccion, telefono:telefono, aceptoTerminos:true });
     }).catch(function(e){ setMsg(errTxt(e)); b.disabled=false; b.textContent='Crear mi cuenta de socio'; });
   }
 

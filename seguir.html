@@ -91,7 +91,8 @@
       var h = Math.floor(min / 60) % 24, m = Math.round(min % 60);
       return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
     }
-    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+    function numONull(v) { return (v == null || v === '' || !isFinite(Number(v))) ? null : Number(v); }
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 
     // Estima la hora de llegada a ESTE pedido, EN VIVO: parte de la hora actual
     // y desde donde va el chofer ahora (su última parada resuelta), no desde una
@@ -194,7 +195,7 @@
 
       var mapHTML = (p.lat != null) ? '<div class="card" style="padding:0;overflow:hidden"><div id="map"></div></div>' : '';
       var dirRow = p.direccion ? '<div class="row"><span class="k">Dirección</span><span class="v">' + esc(p.direccion) + '</span></div>' : '';
-      var navLink = (p.lat != null) ? '<div style="text-align:center;margin-top:8px"><a class="linkmap" target="_blank" href="https://www.google.com/maps?q=' + p.lat + ',' + p.lng + '">Ver en el mapa ↗</a></div>' : '';
+      var navLink = (p.lat != null) ? '<div style="text-align:center;margin-top:8px"><a class="linkmap" target="_blank" href="https://www.google.com/maps?q=' + encodeURIComponent(p.lat + ',' + p.lng) + '">Ver en el mapa ↗</a></div>' : '';
 
       var stepsHTML = '<ul class="steps">' + STEPS.map(function (s, i) {
         var cls = i < paso ? 'done' : (i === paso ? 'on' : '');
@@ -214,7 +215,7 @@
         '</div>' +
         '<div class="card">' + stepsHTML + '</div>' +
         '<div class="muted">Se actualiza solo. Dejá esta pantalla abierta para ver el avance.</div>' +
-        '<div class="muted" style="font-size:10px;margin-top:8px;opacity:.8">Propiedad de Granja del Oeste&reg; · v16</div>';
+        '<div class="muted" style="font-size:10px;margin-top:8px;opacity:.8">Propiedad de Granja del Oeste&reg; · v17</div>';
 
       if (p.lat != null) pintarMapa(p, (enCamino && info) ? info.chofer : null);
     }
@@ -241,6 +242,9 @@
           intentos = 0; // lectura OK: reinicio el contador de reintentos
           if (!doc.exists) { app.innerHTML = '<div class="err">No encontramos este pedido. Revisá el enlace.</div>'; return; }
           var p = doc.data(); p.id = doc.id;
+          // Las coordenadas las escribió quien hizo el pedido: valen solo si son números.
+          p.lat = numONull(p.lat); p.lng = numONull(p.lng);
+          if (p.lat == null || p.lng == null) { p.lat = null; p.lng = null; }
           pedidoActual = p;
 
           // engancha la ruta (para ETA y posición) solo cuando cambia

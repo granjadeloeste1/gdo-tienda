@@ -453,7 +453,18 @@ if(window.VEND){
 <script>
 var API ="https://script.google.com/macros/s/AKfycbwH6JW35BRYcBk958OEr4sEvfVIfzgqzQeGwvz63xZYgukwxik8EsIego4d9O456bHURg/exec";
 // Los combos son solo minoristas: en la lista mayorista no se muestran aunque la hoja tenga precio.
-function sinCombos(d){ return (d||[]).filter(function(s){ return !/^\s*COMBOS?\b/i.test(s.title||""); }); }
+// Productos OCULTOS hasta nuevo aviso (no se muestran ni se pueden pedir). Mismo listado que
+// vista-minorista.html y que el bot (src/precios.js, OCULTOS). Para volver a mostrarlos, vaciar la lista.
+var OCULTOS = [/TEQUE/i];
+function oculto(n){ return OCULTOS.some(function(re){ return re.test(n||""); }); }
+function sinCombos(d){
+  return (d||[]).filter(function(s){ return !/^\s*COMBOS?\b/i.test(s.title||""); }).map(function(s){
+    var o={}; for(var k in s) o[k]=s[k];
+    o.tables=(s.tables||[]).map(function(t){ var c={}; for(var k in t) c[k]=t[k]; c.rows=(t.rows||[]).filter(function(r){ return !oculto(r.p); }); return c; })
+      .filter(function(t){ return t.rows.length; });
+    return o;
+  }).filter(function(s){ return s.tables.length; });
+}
 var sections = [], term = "";
 var $n = function(n) { if (n === null || n === undefined) return ""; return "$ " + Math.round(n).toLocaleString("es-AR"); };
 var OPTIONS = [];

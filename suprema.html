@@ -260,7 +260,7 @@ window.GDO = window.GDO || {};
     '2027-05-01':'Día del Trabajador','2027-05-25':'25 de Mayo','2027-06-20':'Día de la Bandera','2027-07-09':'9 de Julio','2027-12-08':'Inmaculada Concepción','2027-12-25':'Navidad'};
   function isoFer(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
   // Días SIN ENVÍOS: el local abre, pero el reparto de ese día ya está completo. Mismo listado que el bot (src/feriados.js, SIN_ENVIO).
-  var SIN_ENVIO={'2026-11-10':'reparto completo'};
+  var SIN_ENVIO={'2026-11-10':'reparto completo','2026-11-11':'reparto completo'};
   function esFeriado(d){ return !!(FERIADOS[isoFer(d)] || SIN_ENVIO[isoFer(d)]); }
   function etqNo(d){ return FERIADOS[isoFer(d)] ? 'Feriado' : 'Completo'; }
   // "Cerramos por feriado el lunes 9/11 (visita del Papa)." si hay alguno en los próximos 14 días.

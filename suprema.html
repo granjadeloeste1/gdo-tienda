@@ -120,6 +120,11 @@ select.fin{background-image:linear-gradient(45deg,transparent 50%,#999 50%),line
 .err{color:var(--ro);font-weight:600;min-height:20px;margin:12px 22px 0;font-size:14px}
 .mas{display:block;text-align:center;margin:22px 22px 0;color:var(--tx);font-weight:600;font-size:14px;text-decoration:none}
 .mas span{border-bottom:1.5px solid var(--or)}
+.mayo{margin:18px 22px 0;padding:16px 18px;border:1.5px solid #e7e0d6;border-radius:14px;background:#fff;text-align:center}
+.mayo b{display:block;font-size:16px;color:var(--tx)}
+.mayo p{margin:6px 0 12px;font-size:14px;line-height:1.45;color:#6d665e}
+.mayo p strong{color:var(--tx)}
+.mayo a{display:inline-block;padding:11px 18px;border-radius:999px;background:#25D366;color:#fff;font-weight:700;font-size:14px;text-decoration:none}
 .ver{text-align:center;font-size:11px;color:#c3bab0;margin-top:24px}
 .bar{position:fixed;left:0;right:0;bottom:0;background:rgba(247,243,238,.92);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-top:1px solid var(--li);padding:10px 16px calc(12px + env(safe-area-inset-bottom))}
 .bar button{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:488px;margin:0 auto;font:700 17px var(--sans);color:#fff;background:var(--ne);border:0;border-radius:14px;padding:17px 20px}
@@ -217,7 +222,7 @@ window.GDO = window.GDO || {};
 <script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
-  var VERSION='suprema v1.7';
+  var VERSION='suprema v1.8';
   // Timbre / Dto forma parte de la dirección: "García Silva 434 - Timbre 6".
   function dirTimbre(d,t){ d=String(d||'').trim(); t=String(t||'').trim().replace(/^[-\s]+/,''); if(!d||!t) return d; if(!/^(timbre|tbre|dto|dpto|depto|departamento|piso|casa|ph|fondo|local|lote|uf)(?![a-z])/i.test(t)) t='Timbre/Dto '+t; return d+' - '+t; }
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
@@ -247,7 +252,7 @@ window.GDO = window.GDO || {};
   var API='https://script.google.com/macros/s/AKfycbwH6JW35BRYcBk958OEr4sEvfVIfzgqzQeGwvz63xZYgukwxik8EsIego4d9O456bHURg/exec';
   var WA='5491135800164';
   var ITEMS=[['10 kg','Suprema de pollo congelada, en caja cerrada','caja'],['IQF','Congeladas individualmente: sacás solo las que vas a usar','iqf']];
-  var MAYORISTA='https://wa.me/'+WA+'?text='+encodeURIComponent('¡Hola! Tengo un comercio y quiero consultar por la suprema congelada en caja por mayor.');
+  var MAYORISTA='https://wa.me/'+WA+'?text='+encodeURIComponent('MAYORISTA');
   var app=document.getElementById('app');
   function $(id){ return document.getElementById(id); }
   function money(n){ return '$'+Number(n||0).toLocaleString('es-AR'); }
@@ -433,7 +438,7 @@ window.GDO = window.GDO || {};
       '<div class="sec"><div class="h2">Paso 1</div><h3>Armá tu pedido</h3><div class="box pad">'+
         '<label class="fl">Cantidad de cajas</label><div class="qty"><button type="button" id="qm" aria-label="Uno menos">−</button><span id="qn">1</span><button type="button" id="qp" aria-label="Uno más">+</button></div>'+
         '<div id="tartasBox"></div></div></div>'+
-      '<a class="mas" href="'+MAYORISTA+'" target="_blank" rel="noopener" style="margin-top:4px"><span>¿Tenés comercio? Consultá por compras mayoristas</span> →</a>'+
+      '<div class="mayo"><b>¿Compra mayorista?</b><p>Si querés hacer una consulta por compra mayorista, escribinos al WhatsApp la palabra <strong>MAYORISTA</strong> y te pasamos la lista mayorista.</p><a id="mayoBtn" href="'+MAYORISTA+'" target="_blank" rel="noopener">Escribir MAYORISTA por WhatsApp →</a></div>'+
       '<div class="sumar"><div class="h2">Sumá a tu pedido</div><h3>¿Querés sumar algo más a tu compra?</h3>'+
         '<p>Milanesas, hamburguesas, trozado fresco, congelados, huevos y más, a precio de distribuidor. Llega todo junto con tu caja, con el envío sin cargo.</p>'+
         '<button type="button" id="sumarBtn">Ver toda la lista →</button><div id="sumarYa"></div></div>'+

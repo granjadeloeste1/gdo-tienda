@@ -11,7 +11,7 @@
      El pedido entra al panel de Rutas igual que la tienda minorista y el píxel marca Purchase. -->
 <script>
 !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '1816846682683423');
+fbq('init', '1816846682683423');   fbq('init', '1073071275495941'); // GDO Lista Web (cuenta publicitaria 98518185): el que usan las campañas web
 fbq('track', 'PageView');
 function gdoPx(ev, p){ try{ if(window.fbq) fbq('track', ev, p||{}); }catch(e){} }
 </script>
@@ -212,7 +212,7 @@ window.GDO = window.GDO || {};
 <script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
-  var VERSION='combo v3.8';
+  var VERSION='combo v3.9';
   // Timbre / Dto forma parte de la dirección: "García Silva 434 - Timbre 6".
   function dirTimbre(d,t){ d=String(d||'').trim(); t=String(t||'').trim().replace(/^[-\s]+/,''); if(!d||!t) return d; if(!/^(timbre|tbre|dto|dpto|depto|departamento|piso|casa|ph|fondo|local|lote|uf)(?![a-z])/i.test(t)) t='Timbre/Dto '+t; return d+' - '+t; }
   // 3-nov-2026: se terminó la promo de la tarta de regalo con el combo de fin de mes. Volverla a prender = true.

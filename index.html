@@ -392,7 +392,7 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v3.2<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v3.3<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -1080,6 +1080,8 @@ function pintarHorarios(){
   });
 }
 
+// Timbre / Dto forma parte de la dirección: "García Silva 434 - Timbre 6".
+function dirTimbre(d,t){ d=String(d||'').trim(); t=String(t||'').trim().replace(/^[-\s]+/,''); if(!d||!t) return d; if(!/^(timbre|tbre|dto|dpto|depto|departamento|piso|casa|ph|fondo|local|lote|uf)(?![a-z])/i.test(t)) t='Timbre/Dto '+t; return d+' - '+t; }
 function saveForm(){ try{ localStorage.setItem("gdo_form", JSON.stringify({ n:val("cName"), t:val("cTel"), a:val("cAddr"), l:val("cLoc"), e:val("cEntre"), tb:val("cTimbre"), p:val("cPay"), o:val("cNotes"), g:geoCoords, dr:diaRetiro, hr:horaRetiro, fa:val("cFant"), rs:val("cRS"), cu:val("cCuit"), em:val("cMail") })); }catch(e){} }
 function restoreForm(){
   // OJO: nada de `return` acá adentro — al final hay que pintar los días de retiro.
@@ -1182,9 +1184,8 @@ function sendWhatsApp(){
     } else {
       L.push("• *Modalidad:* Envío a domicilio");
       var dirTxt=val("cAddr").trim(), locTxt=val("cLoc").trim(), entTxt=val("cEntre").trim();
-      L.push("• *Dirección:* "+dirTxt+(locTxt?", "+locTxt:""));
+      L.push("• *Dirección:* "+dirTimbre(dirTxt,val("cTimbre"))+(locTxt?", "+locTxt:""));
       if(entTxt) L.push("• *Entre calles:* "+entTxt);
-      var tbTxt=val("cTimbre").trim(); if(tbTxt) L.push("• *Timbre / Dto:* "+tbTxt);
       if(geoCoords && geoCoords.lat!=null) L.push("• *Ubicación:* https://www.google.com/maps?q="+geoCoords.lat+","+geoCoords.lon);
     }
     if(VEND.nombre) L.push("• *Vendedor:* "+VEND.nombre);
@@ -1345,16 +1346,16 @@ function pedidoEnviado(){
             <div class="ferr">Ingres&aacute; la direcci&oacute;n de entrega</div>
           </div>
           <div class="fg">
+            <label>Timbre / Dto (opcional)</label>
+            <input id="cTimbre" type="text" maxlength="40" placeholder="Ej: timbre 2, dto B" oninput="saveForm()">
+          </div>
+          <div class="fg">
             <label>Localidad</label>
             <input id="cLoc" type="text" placeholder="Se completa al elegir la direcci&oacute;n" oninput="saveForm()">
           </div>
           <div class="fg">
             <label>Entre calles</label>
             <input id="cEntre" type="text" placeholder="Calle A y Calle B" oninput="saveForm()">
-          </div>
-          <div class="fg">
-            <label>Timbre / Dto (opcional)</label>
-            <input id="cTimbre" type="text" maxlength="40" placeholder="Ej: timbre 2, dto B" oninput="saveForm()">
           </div>
         </div>
         <!-- Botones de la cuenta (crear / entrar / completar datos). -->
@@ -2345,8 +2346,8 @@ window.GDO = window.GDO || {};
         kg: (l.kgPor ? l.qty*l.kgPor : null) }));
     });
     var esp=[];
-    var timbre=val2('cTimbre').trim();
-    if(timbre && addr && window.vendMod!=='retiro') esp.push('Timbre / Dto: '+timbre);
+    // El timbre / dto va pegado a la dirección que ve el chofer; `addr` queda limpia para ubicarla.
+    var addrT=(window.vendMod!=='retiro') ? dirTimbre(addr, val2('cTimbre')) : addr;
     if(notes) esp.push(notes);
     cart.forEach(function(l){ if(l.note&&l.note.trim()) esp.push(l.name+': '+l.note.trim()); });
     function pushInbox(p){
@@ -2430,7 +2431,7 @@ window.GDO = window.GDO || {};
         // ENVÍO: sin fecha (se la pone la ruta). RETIRO: el día y la franja que
         // eligió, igual que un pedido de la lista común.
         modalidad: esRet ? 'retiro' : 'envio',
-        direccion:addr, localidad:localidad, entrecalles:entrecalles, lat:lat, lng:lng,
+        direccion:addrT, localidad:localidad, entrecalles:entrecalles, lat:lat, lng:lng,
         items:items,
         fechaEntrega: (esRet && diaRetiro && diaRetiro.iso) ? diaRetiro.iso : '',
         diaEntrega: (esRet && diaRetiro && diaRetiro.nombre) ? diaRetiro.nombre : '',

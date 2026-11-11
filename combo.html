@@ -212,7 +212,9 @@ window.GDO = window.GDO || {};
 <script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
-  var VERSION='combo v3.7';
+  var VERSION='combo v3.8';
+  // Timbre / Dto forma parte de la dirección: "García Silva 434 - Timbre 6".
+  function dirTimbre(d,t){ d=String(d||'').trim(); t=String(t||'').trim().replace(/^[-\s]+/,''); if(!d||!t) return d; if(!/^(timbre|tbre|dto|dpto|depto|departamento|piso|casa|ph|fondo|local|lote|uf)(?![a-z])/i.test(t)) t='Timbre/Dto '+t; return d+' - '+t; }
   // 3-nov-2026: se terminó la promo de la tarta de regalo con el combo de fin de mes. Volverla a prender = true.
   var REGALO_TARTA=false;
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
@@ -440,8 +442,8 @@ window.GDO = window.GDO || {};
         '<div class="envnota" id="envNota"></div>'+
         '<div id="envBox" style="display:none"><div class="hint" id="envHint"></div><a class="linkmapa linkm" role="button">📍 Ver en el mapa dónde entregamos</a><label class="fl">Localidad</label><select id="zona" class="fin"><option value="">Elegí tu localidad</option>'+locOpts+'</select><div id="diasBox"></div>'+
           '<label class="fl">Dirección</label><input id="dir" class="fin" autocomplete="street-address" placeholder="Calle y número">'+
-          '<label class="fl">Entre calles</label><input id="entre" class="fin" placeholder="Ayuda al repartidor">'+
-          '<label class="fl">Timbre / Dto <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="timbre" class="fin" maxlength="40" placeholder="Ej: timbre 2, dto B"></div>'+
+          '<label class="fl">Timbre / Dto <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="timbre" class="fin" maxlength="40" placeholder="Ej: timbre 2, dto B">'+
+          '<label class="fl">Entre calles</label><input id="entre" class="fin" placeholder="Ayuda al repartidor"></div>'+
         '<div id="retBox"><div class="hint">Retiralo en <b>'+esc(CFG.sucursal)+'</b>, de '+HORARIO_RETIRO+'.'+(avisoFeriado()?' <b>'+avisoFeriado()+'</b>':'')+'</div><label class="fl">¿Qué día pasás? <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="diaR" class="fin" placeholder="Por ejemplo, jueves"></div>'+
       '</div></div>'+
       '<div class="sec"><div class="h2">Paso 3</div><h3>Tus datos</h3><div class="box pad">'+
@@ -614,13 +616,13 @@ window.GDO = window.GDO || {};
     extras.forEach(function(n){ var x=EXTRA[n], q=st.extras[n]; items.push(x.porKg
       ? { producto:x.nombre, cantidad:q, unidad:'kg', precio:precioExtra(x,q), preparacion:'', nota:'' }
       : { producto:x.nombre+' ('+x.vars[0].variedad+')', cantidad:q, unidad:'unidad', precio:x.vars[0].precio, preparacion:'', nota:'' }); });
-    var esp=esEnv?['MINORISTA',NOMC+' (anuncio)','Localidad: '+loc].concat(timbre?['Timbre / Dto: '+timbre]:[],['Día de entrega: '+st.dia+' '+st.diaF,'Envío: '+(e===0?'sin cargo':money(e))])
+    var esp=esEnv?['MINORISTA',NOMC+' (anuncio)','Localidad: '+loc].concat(['Día de entrega: '+st.dia+' '+st.diaF,'Envío: '+(e===0?'sin cargo':money(e))])
                  :['MINORISTA',NOMC+' (anuncio)','Retiro en sucursal: '+CFG.sucursal].concat(diaR?['Día de retiro: '+diaR]:[]);
     var online=(pago===ONLINE)&&hayOnline();
     if(online) esp.push('PAGO ONLINE NAVE: verificar que se acreditó '+money(total)+' antes de entregar');
     esp.push('TOTAL a cobrar: '+money(total));
     var pedido={ id:nid(), origen:'tienda', lista:'minorista', fuente:'landing-combo-fin-de-mes', cliente:nom, telefono:tel,
-      modalidad:esEnv?'envio':'retiro', direccion:dir, localidad:loc, entrecalles:entre, lat:lat, lng:lng,
+      modalidad:esEnv?'envio':'retiro', direccion:dirTimbre(dir,timbre), localidad:loc, entrecalles:entre, lat:lat, lng:lng,
       items:items, fechaEntrega:esEnv?st.diaIso:'', especificaciones:esp.join(' · '), formaPago:pago, prioridad:'normal',
       estado:'pendiente', creadoPor:null, rutaId:null, clienteUid:null, totalEstimado:Math.round(s+px), descuento:null,
       zona:zona, diaEntrega:esEnv?st.dia:diaR, envio:Math.round(e), ventana:'', historia:[], creado:Date.now(), ts:Date.now() };
@@ -646,10 +648,9 @@ window.GDO = window.GDO || {};
       // reconoce y no lo vuelve a cargar). Pestaña nueva y sincrónico al click, para que no lo bloquee
       // el celular y el guardado siga vivo; si igual lo bloquea, se navega a los 2,5 s.
       var L=['🛒 *NUEVO PEDIDO MINORISTA*','*Granja del Oeste*','','━━━━━━━━━━━━━━','👤 *DATOS DEL CLIENTE*','','• *Nombre:* '+nom,'• *Teléfono:* '+tel];
-      if(esEnv) L.push('• *Modalidad:* Envío a domicilio','• *Localidad:* '+loc,'• *Día de entrega:* '+st.dia+' '+st.diaF,'• *Dirección:* '+dir);
+      if(esEnv) L.push('• *Modalidad:* Envío a domicilio','• *Localidad:* '+loc,'• *Día de entrega:* '+st.dia+' '+st.diaF,'• *Dirección:* '+dirTimbre(dir,timbre));
       else L.push('• *Modalidad:* Retiro en sucursal','• *Retiro en:* '+CFG.sucursal);
       if(esEnv && entre) L.push('• *Entre calles:* '+entre);
-      if(timbre) L.push('• *Timbre / Dto:* '+timbre);
       if(!esEnv && diaR) L.push('• *Día de retiro:* '+diaR);
       L.push('• *Forma de pago:* '+pago,'','━━━━━━━━━━━━━━','📦 *DETALLE DEL PEDIDO*','');
       L.push('*1) '+nombreCombo()+'*');

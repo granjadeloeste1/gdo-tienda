@@ -607,7 +607,7 @@ window.GDO = window.GDO || {};
     var env=esRet?0:d.env;
     var esp=esRet
       ? ['MINORISTA','Retiro en sucursal: '+CFG.sucursal].concat(d.dia?['Día de retiro: '+d.dia]:[])
-      : ['MINORISTA','Localidad: '+d.loc,'Día de entrega: '+diaTxt,'Envío: '+(env===0?'sin cargo':money(env))];
+      : ['MINORISTA','Localidad: '+d.loc].concat(d.timbre?['Timbre / Dto: '+d.timbre]:[],['Día de entrega: '+diaTxt,'Envío: '+(env===0?'sin cargo':money(env))]);
     if(d.desc) esp.push('Descuento '+d.desc.codigo+' ('+d.desc.pct+'%): −'+money(des));
     esp.push('TOTAL a cobrar: '+money(d.sub-des+env));
     if(d.notas) esp.push('Notas: '+d.notas);
@@ -670,6 +670,7 @@ window.GDO = window.GDO || {};
         '<div id="ckDom">'+
           '<label class="fl">Dirección *</label><input id="ckDir" class="fin" placeholder="Calle y número (ej: Bombero Celiz 1200)"/>'+
           '<label class="fl">Entre calles *</label><input id="ckEntre" class="fin" placeholder="Ej: entre Av. Vergara y Pedernera"/>'+
+          '<label class="fl">Timbre / Dto (opcional)</label><input id="ckTimbre" class="fin" maxlength="40" placeholder="Ej: timbre 2, dto B"/>'+
         '</div>'+
         '<label class="fl">Forma de pago</label><select id="ckPago" class="fin">'+CFG.formasPago.map(function(f){return '<option>'+esc(f)+'</option>';}).join('')+'</select>'+
         '<label class="fl">Notas / aclaraciones</label><textarea id="ckNotas" class="fin" rows="2" placeholder="Horario, comentarios…"></textarea>'+
@@ -752,7 +753,7 @@ window.GDO = window.GDO || {};
       // personal) no se manda: el cuadro del código ya dice por qué.
       if(cup && cup.aplicado() && !cup.valido()){ msg.textContent='Revisá el código de descuento (o quitalo) para enviar el pedido.'; return; }
       var sub=cartTotal(), env=envioCosto(), des=cup?cup.monto():0;
-      var addr=(val('ckDir')||'').trim(), entre=(val('ckEntre')||'').trim(), pago=(val('ckPago')||''), notas=(val('ckNotas')||'').trim();
+      var addr=(val('ckDir')||'').trim(), entre=(val('ckEntre')||'').trim(), timbre=(modo==='envio'?(val('ckTimbre')||'').trim():''), pago=(val('ckPago')||''), notas=(val('ckNotas')||'').trim();
       var diaRet=(val('ckDiaR')||'').trim();
       var L=[];
       L.push('🛒 *NUEVO PEDIDO MINORISTA*');
@@ -769,6 +770,7 @@ window.GDO = window.GDO || {};
         L.push('• *Día de entrega:* '+dia+(diaFecha?' '+diaFecha:''));
         L.push('• *Dirección:* '+addr);
         L.push('• *Entre calles:* '+entre);
+        if(timbre) L.push('• *Timbre / Dto:* '+timbre);
       } else {
         L.push('• *Modalidad:* Retiro en sucursal');
         L.push('• *Retiro en:* '+CFG.sucursal);
@@ -818,7 +820,7 @@ window.GDO = window.GDO || {};
       gdoPx('Purchase',{value:sub-des+env,currency:'ARS',num_items:cartCount(),content_type:'product'});
       // El pedido se REGISTRA en el panel en las DOS modalidades.
       var datosPed = (modo==='envio')
-        ? { modo:'envio', nom:nom, tel:tel, addr:addr, loc:loc, entre:entre,
+        ? { modo:'envio', nom:nom, tel:tel, addr:addr, loc:loc, entre:entre, timbre:timbre,
             zona:CFG.zonas[zona].nombre, dia:dia, diaFecha:diaFecha, diaIso:diaIso,
             pago:pago, notas:notas, sub:sub, env:env, desc:(cup?cup.resumen(sub):null) }
         : { modo:'retiro', nom:nom, tel:tel, addr:'', loc:'', entre:'',
@@ -974,7 +976,7 @@ window.GDO = window.GDO || {};
         '<iframe id="mapaReparto" src="mapa-zona-oeste.html?v=4" title="Zona de reparto Oeste" loading="lazy" style="width:100%;border:0;display:block;min-height:420px"></iframe></details>'+
       '<style>.mapwrap{margin:10px 0;border:1px solid #eee;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)}.mapwrap>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#fff;background:#F58220;padding:13px 16px}.mapwrap>summary::-webkit-details-marker{display:none}.mapwrap .mapchev{margin-left:auto;transition:transform .2s}.mapwrap[open] .mapchev{transform:rotate(180deg)}</style>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+
-      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.12<br>Todos los derechos reservados</p>';
+      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.13<br>Todos los derechos reservados</p>';
     render(cats);
     // Ajusta la altura del mapa (iframe mismo-origen) a su contenido, y al abrir/cerrar el desplegable.
     (function(){ var det=$('#mapaDet'), f=$('#mapaReparto'); if(!f) return;

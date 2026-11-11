@@ -217,7 +217,7 @@ window.GDO = window.GDO || {};
 <script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
-  var VERSION='suprema v1.4';
+  var VERSION='suprema v1.5';
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
   // el monto calculado allá con la lista en vivo. (Los links de pago de Nave son de un solo uso.)
   // Si el servidor dice que está apagado o no responde, se ofrece solo pagar al recibir.
@@ -440,7 +440,8 @@ window.GDO = window.GDO || {};
         '<div class="envnota" id="envNota"></div>'+
         '<div id="envBox"><div class="hint" id="envHint"></div><a class="linkmapa linkm" role="button">📍 Ver en el mapa dónde entregamos</a><label class="fl">Localidad</label><select id="zona" class="fin"><option value="">Elegí tu localidad</option>'+locOpts+'</select><div id="diasBox"></div>'+
           '<label class="fl">Dirección</label><input id="dir" class="fin" autocomplete="street-address" placeholder="Calle y número">'+
-          '<label class="fl">Entre calles</label><input id="entre" class="fin" placeholder="Ayuda al repartidor"></div>'+
+          '<label class="fl">Entre calles</label><input id="entre" class="fin" placeholder="Ayuda al repartidor">'+
+          '<label class="fl">Timbre / Dto <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="timbre" class="fin" maxlength="40" placeholder="Ej: timbre 2, dto B"></div>'+
         '<div id="retBox" style="display:none"><div class="hint">Retiralo en <b>'+esc(CFG.sucursal)+'</b>, de '+HORARIO_RETIRO+'.'+(avisoFeriado()?' <b>'+avisoFeriado()+'</b>':'')+'</div><label class="fl">¿Qué día pasás? <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="diaR" class="fin" placeholder="Por ejemplo, jueves"></div>'+
       '</div></div>'+
       '<div class="sec"><div class="h2">Paso 3</div><h3>Tus datos</h3><div class="box pad">'+
@@ -599,7 +600,7 @@ window.GDO = window.GDO || {};
     // Envío por debajo del monto de envío gratis: antes de confirmar se ofrece sumar productos.
     if(listo!==true && UPG.length && (!st.ofrecido || (st.modo==='envio' && CFG.envioGratis && productos()<CFG.envioGratisDesde))){ st.ofrecido=true; return sumarMas(); }
     var s=sub(), px=extrasTotal(), e=envio(), total=s+px+e, esEnv=st.modo==='envio';
-    var dir=esEnv?$('dir').value.trim():'', entre=esEnv?$('entre').value.trim():'', zona=esEnv?CFG.zonas[st.zona].nombre:'', loc=esEnv?st.loc:'';
+    var dir=esEnv?$('dir').value.trim():'', entre=esEnv?$('entre').value.trim():'', timbre=esEnv?$('timbre').value.trim():'', zona=esEnv?CFG.zonas[st.zona].nombre:'', loc=esEnv?st.loc:'';
     var diaR=esEnv?'':$('diaR').value.trim();
     var lat=null,lng=null; if(st.geo && st.geo.lat!=null && st.geo.direccion && st.geo.direccion.toLowerCase()===dir.toLowerCase()){ lat=st.geo.lat; lng=st.geo.lng!=null?st.geo.lng:st.geo.lon; }
     var NOMC=nombreCombo().toUpperCase();
@@ -613,7 +614,7 @@ window.GDO = window.GDO || {};
     extras.forEach(function(n){ var x=EXTRA[n], q=st.extras[n]; items.push(x.porKg
       ? { producto:x.nombre, cantidad:q, unidad:'kg', precio:precioExtra(x,q), preparacion:'', nota:'' }
       : { producto:x.nombre+' ('+x.vars[0].variedad+')', cantidad:q, unidad:'unidad', precio:x.vars[0].precio, preparacion:'', nota:'' }); });
-    var esp=esEnv?['MINORISTA','SUPREMA EN CAJA (anuncio)','Localidad: '+loc,'Día de entrega: '+st.dia+' '+st.diaF,'Envío: '+(e===0?'sin cargo':money(e))]
+    var esp=esEnv?['MINORISTA','SUPREMA EN CAJA (anuncio)','Localidad: '+loc].concat(timbre?['Timbre / Dto: '+timbre]:[],['Día de entrega: '+st.dia+' '+st.diaF,'Envío: '+(e===0?'sin cargo':money(e))])
                  :['MINORISTA','SUPREMA EN CAJA (anuncio)','Retiro en sucursal: '+CFG.sucursal].concat(diaR?['Día de retiro: '+diaR]:[]);
     var online=(pago===ONLINE)&&hayOnline();
     if(online) esp.push('PAGO ONLINE NAVE: verificar que se acreditó '+money(total)+' antes de entregar');
@@ -648,6 +649,7 @@ window.GDO = window.GDO || {};
       if(esEnv) L.push('• *Modalidad:* Envío a domicilio','• *Localidad:* '+loc,'• *Día de entrega:* '+st.dia+' '+st.diaF,'• *Dirección:* '+dir);
       else L.push('• *Modalidad:* Retiro en sucursal','• *Retiro en:* '+CFG.sucursal);
       if(esEnv && entre) L.push('• *Entre calles:* '+entre);
+      if(timbre) L.push('• *Timbre / Dto:* '+timbre);
       if(!esEnv && diaR) L.push('• *Día de retiro:* '+diaR);
       L.push('• *Forma de pago:* '+pago,'','━━━━━━━━━━━━━━','📦 *DETALLE DEL PEDIDO*','');
       L.push('*1) '+nombreCombo()+'*');

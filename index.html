@@ -392,7 +392,7 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v3.1<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v3.2<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -1080,7 +1080,7 @@ function pintarHorarios(){
   });
 }
 
-function saveForm(){ try{ localStorage.setItem("gdo_form", JSON.stringify({ n:val("cName"), t:val("cTel"), a:val("cAddr"), l:val("cLoc"), e:val("cEntre"), p:val("cPay"), o:val("cNotes"), g:geoCoords, dr:diaRetiro, hr:horaRetiro, fa:val("cFant"), rs:val("cRS"), cu:val("cCuit"), em:val("cMail") })); }catch(e){} }
+function saveForm(){ try{ localStorage.setItem("gdo_form", JSON.stringify({ n:val("cName"), t:val("cTel"), a:val("cAddr"), l:val("cLoc"), e:val("cEntre"), tb:val("cTimbre"), p:val("cPay"), o:val("cNotes"), g:geoCoords, dr:diaRetiro, hr:horaRetiro, fa:val("cFant"), rs:val("cRS"), cu:val("cCuit"), em:val("cMail") })); }catch(e){} }
 function restoreForm(){
   // OJO: nada de `return` acá adentro — al final hay que pintar los días de retiro.
   try{ var f=JSON.parse(localStorage.getItem("gdo_form")||"null"); if(f){
@@ -1093,7 +1093,7 @@ function restoreForm(){
     if(f.hr && !horaRetiro) horaRetiro=f.hr;
     // Link de vendedor: el negocio que ya pidió no vuelve a cargar sus datos.
     if(window.VEND){
-      [["cFant","fa"],["cRS","rs"],["cCuit","cu"],["cMail","em"],["cAddr","a"],["cLoc","l"],["cEntre","e"]].forEach(function(x){
+      [["cFant","fa"],["cRS","rs"],["cCuit","cu"],["cMail","em"],["cAddr","a"],["cLoc","l"],["cEntre","e"],["cTimbre","tb"]].forEach(function(x){
         var el=document.getElementById(x[0]); if(el && !el.value) el.value=f[x[1]]||"";
       });
     }
@@ -1184,6 +1184,7 @@ function sendWhatsApp(){
       var dirTxt=val("cAddr").trim(), locTxt=val("cLoc").trim(), entTxt=val("cEntre").trim();
       L.push("• *Dirección:* "+dirTxt+(locTxt?", "+locTxt:""));
       if(entTxt) L.push("• *Entre calles:* "+entTxt);
+      var tbTxt=val("cTimbre").trim(); if(tbTxt) L.push("• *Timbre / Dto:* "+tbTxt);
       if(geoCoords && geoCoords.lat!=null) L.push("• *Ubicación:* https://www.google.com/maps?q="+geoCoords.lat+","+geoCoords.lon);
     }
     if(VEND.nombre) L.push("• *Vendedor:* "+VEND.nombre);
@@ -1351,6 +1352,10 @@ function pedidoEnviado(){
             <label>Entre calles</label>
             <input id="cEntre" type="text" placeholder="Calle A y Calle B" oninput="saveForm()">
           </div>
+          <div class="fg">
+            <label>Timbre / Dto (opcional)</label>
+            <input id="cTimbre" type="text" maxlength="40" placeholder="Ej: timbre 2, dto B" oninput="saveForm()">
+          </div>
         </div>
         <!-- Botones de la cuenta (crear / entrar / completar datos). -->
         <div id="vendAcc" class="vpre" style="display:none"></div>
@@ -1511,7 +1516,7 @@ window.vendMod='envio';
     function fin(){
       saliendo=false; perfil=null; perfilExiste=false; cargando=false;
       modo = eraSocio ? 'crear' : 'entrar';
-      ['cFant','cRS','cCuit','cMail','cName','cTel','cAddr','cLoc','cEntre','cPass'].forEach(function(id){ var e=$(id); if(e) e.value=''; });
+      ['cFant','cRS','cCuit','cMail','cName','cTel','cAddr','cLoc','cEntre','cTimbre','cPass'].forEach(function(id){ var e=$(id); if(e) e.value=''; });
       pintar();
     }
     var auth=window.GDO&&GDO.FB&&GDO.FB.auth;
@@ -2340,6 +2345,8 @@ window.GDO = window.GDO || {};
         kg: (l.kgPor ? l.qty*l.kgPor : null) }));
     });
     var esp=[];
+    var timbre=val2('cTimbre').trim();
+    if(timbre && addr && window.vendMod!=='retiro') esp.push('Timbre / Dto: '+timbre);
     if(notes) esp.push(notes);
     cart.forEach(function(l){ if(l.note&&l.note.trim()) esp.push(l.name+': '+l.note.trim()); });
     function pushInbox(p){

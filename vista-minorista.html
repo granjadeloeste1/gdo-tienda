@@ -974,7 +974,7 @@ window.GDO = window.GDO || {};
         '<iframe id="mapaReparto" src="mapa-zona-oeste.html?v=4" title="Zona de reparto Oeste" loading="lazy" style="width:100%;border:0;display:block;min-height:420px"></iframe></details>'+
       '<style>.mapwrap{margin:10px 0;border:1px solid #eee;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)}.mapwrap>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#fff;background:#F58220;padding:13px 16px}.mapwrap>summary::-webkit-details-marker{display:none}.mapwrap .mapchev{margin-left:auto;transition:transform .2s}.mapwrap[open] .mapchev{transform:rotate(180deg)}</style>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+
-      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.9<br>Todos los derechos reservados</p>';
+      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.10<br>Todos los derechos reservados</p>';
     render(cats);
     // Ajusta la altura del mapa (iframe mismo-origen) a su contenido, y al abrir/cerrar el desplegable.
     (function(){ var det=$('#mapaDet'), f=$('#mapaReparto'); if(!f) return;
@@ -1102,12 +1102,23 @@ window.GDO = window.GDO || {};
         return d;
       });
     }
+    // La hoja trae el nombre mayorista, con el armado de la caja ("X 6 KG (6X1KG)", "X 15 KG (6 X 2,5 KG)").
+    // Al público se le vende por kg o por paquete: ese dato lo confunde (lee "5 kg" al lado del precio de 1),
+    // así que acá se saca. Si la venta ES la caja o la bolsa, el nombre queda como viene.
+    function nombreMin(n, variedad, cat){
+      n = String(n||'').replace(/\s+/g,' ').trim();
+      if(/caja|bolsa/i.test(variedad||'')) return n;
+      n = n.replace(/\s*(?:X\s*)?[\d.,]+\s*(?:KG|UNIDADES|UNI)?\s*\(\s*\d+\s*X\s*[\d.,]+\s*(?:KG|UNI\w*)?\s*\)/i,'')
+           .replace(/\s*\(\s*\d+\s*PAQUETES\s*\)/i,'');
+      if(/CONGELAD/i.test(cat||'') && /^\s*[\d.,]+\s*kg/i.test(variedad||'')) n = n.replace(/\s*X\s*[\d.,]+\s*KG\b/i,'');
+      return n.replace(/\s+/g,' ').trim();
+    }
     function cargar(){
       app.innerHTML='<div class="lead" style="margin-top:40px">Cargando la lista de precios…</div>';
       pedirLista(1).catch(pedirCopia)
         .then(function(d){
           if(!d || !d.productos || !d.productos.length) throw new Error('vacia');
-          window.MIN_DATA = d.productos;
+          window.MIN_DATA = d.productos.map(function(p){ p.nombre = nombreMin(p.nombre, p.variedad, p.cat); return p; });
           if(d.config){ CFG = d.config; }
           boot();
         })

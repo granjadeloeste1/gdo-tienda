@@ -976,8 +976,11 @@ window.GDO = window.GDO || {};
       '<details class="mapwrap" id="mapaDet"><summary class="maphead">🗺️ Mirá en el mapa qué días llegamos a tu localidad <span class="mapchev">▾</span></summary>'+
         '<iframe id="mapaReparto" src="mapa-zona-oeste.html?v=4" title="Zona de reparto Oeste" loading="lazy" style="width:100%;border:0;display:block;min-height:420px"></iframe></details>'+
       '<style>.mapwrap{margin:10px 0;border:1px solid #eee;border-radius:16px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)}.mapwrap>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-weight:800;font-size:15px;color:#fff;background:#F58220;padding:13px 16px}.mapwrap>summary::-webkit-details-marker{display:none}.mapwrap .mapchev{margin-left:auto;transition:transform .2s}.mapwrap[open] .mapchev{transform:rotate(180deg)}</style>'+
+      // Acceso al GDO Club: la misma tarjeta negra de la portada. Quien recibe el link de la lista minorista también ve el Club.
+      '<a class="clubcard" href="club.html"><span class="cc-ico">⭐</span><span class="cc-txt"><b>GDO CLUB</b><small>Asociate gratis y sumá puntos con tus compras</small></span><span class="cc-arr">›</span></a>'+
+      '<style>.clubcard{display:flex;align-items:center;gap:14px;margin:10px 0;padding:14px 16px;background:#0a0a0b;border:2px solid #F58220;border-radius:16px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.05)}.clubcard .cc-ico{font-size:26px;line-height:1}.clubcard .cc-txt{flex:1;display:flex;flex-direction:column}.clubcard .cc-txt b{font:800 17px system-ui,"Segoe UI",Arial,sans-serif;color:#fff}.clubcard .cc-txt small{font:13px system-ui,"Segoe UI",Arial,sans-serif;color:#bdbdbd;margin-top:2px}.clubcard .cc-arr{font-size:26px;color:#F58220;font-weight:700}</style>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+
-      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.16<br>Todos los derechos reservados</p>';
+      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.17<br>Todos los derechos reservados</p>';
     render(cats);
     // Ajusta la altura del mapa (iframe mismo-origen) a su contenido, y al abrir/cerrar el desplegable.
     (function(){ var det=$('#mapaDet'), f=$('#mapaReparto'); if(!f) return;

@@ -222,7 +222,7 @@ window.GDO = window.GDO || {};
 <script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
-  var VERSION='suprema v1.11';
+  var VERSION='suprema v1.12';
   // Timbre / Dto forma parte de la dirección: "García Silva 434 - Timbre 6".
   function dirTimbre(d,t){ d=String(d||'').trim(); t=String(t||'').trim().replace(/^[-\s]+/,''); if(!d||!t) return d; if(!/^(timbre|tbre|dto|dpto|depto|departamento|piso|casa|ph|fondo|local|lote|uf)(?![a-z])/i.test(t)) t='Timbre/Dto '+t; return d+' - '+t; }
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
@@ -438,10 +438,10 @@ window.GDO = window.GDO || {};
       '<div class="sec"><div class="h2">Paso 1</div><h3>Armá tu pedido</h3><div class="box pad">'+
         '<label class="fl">Cantidad de cajas</label><div class="qty"><button type="button" id="qm" aria-label="Uno menos">−</button><span id="qn">1</span><button type="button" id="qp" aria-label="Uno más">+</button></div>'+
         '<div id="tartasBox"></div></div></div>'+
-      '<div class="mayo"><b>¿Compra presencial o mayorista?</b><p>Si querés consultar por compras presenciales o venta mayorista, escribinos al WhatsApp la palabra <strong>MAYORISTA</strong> y te pasamos los valores de la suprema mayorista.</p><a id="mayoBtn" href="'+MAYORISTA+'" target="_blank" rel="noopener">Escribir MAYORISTA por WhatsApp →</a></div>'+
       '<div class="sumar"><div class="h2">Sumá a tu pedido</div><h3>¿Querés sumar algo más a tu compra?</h3>'+
         '<p>Milanesas, hamburguesas, trozado fresco, congelados, huevos y más, a precio de distribuidor. Llega todo junto con tu caja, con el envío sin cargo.</p>'+
         '<button type="button" id="sumarBtn">Ver toda la lista →</button><div id="sumarYa"></div></div>'+
+      '<div class="mayo"><b>¿Compra presencial o mayorista?</b><p>Si querés consultar por compras presenciales o venta mayorista, escribinos al WhatsApp la palabra <strong>MAYORISTA</strong> y te pasamos los valores de la suprema mayorista.</p><a id="mayoBtn" href="'+MAYORISTA+'" target="_blank" rel="noopener">Escribir MAYORISTA por WhatsApp →</a></div>'+
       '<div class="sec"><div class="h2">Paso 2</div><h3>¿Cómo lo recibís?</h3><div class="box pad">'+
         '<div class="seg"><button type="button" class="opt on" data-m="envio">Envío a domicilio<small id="envSmall">Sin cargo</small></button><button type="button" class="opt" data-m="retiro">Retiro en el local<small>Lunes a sábado</small></button></div>'+
         '<div class="envnota" id="envNota"></div>'+

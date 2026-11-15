@@ -212,7 +212,7 @@ window.GDO = window.GDO || {};
 <script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
-  var VERSION='combo v3.12';
+  var VERSION='combo v3.13';
   // Timbre / Dto forma parte de la dirección: "García Silva 434 - Timbre 6".
   function dirTimbre(d,t){ d=String(d||'').trim(); t=String(t||'').trim().replace(/^[-\s]+/,''); if(!d||!t) return d; if(!/^(timbre|tbre|dto|dpto|depto|departamento|piso|casa|ph|fondo|local|lote|uf)(?![a-z])/i.test(t)) t='Timbre/Dto '+t; return d+' - '+t; }
   // 3-nov-2026: se terminó la promo de la tarta de regalo con el combo de fin de mes. Volverla a prender = true.
@@ -318,8 +318,8 @@ window.GDO = window.GDO || {};
       return d;
     });
   }
-  // Regla de Matias (15-nov-2026): las milanesas crunch se venden a 1 kg o desde 2 kg; el escalon de 5 kg no va.
-  function sinCincoKg(ps){ return ps.filter(function(p){ return !(/MILANES/i.test(p.nombre||'') && /CRUN?CH/i.test(p.nombre||'') && /^5\s*kg$/i.test(String(p.variedad).trim())); }); }
+  // Regla de Matias (15-nov-2026): milanesas crunch, patitas artesanales y albondigas se venden a 1 kg o desde 2 kg; el escalon de 5 kg no va.
+  function sinCincoKg(ps){ return ps.filter(function(p){ return !(/MILANES.*CRUN?CH|PATITAS ARTESANALES|ALB[OÓ]NDIGA/i.test(p.nombre||'') && /^5\s*kg$/i.test(String(p.variedad).trim())); }); }
   pedirLista(1).catch(pedirCopia).then(function(d){
     CFG=d.config||{}; var ps=sinCincoKg(d.productos||[]);
     FIN=ps.filter(function(p){ return /COMBO/i.test(p.cat) && /^COMBO$/i.test(String(p.nombre).trim()); })[0];

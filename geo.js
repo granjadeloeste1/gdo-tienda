@@ -494,5 +494,62 @@ window.GDO = window.GDO || {};
     input.addEventListener('blur', () => setTimeout(hide, 150));
   }
 
-  GDO.Geo = { geocode, suggest, attachAutocomplete, locatePending };
+  /* Castelar Sur e Ituzaingó Sur: por ahora NO se entrega (decisión de Matías, 16-nov-2026).
+     El código postal no los separa (Castelar entero es 1712, Ituzaingó entero 1714): el límite son
+     las vías del tren Sarmiento. Tendido tomado de OpenStreetMap, [lng, lat] de oeste a este. */
+  const VIAS = [[-58.7000, -34.66575], [-58.6900, -34.66445], [-58.6775, -34.66286], [-58.6725, -34.66168], [-58.6650, -34.65921], [-58.6575, -34.65686], [-58.6500, -34.65429], [-58.6425, -34.65233], [-58.6375, -34.65071], [-58.6300, -34.64912], [-58.6250, -34.64841]];
+  function latVias(lng) {
+    let i = 0;
+    while (i < VIAS.length - 2 && lng > VIAS[i + 1][0]) i++;
+    const a = VIAS[i], b = VIAS[i + 1];
+    return a[1] + (b[1] - a[1]) * (lng - a[0]) / (b[0] - a[0]);
+  }
+  const sinTilde = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  // ¿En esa localidad hay un lado al que no vamos?
+  const conVias = (localidad) => { const l = sinTilde(localidad); return /castelar/.test(l) ? 'Castelar' : /ituzaingo/.test(l) ? 'Ituzaingó' : ''; };
+  // 'Castelar Sur' / 'Ituzaingó Sur' si el punto cae al sur de las vías; '' si se entrega.
+  function sinEntrega(lat, lng, localidad) {
+    const m = conVias(localidad);
+    if (!m || lat == null || lng == null || isNaN(+lat) || isNaN(+lng)) return '';
+    if (+lng < -58.72 || +lng > -58.61) return '';   // lejos de ese tramo: lo resuelve el control de partido
+    return +lat < latVias(+lng) ? m + ' Sur' : '';
+  }
+
+  /* Vigila la dirección mientras el cliente la carga. Si eligió Castelar o Ituzaingó se le avisa que
+     solo vamos al norte de las vías y, si la dirección cae al sur, no se deja enviar el pedido.
+     La dirección se ubica ANTES de tocar "Enviar" (al elegirla o al salir del campo), porque el
+     envío abre WhatsApp y no puede esperar. Si no se puede ubicar, pasa: lo marca el panel.
+     o = { dir: <input>, entre: <input>, loc: () => 'Castelar' }  →  { revisar(sugerencia), msg() } */
+  function vigilarEntrega(o) {
+    let msg = '', turno = 0, pick = null;
+    const caja = document.createElement('div');
+    caja.style.cssText = 'display:none;margin:6px 0 2px;padding:8px 10px;border-radius:8px;font-size:13px;line-height:1.35';
+    try { o.dir.insertAdjacentElement('afterend', caja); } catch (e) { /* sin lugar: igual se controla al enviar */ }
+    const mostrar = (texto, mal) => {
+      caja.textContent = texto; caja.style.display = texto ? 'block' : 'none';
+      caja.style.background = mal ? '#fdecea' : '#f4f4f4'; caja.style.color = mal ? '#b3261e' : '#555'; caja.style.fontWeight = mal ? '700' : '400';
+    };
+    async function revisar(it) {
+      if (it !== undefined) pick = it;
+      const loc = (o.loc && o.loc()) || '', m = conVias(loc), dir = String(o.dir.value || '').trim();
+      const n = ++turno;
+      msg = '';
+      if (!m) return mostrar('');
+      const info = 'En ' + m + ' por ahora entregamos solo del lado norte de las vías del tren.';
+      mostrar(info);
+      if (!dir) return;
+      let p = pick && pick.lat != null && pick.direccion && String(pick.direccion).toLowerCase() === dir.toLowerCase() ? pick : null;
+      // Con tope de 8 s: si el mapa no contesta, el pedido pasa igual (lo marca el panel).
+      if (!p) { try { p = await Promise.race([geocode(dir + ' ' + loc, o.entre ? o.entre.value : ''), new Promise((ok) => setTimeout(() => ok(null), 8000))]); } catch (e) { p = null; } }
+      if (n !== turno) return;
+      const sur = p && p.lat != null ? sinEntrega(p.lat, p.lng != null ? p.lng : p.lon, loc) : '';
+      if (sur) { msg = 'Por ahora no entregamos en ' + sur + ' (al sur de las vías del tren) 🙏'; mostrar(msg, true); }
+      else mostrar(info);
+    }
+    o.dir.addEventListener('change', () => revisar());
+    if (o.entre) o.entre.addEventListener('change', () => revisar());
+    return { revisar, msg: () => msg };
+  }
+
+  GDO.Geo = { sinEntrega, vigilarEntrega, geocode, suggest, attachAutocomplete, locatePending };
 })();

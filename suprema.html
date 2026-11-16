@@ -218,11 +218,11 @@ window.GDO = window.GDO || {};
   setTimeout(function(){ settle(true); }, 3500);
 })();
 </script>
-<script src="geo.js"></script>
+<script src="geo.js?v=2"></script>
 <script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
-  var VERSION='suprema v1.14';
+  var VERSION='suprema v1.15';
   // Timbre / Dto forma parte de la dirección: "García Silva 434 - Timbre 6".
   function dirTimbre(d,t){ d=String(d||'').trim(); t=String(t||'').trim().replace(/^[-\s]+/,''); if(!d||!t) return d; if(!/^(timbre|tbre|dto|dpto|depto|departamento|piso|casa|ph|fondo|local|lote|uf)(?![a-z])/i.test(t)) t='Timbre/Dto '+t; return d+' - '+t; }
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
@@ -484,7 +484,10 @@ window.GDO = window.GDO || {};
     app.querySelectorAll('.linkm').forEach(function(a){ a.onclick=verMapa; });
     $('verLista').onclick=function(ev){ ev.preventDefault(); abrirLista(); };
     $('sumarBtn').onclick=function(){ abrirLista(); };
-    try{ if(GDO.Geo && GDO.Geo.attachAutocomplete) GDO.Geo.attachAutocomplete($('dir'), function(it){ st.geo=it||null; }, { provincia:'Buenos Aires', departamento:'Hurlingham' }); }catch(e){}
+    try{ if(GDO.Geo && GDO.Geo.attachAutocomplete) GDO.Geo.attachAutocomplete($('dir'), function(it){ st.geo=it||null; if(window.GDO_vig) GDO_vig.revisar(it||null); }, { provincia:'Buenos Aires', departamento:'Hurlingham' }); }catch(e){}
+    // Castelar Sur / Ituzaingó Sur: no se entrega (se controla por las vías del tren).
+    try{ window.GDO_vig = GDO.Geo.vigilarEntrega ? GDO.Geo.vigilarEntrega({ dir: $('dir'), entre: $('entre'), loc: function(){ var s=document.getElementById('zona'); return s && s.selectedIndex>0 ? s.options[s.selectedIndex].text : ''; } }) : null;
+      if(window.GDO_vig){ $('zona').addEventListener('change', function(){ GDO_vig.revisar(); }); GDO_vig.revisar(); } }catch(e){}
     upd();
   }
 
@@ -603,7 +606,7 @@ window.GDO = window.GDO || {};
     function falla(t, el){ err.textContent=t; if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); }
     if(esAhorro()){ var grE=GDO.Prep.elecciones('COMBO AHORRO')||[]; for(var ge=0;ge<grE.length;ge++) if(!st.elecciones[ge]) return falla('Elegí: '+grE[ge].titulo, $('tartasBox')); }
     else if(false) return falla(st.cant>1?'Elegí las '+st.cant+' tartas de regalo.':'Elegí el sabor de tu tarta de regalo.', $('tartasBox'));
-    if(st.modo==='envio'){ if(st.zona==null) return falla('Elegí tu localidad.', $('zona')); if(!st.dia) return falla('Elegí el día de entrega.', $('diasBox')); if(!$('dir').value.trim()) return falla('Completá tu dirección.', $('dir')); if(!$('entre').value.trim()) return falla('Completá entre qué calles está.', $('entre')); }
+    if(st.modo==='envio'){ if(st.zona==null) return falla('Elegí tu localidad.', $('zona')); if(!st.dia) return falla('Elegí el día de entrega.', $('diasBox')); if(!$('dir').value.trim()) return falla('Completá tu dirección.', $('dir')); if(!$('entre').value.trim()) return falla('Completá entre qué calles está.', $('entre')); if(window.GDO_vig && GDO_vig.msg()) return falla(GDO_vig.msg(), $('dir')); }
     if(!nom) return falla('Completá tu nombre.', $('nom'));
     if(tel.replace(/\D/g,'').length<8) return falla('Revisá tu número de WhatsApp.', $('tel'));
     // Envío por debajo del monto de envío gratis: antes de confirmar se ofrece sumar productos.

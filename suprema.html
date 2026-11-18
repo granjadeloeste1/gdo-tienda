@@ -223,7 +223,7 @@ window.GDO = window.GDO || {};
 <script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
-  var VERSION='suprema v1.18';
+  var VERSION='suprema v1.19';
   // Timbre / Dto forma parte de la dirección: "García Silva 434 - Timbre 6".
   function dirTimbre(d,t){ d=String(d||'').trim(); t=String(t||'').trim().replace(/^[-\s]+/,''); if(!d||!t) return d; if(!/^(timbre|tbre|dto|dpto|depto|departamento|piso|casa|ph|fondo|local|lote|uf)(?![a-z])/i.test(t)) t='Timbre/Dto '+t; return d+' - '+t; }
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
@@ -269,8 +269,10 @@ window.GDO = window.GDO || {};
   function isoFer(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
   // Días SIN ENVÍOS: el local abre, pero el reparto de ese día ya está completo. Mismo listado que el bot (src/feriados.js, SIN_ENVIO).
   var SIN_ENVIO={'2026-11-10':'reparto completo','2026-11-11':'reparto completo','2026-11-12':'reparto completo','2026-11-13':'reparto completo'};
-  function esFeriado(d){ return !!(FERIADOS[isoFer(d)] || SIN_ENVIO[isoFer(d)]); }
-  function etqNo(d){ return FERIADOS[isoFer(d)] ? 'Feriado' : 'Completo'; }
+  // SIN STOCK de suprema (Matias, 18-nov-2026): se entrega desde el viernes 20/11. Mismo dato que el bot (src/stock.js, SUPREMA).
+  var SIN_STOCK={'2026-11-19':1};
+  function esFeriado(d){ return !!(FERIADOS[isoFer(d)] || SIN_ENVIO[isoFer(d)] || SIN_STOCK[isoFer(d)]); }
+  function etqNo(d){ return FERIADOS[isoFer(d)] ? 'Feriado' : SIN_STOCK[isoFer(d)] ? 'Sin stock' : 'Completo'; }
   // "Cerramos por feriado el lunes 9/11 (visita del Papa)." si hay alguno en los próximos 14 días.
   function avisoFeriado(){
     var N=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'], d=new Date(), out=[]; d.setHours(0,0,0,0);
@@ -452,7 +454,7 @@ window.GDO = window.GDO || {};
           '<label class="fl">Dirección</label><input id="dir" class="fin" autocomplete="street-address" placeholder="Calle y número">'+
           '<label class="fl">Timbre / Dto <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="timbre" class="fin" maxlength="40" placeholder="Ej: timbre 2, dto B">'+
           '<label class="fl">Entre calles</label><input id="entre" class="fin" placeholder="Ayuda al repartidor"></div>'+
-        '<div id="retBox" style="display:none"><div class="hint">Retiralo en <b>'+esc(CFG.sucursal)+'</b>, de '+HORARIO_RETIRO+'.'+(avisoFeriado()?' <b>'+avisoFeriado()+'</b>':'')+'</div><label class="fl">¿Qué día pasás? <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="diaR" class="fin" placeholder="Por ejemplo, jueves"></div>'+
+        '<div id="retBox" style="display:none"><div class="hint">Retiralo en <b>'+esc(CFG.sucursal)+'</b>, de '+HORARIO_RETIRO+'.'+(isoFer(new Date())<'2026-11-20'?' <b>Retiros a partir del viernes 20/11.</b>':'')+(avisoFeriado()?' <b>'+avisoFeriado()+'</b>':'')+'</div><label class="fl">¿Qué día pasás? <span style="font-weight:400;color:#9a9188">(opcional)</span></label><input id="diaR" class="fin" placeholder="Por ejemplo, jueves"></div>'+
       '</div></div>'+
       '<div class="sec"><div class="h2">Paso 3</div><h3>Tus datos</h3><div class="box pad">'+
         '<label class="fl">Nombre y apellido</label><input id="nom" class="fin" autocomplete="name" placeholder="Cómo te llamás">'+
@@ -513,7 +515,7 @@ window.GDO = window.GDO || {};
     // Un feriado aparece en rojo y no se puede elegir; al lado, la fecha siguiente de ese día.
     var ds=[]; CFG.zonas[st.zona].dias.forEach(function(d){ var r=proxFechaDia(d,true); if(!r) return; if(esFeriado(r)) ds.push(r); ds.push(proxFechaDia(d)); });
     ds.sort(function(a,b){ return a-b; });
-    box.innerHTML='<label class="fl">Día de entrega</label><div class="dias">'+ds.map(function(f){ var n=NOMDIA[f.getDay()]; if(esFeriado(f)) return '<button type="button" class="diab fer" disabled title="'+(etqNo(f)==='Feriado'?'Feriado: cerramos':'Reparto completo')+'">'+n+'<span>'+fmtF(f)+' · '+etqNo(f)+'</span></button>'; return '<button type="button" class="diab" data-d="'+n+'" data-f="'+fmtF(f)+'" data-i="'+isoF(f)+'">'+n+'<span>'+fmtF(f)+'</span></button>'; }).join('')+'</div>'+
+    box.innerHTML='<label class="fl">Día de entrega</label><div class="dias">'+ds.map(function(f){ var n=NOMDIA[f.getDay()]; if(esFeriado(f)) return '<button type="button" class="diab fer" disabled title="'+(etqNo(f)==='Feriado'?'Feriado: cerramos':etqNo(f)==='Sin stock'?'Entregamos desde el viernes':'Reparto completo')+'">'+n+'<span>'+fmtF(f)+' · '+etqNo(f)+'</span></button>'; return '<button type="button" class="diab" data-d="'+n+'" data-f="'+fmtF(f)+'" data-i="'+isoF(f)+'">'+n+'<span>'+fmtF(f)+'</span></button>'; }).join('')+'</div>'+
       '<div class="hint">Entregamos '+esc(String(CFG.horario||'').replace(/^entregamos\s*/i,''))+'. Los pedidos se preparan con 24 hs de anticipación.</div>';
     box.querySelectorAll('.diab').forEach(function(b){ b.onclick=function(){ st.dia=b.dataset.d; st.diaF=b.dataset.f; st.diaIso=b.dataset.i; box.querySelectorAll('.diab').forEach(function(x){ x.classList.toggle('on',x===b); }); }; });
   }

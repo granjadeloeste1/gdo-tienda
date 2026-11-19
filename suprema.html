@@ -160,6 +160,13 @@ select.fin{background-image:linear-gradient(45deg,transparent 50%,#999 50%),line
 .pm .tag{display:inline-block;font:700 11px var(--sans);letter-spacing:1.6px;text-transform:uppercase;color:var(--ne);background:var(--am);padding:4px 8px;border-radius:3px}
 .pm h3{font:800 22px/1.1 var(--slab);margin:7px 0 4px}
 .pm .q{font-size:13px;color:#cfc7be}
+.pm .q b{color:#fff}
+.seco{display:inline-block;white-space:nowrap;font:800 24px/1 var(--slab);letter-spacing:.5px;color:var(--ne);background:var(--am);padding:6px 12px 8px;border-radius:8px;margin:2px 0 8px;transform:rotate(-2deg)}
+.pmpop .seco{font-size:30px;margin:4px 0 2px}
+.achica{padding:4px 16px 14px;font:800 52px/1 var(--slab);letter-spacing:-.5px;color:var(--or)}
+.achica small{display:block;font:700 15px var(--sans);letter-spacing:0;color:#fff;margin-top:6px}
+.achica.pop{padding:8px 0 0;font-size:50px}
+.achica.pop small{color:var(--tx);font-size:16px}
 .pm .pmp{display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--or);padding:14px 16px 16px}
 .pm .pmp>div{flex:1 1 100%}
 .pm .pmp button{flex:1 1 100%;font-size:17px;padding:15px}
@@ -247,7 +254,7 @@ window.GDO = window.GDO || {};
 <script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
-  var VERSION='suprema v1.20';
+  var VERSION='suprema v1.21';
   // Timbre / Dto forma parte de la dirección: "García Silva 434 - Timbre 6".
   function dirTimbre(d,t){ d=String(d||'').trim(); t=String(t||'').trim().replace(/^[-\s]+/,''); if(!d||!t) return d; if(!/^(timbre|tbre|dto|dpto|depto|departamento|piso|casa|ph|fondo|local|lote|uf)(?![a-z])/i.test(t)) t='Timbre/Dto '+t; return d+' - '+t; }
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
@@ -397,9 +404,8 @@ window.GDO = window.GDO || {};
       if(catIdx[cat]==null){ catIdx[cat]=CATS.length; CATS.push({ cat:cap(cat), keys:[] }); }
       CATS[catIdx[cat]].keys=CATS[catIdx[cat]].keys.concat(keys);
     });
-    // Oferta de la hoja: "PATA Y MUSLO FRESCA X 10 KG" (un pack a precio fijo). Sin la fila, no se muestra nada.
-    PM=Object.keys(EXTRA).filter(function(k){ return /PATA Y MUSLO FRESCA/i.test(EXTRA[k].nombre) && !EXTRA[k].porKg; })[0]||null;
-    if(PM) EXTRA[PM].label='Pata y muslo fresca 10 kg';
+    // Oferta (Matias, 19-nov-2026): la opción de 10 kg del CUARTO TRASERO de la hoja. Sin esa opción, no se muestra nada.
+    PM=Object.keys(EXTRA).filter(function(k){ var e=EXTRA[k]; return /^CUARTO TRASERO\s*$/i.test(e.nombre) && e.porKg && e.tiers.some(function(t){ return t.min===10; }); })[0]||null;
     if(VUELTA) return;
     if(!COMBO){ app.innerHTML=TOP+'<div class="off">La caja de suprema no está disponible en este momento.<a class="mas" href="vista-minorista.html"><span>Ver la lista completa</span></a></div>'; return; }
     gdoPx('ViewContent',{content_name:nombreCombo(),value:COMBO.precio,currency:'ARS',content_type:'product'});
@@ -470,9 +476,10 @@ window.GDO = window.GDO || {};
       '<div class="sec"><div class="h2">Paso 1</div><h3>Armá tu pedido</h3><div class="box pad">'+
         '<label class="fl">Cantidad de cajas</label><div class="qty"><button type="button" id="qm" aria-label="Uno menos">−</button><span id="qn">1</span><button type="button" id="qp" aria-label="Uno más">+</button></div>'+
         '<div id="tartasBox"></div></div></div>'+
-      (PM?'<div class="pm" id="pmCard"><div class="pmtop"><div class="pmimg" role="img" aria-label="Pata y muslo fresca"></div><div><span class="tag">Sumalo a tu pedido</span>'+
-        '<h3>10 kg de pata y muslo fresca</h3><div class="q">¿Ya te cansaste de la suprema? Llevá también pata y muslo, llega junto con tu caja.</div></div></div>'+
-        '<div class="pmp"><div><div class="n">'+money(EXTRA[PM].vars[0].precio)+'</div><small>Los 10 kg · sale '+money(Math.round(EXTRA[PM].vars[0].precio/10))+' el kilo</small></div><button type="button" id="pmBtn">Sumar a mi pedido</button></div>'+
+      (PM?'<div class="pm" id="pmCard"><div class="pmtop"><div class="pmimg" role="img" aria-label="Cuarto trasero de pollo"></div><div><span class="tag">Sumalo a tu pedido</span>'+
+        '<h3>10 kg de cuarto trasero</h3><div class="seco">POLLO SECO</div></div></div>'+
+        '<div class="achica">NO SE ACHICA<small>Tenés que probarlo. Llega junto con tu caja.</small></div>'+
+        '<div class="pmp"><div><div class="n">'+money(pmTotal())+'</div><small>Los 10 kg · sale '+money(pmTotal()/10)+' el kilo</small></div><button type="button" id="pmBtn">Sumar a mi pedido</button></div>'+
         '<div class="ok">✓ Sumado a tu pedido</div></div>':'')+
       '<div class="sumar"><div class="h2">Sumá a tu pedido</div><h3>¿Querés sumar algo más a tu compra?</h3>'+
         '<p>Milanesas, hamburguesas, trozado fresco, congelados, huevos y más, a precio de distribuidor. Llega todo junto con tu caja, con el envío sin cargo.</p>'+
@@ -518,7 +525,7 @@ window.GDO = window.GDO || {};
     app.querySelectorAll('.linkm').forEach(function(a){ a.onclick=verMapa; });
     $('verLista').onclick=function(ev){ ev.preventDefault(); abrirLista(); };
     $('sumarBtn').onclick=function(){ abrirLista(); };
-    if(PM) $('pmBtn').onclick=function(){ if(st.extras[PM]>0) delete st.extras[PM]; else { st.extras[PM]=1; gdoPx('AddToCart',{content_name:'Pata y muslo 10 kg',value:EXTRA[PM].vars[0].precio,currency:'ARS'}); } upd(); };
+    if(PM) $('pmBtn').onclick=function(){ if(st.extras[PM]>=10) delete st.extras[PM]; else { st.extras[PM]=10; gdoPx('AddToCart',{content_name:'Cuarto trasero 10 kg',value:pmTotal(),currency:'ARS'}); } upd(); };
     try{ if(GDO.Geo && GDO.Geo.attachAutocomplete) GDO.Geo.attachAutocomplete($('dir'), function(it){ st.geo=it||null; if(window.GDO_vig) GDO_vig.revisar(it||null); }, { provincia:'Buenos Aires', departamento:'Hurlingham' }); }catch(e){}
     // Castelar Sur / Ituzaingó Sur: no se entrega (se controla por las vías del tren).
     try{ window.GDO_vig = GDO.Geo.vigilarEntrega ? GDO.Geo.vigilarEntrega({ dir: $('dir'), entre: $('entre'), loc: function(){ var s=document.getElementById('zona'); return s && s.selectedIndex>0 ? s.options[s.selectedIndex].text : ''; } }) : null;
@@ -563,7 +570,7 @@ window.GDO = window.GDO || {};
     var nEx=Object.keys(st.extras).filter(function(n){ return st.extras[n]>0; }).length;
     $('sumarYa').innerHTML=nEx?'<span class="ya">✓ Ya sumaste '+nEx+' producto'+(nEx>1?'s':'')+' · '+money(extrasTotal())+'</span>':'';
     $('sumarBtn').textContent=nEx?'Ver la lista y sumar más →':'Ver toda la lista →';
-    if(PM){ var pmOn=st.extras[PM]>0; $('pmCard').classList.toggle('on',pmOn); $('pmBtn').textContent=pmOn?'Quitar':'Sumar a mi pedido'; }
+    if(PM){ var pmOn=st.extras[PM]>=10; $('pmCard').classList.toggle('on',pmOn); $('pmBtn').textContent=pmOn?'Quitar':'Sumar a mi pedido'; }
     $('teL').style.display=st.modo==='envio'?'flex':'none';
     $('te').textContent=e===0?'Sin cargo':money(e);
     $('tt').textContent=money(pr+e); $('gt').textContent=money(pr+e);
@@ -646,7 +653,7 @@ window.GDO = window.GDO || {};
     if(!nom) return falla('Completá tu nombre.', $('nom'));
     if(tel.replace(/\D/g,'').length<8) return falla('Revisá tu número de WhatsApp.', $('tel'));
     // Oferta pata y muslo: si todavía no la sumó, se ofrece UNA vez en un cartel antes de confirmar.
-    if(listo!==true && PM && !(st.extras[PM]>0) && !st.pmOfrecido){ st.pmOfrecido=true; return ofertaPM(function(){ enviar(); }); }
+    if(listo!==true && PM && !(st.extras[PM]>=10) && !st.pmOfrecido){ st.pmOfrecido=true; return ofertaPM(function(){ enviar(); }); }
     // Envío por debajo del monto de envío gratis: antes de confirmar se ofrece sumar productos.
     if(listo!==true && UPG.length && (!st.ofrecido || (st.modo==='envio' && CFG.envioGratis && productos()<CFG.envioGratisDesde))){ st.ofrecido=true; return sumarMas(); }
     var s=sub(), px=extrasTotal(), e=envio(), total=s+px+e, esEnv=st.modo==='envio';
@@ -728,13 +735,14 @@ window.GDO = window.GDO || {};
   }
 
   // Cartel de la oferta de pata y muslo 10 kg (antes de confirmar, una sola vez).
+  function pmTotal(){ return precioExtra(EXTRA[PM],10)*10; }
   function ofertaPM(seguir){
-    var x=EXTRA[PM], p=x.vars[0].precio, ov=document.createElement('div'); ov.className='up pmpop';
-    ov.innerHTML='<div class="upbox"><div class="h2">Antes de confirmar</div><div class="pmbig" role="img" aria-label="Pata y muslo fresca"></div>'+
-      '<h3>¿Sumás 10 kg de pata y muslo fresca?</h3><div class="pmn">'+money(p)+'</div>'+
+    var p=pmTotal(), ov=document.createElement('div'); ov.className='up pmpop';
+    ov.innerHTML='<div class="upbox"><div class="h2">Antes de confirmar</div><div class="pmbig" role="img" aria-label="Cuarto trasero de pollo"></div>'+
+      '<h3>¿Sumás 10 kg de cuarto trasero?</h3><div class="seco">POLLO SECO</div><div class="achica pop">NO SE ACHICA<small>Tenés que probarlo.</small></div><div class="pmn">'+money(p)+'</div>'+
       '<div class="hint">Los 10 kg a '+money(p)+' (sale '+money(Math.round(p/10))+' el kilo). Llega junto con tu caja de suprema.</div>'+
       '<button type="button" class="si">Sí, sumarlo a mi pedido</button><button type="button" class="no">No, gracias</button></div>';
-    function cerrar(sumar){ if(sumar){ st.extras[PM]=1; gdoPx('AddToCart',{content_name:'Pata y muslo 10 kg',value:p,currency:'ARS'}); upd(); } ov.remove(); seguir(); }
+    function cerrar(sumar){ if(sumar){ st.extras[PM]=10; gdoPx('AddToCart',{content_name:'Cuarto trasero 10 kg',value:p,currency:'ARS'}); upd(); } ov.remove(); seguir(); }
     ov.querySelector('.si').onclick=function(){ cerrar(true); };
     ov.querySelector('.no').onclick=function(){ cerrar(false); };
     ov.onclick=function(ev){ if(ev.target===ov) ov.remove(); };

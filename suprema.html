@@ -161,6 +161,9 @@ select.fin{background-image:linear-gradient(45deg,transparent 50%,#999 50%),line
 .pm h3{font:800 22px/1.1 var(--slab);margin:7px 0 4px}
 .pm .q{font-size:13px;color:#cfc7be}
 .pm .q b{color:#fff}
+.pm .pmtop>div:last-child{min-width:0;flex:1}
+.pm .pmtop h3{font-size:20px;overflow-wrap:anywhere}
+.pm .pmimg{flex:0 0 96px;height:96px}
 .seco{display:inline-block;white-space:nowrap;font:800 24px/1 var(--slab);letter-spacing:.5px;color:var(--ne);background:var(--am);padding:6px 12px 8px;border-radius:8px;margin:2px 0 8px;transform:rotate(-2deg)}
 .pmpop .seco{font-size:30px;margin:4px 0 2px}
 .achica{padding:4px 16px 14px;font:800 52px/1 var(--slab);letter-spacing:-.5px;color:var(--or)}
@@ -254,7 +257,7 @@ window.GDO = window.GDO || {};
 <script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
-  var VERSION='suprema v1.21';
+  var VERSION='suprema v1.22';
   // Timbre / Dto forma parte de la dirección: "García Silva 434 - Timbre 6".
   function dirTimbre(d,t){ d=String(d||'').trim(); t=String(t||'').trim().replace(/^[-\s]+/,''); if(!d||!t) return d; if(!/^(timbre|tbre|dto|dpto|depto|departamento|piso|casa|ph|fondo|local|lote|uf)(?![a-z])/i.test(t)) t='Timbre/Dto '+t; return d+' - '+t; }
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
@@ -406,6 +409,7 @@ window.GDO = window.GDO || {};
     });
     // Oferta (Matias, 19-nov-2026): la opción de 10 kg del CUARTO TRASERO de la hoja. Sin esa opción, no se muestra nada.
     PM=Object.keys(EXTRA).filter(function(k){ var e=EXTRA[k]; return /^CUARTO TRASERO\s*$/i.test(e.nombre) && e.porKg && e.tiers.some(function(t){ return t.min===10; }); })[0]||null;
+    if(PM) EXTRA[PM].label='Cuarto trasero (pollo seco)';
     if(VUELTA) return;
     if(!COMBO){ app.innerHTML=TOP+'<div class="off">La caja de suprema no está disponible en este momento.<a class="mas" href="vista-minorista.html"><span>Ver la lista completa</span></a></div>'; return; }
     gdoPx('ViewContent',{content_name:nombreCombo(),value:COMBO.precio,currency:'ARS',content_type:'product'});
@@ -477,8 +481,8 @@ window.GDO = window.GDO || {};
         '<label class="fl">Cantidad de cajas</label><div class="qty"><button type="button" id="qm" aria-label="Uno menos">−</button><span id="qn">1</span><button type="button" id="qp" aria-label="Uno más">+</button></div>'+
         '<div id="tartasBox"></div></div></div>'+
       (PM?'<div class="pm" id="pmCard"><div class="pmtop"><div class="pmimg" role="img" aria-label="Cuarto trasero de pollo"></div><div><span class="tag">Sumalo a tu pedido</span>'+
-        '<h3>10 kg de cuarto trasero</h3><div class="seco">POLLO SECO</div></div></div>'+
-        '<div class="achica">NO SE ACHICA<small>Tenés que probarlo. Llega junto con tu caja.</small></div>'+
+        '<h3>10 kg de cuarto trasero de pollo seco</h3><div class="seco">POLLO SECO</div></div></div>'+
+        '<div class="achica">NO SE ACHICA<small>El cuarto trasero que te llevamos es de pollo seco: no se achica al cocinarlo. Tenés que probarlo. Llega junto con tu caja.</small></div>'+
         '<div class="pmp"><div><div class="n">'+money(pmTotal())+'</div><small>Los 10 kg · sale '+money(pmTotal()/10)+' el kilo</small></div><button type="button" id="pmBtn">Sumar a mi pedido</button></div>'+
         '<div class="ok">✓ Sumado a tu pedido</div></div>':'')+
       '<div class="sumar"><div class="h2">Sumá a tu pedido</div><h3>¿Querés sumar algo más a tu compra?</h3>'+
@@ -739,7 +743,7 @@ window.GDO = window.GDO || {};
   function ofertaPM(seguir){
     var p=pmTotal(), ov=document.createElement('div'); ov.className='up pmpop';
     ov.innerHTML='<div class="upbox"><div class="h2">Antes de confirmar</div><div class="pmbig" role="img" aria-label="Cuarto trasero de pollo"></div>'+
-      '<h3>¿Sumás 10 kg de cuarto trasero?</h3><div class="seco">POLLO SECO</div><div class="achica pop">NO SE ACHICA<small>Tenés que probarlo.</small></div><div class="pmn">'+money(p)+'</div>'+
+      '<h3>¿Sumás 10 kg de cuarto trasero de pollo seco?</h3><div class="seco">POLLO SECO</div><div class="achica pop">NO SE ACHICA<small>Es pollo seco: no se achica al cocinarlo. Tenés que probarlo.</small></div><div class="pmn">'+money(p)+'</div>'+
       '<div class="hint">Los 10 kg a '+money(p)+' (sale '+money(Math.round(p/10))+' el kilo). Llega junto con tu caja de suprema.</div>'+
       '<button type="button" class="si">Sí, sumarlo a mi pedido</button><button type="button" class="no">No, gracias</button></div>';
     function cerrar(sumar){ if(sumar){ st.extras[PM]=10; gdoPx('AddToCart',{content_name:'Cuarto trasero 10 kg',value:p,currency:'ARS'}); upd(); } ov.remove(); seguir(); }

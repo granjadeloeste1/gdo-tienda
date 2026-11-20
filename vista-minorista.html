@@ -276,8 +276,11 @@ window.GDO = window.GDO || {};
   function proxFechaDia(nombre,conFeriado){
     var n=String(nombre||'').trim().toLowerCase(), di=DIA_IDX[n];
     if(di==null) return null;
-    var b=new Date(); b.setHours(0,0,0,0);
-    var diff=(di-b.getDay()+7)%7; if(diff===0) diff=7;
+    // Corte de las 21 hs (regla de Matias, 19-nov-2026): hasta las 21 se pide para mañana; después,
+    // mañana ya no se puede y ese día pasa a la semana siguiente. Hora de Argentina, no la del celular.
+    var b=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Argentina/Buenos_Aires'}));
+    var tarde=b.getHours()>=21; b.setHours(0,0,0,0);
+    var diff=(di-b.getDay()+7)%7; if(diff===0) diff=7; else if(diff===1 && tarde) diff=8;
     b.setDate(b.getDate()+diff);
     while(!conFeriado && esFeriado(b)) b.setDate(b.getDate()+7); // feriado: cerramos, va la semana siguiente
     return b;
@@ -985,7 +988,7 @@ window.GDO = window.GDO || {};
       '<a class="clubcard" href="club.html"><span class="cc-ico">⭐</span><span class="cc-txt"><b>GDO CLUB</b><small>Asociate gratis y sumá puntos con tus compras</small></span><span class="cc-arr">›</span></a>'+
       '<style>.clubcard{display:flex;align-items:center;gap:14px;margin:10px 0;padding:14px 16px;background:#0a0a0b;border:2px solid #F58220;border-radius:16px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.05)}.clubcard .cc-ico{font-size:26px;line-height:1}.clubcard .cc-txt{flex:1;display:flex;flex-direction:column}.clubcard .cc-txt b{font:800 17px system-ui,"Segoe UI",Arial,sans-serif;color:#fff}.clubcard .cc-txt small{font:13px system-ui,"Segoe UI",Arial,sans-serif;color:#bdbdbd;margin-top:2px}.clubcard .cc-arr{font-size:26px;color:#F58220;font-weight:700}</style>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+
-      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.24<br>Todos los derechos reservados</p>';
+      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.25<br>Todos los derechos reservados</p>';
     render(cats);
     // Ajusta la altura del mapa (iframe mismo-origen) a su contenido, y al abrir/cerrar el desplegable.
     (function(){ var det=$('#mapaDet'), f=$('#mapaReparto'); if(!f) return;

@@ -257,7 +257,7 @@ window.GDO = window.GDO || {};
 <script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
-  var VERSION='suprema v1.22';
+  var VERSION='suprema v1.23';
   // Timbre / Dto forma parte de la dirección: "García Silva 434 - Timbre 6".
   function dirTimbre(d,t){ d=String(d||'').trim(); t=String(t||'').trim().replace(/^[-\s]+/,''); if(!d||!t) return d; if(!/^(timbre|tbre|dto|dpto|depto|departamento|piso|casa|ph|fondo|local|lote|uf)(?![a-z])/i.test(t)) t='Timbre/Dto '+t; return d+' - '+t; }
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
@@ -315,7 +315,7 @@ window.GDO = window.GDO || {};
   }
   var DIA_IDX={domingo:0,lunes:1,martes:2,miercoles:3,jueves:4,viernes:5,sabado:6};
   function sinTilde(s){ return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').trim().toLowerCase(); }
-  function proxFechaDia(n,conFeriado){ var di=DIA_IDX[sinTilde(n)]; if(di==null) return null; var b=new Date(); b.setHours(0,0,0,0); var d=(di-b.getDay()+7)%7; if(d===0) d=7; b.setDate(b.getDate()+d); while(!conFeriado && esFeriado(b)) b.setDate(b.getDate()+7); return b; }
+  function proxFechaDia(n,conFeriado){ var di=DIA_IDX[sinTilde(n)]; if(di==null) return null; var b=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Argentina/Buenos_Aires'})); var tarde=b.getHours()>=21; b.setHours(0,0,0,0); var d=(di-b.getDay()+7)%7; if(d===0) d=7; else if(d===1 && tarde) d=8; /* corte 21 hs: después, mañana ya no */ b.setDate(b.getDate()+d); while(!conFeriado && esFeriado(b)) b.setDate(b.getDate()+7); return b; }
   var NOMDIA=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   function fmtF(d){ return d? d.getDate()+'/'+(d.getMonth()+1) : ''; }
   function isoF(d){ return d? d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0') : ''; }

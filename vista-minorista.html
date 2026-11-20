@@ -260,7 +260,7 @@ window.GDO = window.GDO || {};
     '2027-05-01':'Día del Trabajador','2027-05-25':'25 de Mayo','2027-06-20':'Día de la Bandera','2027-07-09':'9 de Julio','2027-12-08':'Inmaculada Concepción','2027-12-25':'Navidad'};
   function isoFer(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
   // Días SIN ENVÍOS: el local abre, pero el reparto de ese día ya está completo. Mismo listado que el bot (src/feriados.js, SIN_ENVIO).
-  var SIN_ENVIO={'2026-11-10':'reparto completo','2026-11-11':'reparto completo','2026-11-12':'reparto completo','2026-11-13':'reparto completo'};
+  var SIN_ENVIO={'2026-11-10':'reparto completo','2026-11-11':'reparto completo','2026-11-12':'reparto completo','2026-11-13':'reparto completo','2026-11-21':'reparto completo'};
   function esFeriado(d){ return !!(FERIADOS[isoFer(d)] || SIN_ENVIO[isoFer(d)]); }
   function etqNo(d){ return FERIADOS[isoFer(d)] ? 'Feriado' : 'Completo'; }
   // "Cerramos por feriado el lunes 9/11 (visita del Papa)." si hay alguno en los próximos 14 días.
@@ -988,7 +988,7 @@ window.GDO = window.GDO || {};
       '<a class="clubcard" href="club.html"><span class="cc-ico">⭐</span><span class="cc-txt"><b>GDO CLUB</b><small>Asociate gratis y sumá puntos con tus compras</small></span><span class="cc-arr">›</span></a>'+
       '<style>.clubcard{display:flex;align-items:center;gap:14px;margin:10px 0;padding:14px 16px;background:#0a0a0b;border:2px solid #F58220;border-radius:16px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.05)}.clubcard .cc-ico{font-size:26px;line-height:1}.clubcard .cc-txt{flex:1;display:flex;flex-direction:column}.clubcard .cc-txt b{font:800 17px system-ui,"Segoe UI",Arial,sans-serif;color:#fff}.clubcard .cc-txt small{font:13px system-ui,"Segoe UI",Arial,sans-serif;color:#bdbdbd;margin-top:2px}.clubcard .cc-arr{font-size:26px;color:#F58220;font-weight:700}</style>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+
-      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.26<br>Todos los derechos reservados</p>';
+      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.27<br>Todos los derechos reservados</p>';
     render(cats);
     // Ajusta la altura del mapa (iframe mismo-origen) a su contenido, y al abrir/cerrar el desplegable.
     (function(){ var det=$('#mapaDet'), f=$('#mapaReparto'); if(!f) return;

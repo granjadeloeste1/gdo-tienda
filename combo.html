@@ -213,7 +213,7 @@ window.GDO = window.GDO || {};
 <script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
-  var VERSION='combo v3.18';
+  var VERSION='combo v3.19';
   // Timbre / Dto forma parte de la dirección: "García Silva 434 - Timbre 6".
   function dirTimbre(d,t){ d=String(d||'').trim(); t=String(t||'').trim().replace(/^[-\s]+/,''); if(!d||!t) return d; if(!/^(timbre|tbre|dto|dpto|depto|departamento|piso|casa|ph|fondo|local|lote|uf)(?![a-z])/i.test(t)) t='Timbre/Dto '+t; return d+' - '+t; }
   // 3-nov-2026: se terminó la promo de la tarta de regalo con el combo de fin de mes. Volverla a prender = true.
@@ -507,7 +507,7 @@ window.GDO = window.GDO || {};
   function dias(){
     var box=$('diasBox'); if(st.zona==null){ box.innerHTML=''; return; }
     // Un feriado aparece en rojo y no se puede elegir; al lado, la fecha siguiente de ese día.
-    var ds=[]; CFG.zonas[st.zona].dias.forEach(function(d){ var r=proxFechaDia(d,true); if(!r) return; if(esFeriado(r)) ds.push(r); ds.push(proxFechaDia(d)); });
+    var ds=[]; CFG.zonas[st.zona].dias.forEach(function(d){ var r=proxFechaDia(d,true); if(!r) return; if(esFeriado(r)) ds.push(r); ds.push(proxFechaDia(d)); }); ds.sort(function(x,y){ return x.getTime()-y.getTime(); }); /* por fecha: primero la próxima entrega */
     ds.sort(function(a,b){ return a-b; });
     box.innerHTML='<label class="fl">Día de entrega</label><div class="dias">'+ds.map(function(f){ var n=NOMDIA[f.getDay()]; if(esFeriado(f)) return '<button type="button" class="diab fer" disabled title="'+(etqNo(f)==='Feriado'?'Feriado: cerramos':'Reparto completo')+'">'+n+'<span>'+fmtF(f)+' · '+etqNo(f)+'</span></button>'; return '<button type="button" class="diab" data-d="'+n+'" data-f="'+fmtF(f)+'" data-i="'+isoF(f)+'">'+n+'<span>'+fmtF(f)+'</span></button>'; }).join('')+'</div>'+
       '<div class="hint">Entregamos '+esc(String(CFG.horario||'').replace(/^entregamos\s*/i,''))+'. Los pedidos se preparan con 24 hs de anticipación.</div>';

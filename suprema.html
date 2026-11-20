@@ -257,7 +257,7 @@ window.GDO = window.GDO || {};
 <script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
-  var VERSION='suprema v1.24';
+  var VERSION='suprema v1.25';
   // Timbre / Dto forma parte de la dirección: "García Silva 434 - Timbre 6".
   function dirTimbre(d,t){ d=String(d||'').trim(); t=String(t||'').trim().replace(/^[-\s]+/,''); if(!d||!t) return d; if(!/^(timbre|tbre|dto|dpto|depto|departamento|piso|casa|ph|fondo|local|lote|uf)(?![a-z])/i.test(t)) t='Timbre/Dto '+t; return d+' - '+t; }
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
@@ -315,6 +315,8 @@ window.GDO = window.GDO || {};
   }
   var DIA_IDX={domingo:0,lunes:1,martes:2,miercoles:3,jueves:4,viernes:5,sabado:6};
   function sinTilde(s){ return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').trim().toLowerCase(); }
+  /* El nombre tiene que decir QUÉ es el producto aunque se lea suelto (pedido, comanda, WhatsApp): en la lista, las milanesas de soja, las hamburguesas veganas y los canelones traen el rubro solo en el título de la sección ('RELLENA QUESO AZUL...'), y en el local se confundió con una milanesa de pollo rellena (20-nov-2026). Misma función en vista-minorista, index, suprema, combo, el bot (src/precios.js) y Rutas (js/lista.js). */
+  function conRubro(n, rubro){ n=String(n||''); var R=String(rubro||'').toUpperCase(), N=n.toUpperCase(); if(/SOJA/.test(R) && !/SOJA/.test(N)) return 'MILANESA DE SOJA '+n; if(/VEGAN/.test(R) && !/HAMBURGUESA/.test(N)) return 'HAMBURGUESA VEGANA '+n.replace(/^\s*VEGANA\s+/i,''); if(/CANELON/.test(R) && !/CANELON/.test(N)) return 'CANELONES '+n; return n; }
   function proxFechaDia(n,conFeriado){ var di=DIA_IDX[sinTilde(n)]; if(di==null) return null; var b=new Date(new Date().toLocaleString('en-US',{timeZone:'America/Argentina/Buenos_Aires'})); var tarde=b.getHours()>=21; b.setHours(0,0,0,0); var d=(di-b.getDay()+7)%7; if(d===0) d=7; else if(d===1 && tarde) d=8; /* corte 21 hs: después, mañana ya no */ b.setDate(b.getDate()+d); while(!conFeriado && esFeriado(b)) b.setDate(b.getDate()+7); return b; }
   var NOMDIA=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   function fmtF(d){ return d? d.getDate()+'/'+(d.getMonth()+1) : ''; }
@@ -366,7 +368,7 @@ window.GDO = window.GDO || {};
   // Regla de Matias (15-nov-2026): milanesas crunch, patitas artesanales y albondigas se venden a 1 kg o desde 2 kg; el escalon de 5 kg no va.
   function sinCincoKg(ps){ return ps.filter(function(p){ return !(/MILANES.*CRUN?CH|PATITAS ARTESANALES|ALB[OÓ]NDIGA/i.test(p.nombre||'') && /^5\s*kg$/i.test(String(p.variedad).trim())); }); }
   pedirLista(1).catch(pedirCopia).then(function(d){
-    CFG=d.config||{}; var ps=sinCincoKg(d.productos||[]);
+    CFG=d.config||{}; var ps=sinCincoKg(d.productos||[]); ps.forEach(function(p){ p.nombre=conRubro(p.nombre, p.cat+" "+(p.sub||"")); });
     // La caja de la hoja (categoría SUPREMA CONGELADA, variedad "1 caja"): precio y nombre en vivo.
     COMBO=ps.filter(function(p){ return /SUPREMA CONGELADA/i.test(p.cat); })[0]||null; FIN=COMBO; AHORRO=null;
     st.supera=CFG.envioGratis&&COMBO&&COMBO.precio>=CFG.envioGratisDesde;

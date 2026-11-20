@@ -393,7 +393,7 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v3.3<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v3.4<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -458,10 +458,12 @@ var API ="https://script.google.com/macros/s/AKfycbwH6JW35BRYcBk958OEr4sEvfVIfzg
 // vista-minorista.html y que el bot (src/precios.js, OCULTOS). Para volver a mostrarlos, vaciar la lista.
 var OCULTOS = [/TEQUE/i];
 function oculto(n){ return OCULTOS.some(function(re){ return re.test(n||""); }); }
+/* El nombre tiene que decir QUÉ es el producto aunque se lea suelto (pedido, comanda, WhatsApp): en la lista, las milanesas de soja, las hamburguesas veganas y los canelones traen el rubro solo en el título de la sección ('RELLENA QUESO AZUL...'), y en el local se confundió con una milanesa de pollo rellena (20-nov-2026). Misma función en vista-minorista, index, suprema, combo, el bot (src/precios.js) y Rutas (js/lista.js). */
+function conRubro(n, rubro){ n=String(n||''); var R=String(rubro||'').toUpperCase(), N=n.toUpperCase(); if(/SOJA/.test(R) && !/SOJA/.test(N)) return 'MILANESA DE SOJA '+n; if(/VEGAN/.test(R) && !/HAMBURGUESA/.test(N)) return 'HAMBURGUESA VEGANA '+n.replace(/^\s*VEGANA\s+/i,''); if(/CANELON/.test(R) && !/CANELON/.test(N)) return 'CANELONES '+n; return n; }
 function sinCombos(d){
   return (d||[]).filter(function(s){ return !/^\s*COMBOS?\b/i.test(s.title||""); }).map(function(s){
     var o={}; for(var k in s) o[k]=s[k];
-    o.tables=(s.tables||[]).map(function(t){ var c={}; for(var k in t) c[k]=t[k]; c.rows=(t.rows||[]).filter(function(r){ return !oculto(r.p); }); return c; })
+    o.tables=(s.tables||[]).map(function(t){ var c={}; for(var k in t) c[k]=t[k]; c.rows=(t.rows||[]).filter(function(r){ return !oculto(r.p); }).map(function(r){ var q={}; for(var k in r) q[k]=r[k]; q.p=conRubro(r.p, s.title); return q; }); return c; })
       .filter(function(t){ return t.rows.length; });
     return o;
   }).filter(function(s){ return s.tables.length; });

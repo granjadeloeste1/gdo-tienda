@@ -176,7 +176,10 @@
       var noEntregado = p.estado === 'no_entregado';
       // "En camino" se enciende cuando el repartidor avisa que es el PRÓXIMO en
       // entregarse (manda el WhatsApp "está por llegar" → p.enCamino=true).
-      var enCamino = p.enCamino === true;
+      // Pedido CERRADO (entregado o no entregado): se termina el seguimiento. No se muestra más la
+      // camioneta ni la hora estimada, aunque enCamino haya quedado en true (pedido de Matias, 20-nov-2026).
+      var cerrado = entregado || noEntregado;
+      var enCamino = p.enCamino === true && !cerrado;
       var asignado = p.estado === 'asignado' || p.estado === 'en_ruta' || p.salteado === true || !!p.rutaId;
 
       var ic = '📦', tit = 'Pedido recibido', sub = 'Lo estamos preparando.';
@@ -214,8 +217,8 @@
           navLink +
         '</div>' +
         '<div class="card">' + stepsHTML + '</div>' +
-        '<div class="muted">Se actualiza solo. Dejá esta pantalla abierta para ver el avance.</div>' +
-        '<div class="muted" style="font-size:10px;margin-top:8px;opacity:.8">Propiedad de Granja del Oeste&reg; · v17</div>';
+        (cerrado ? '<div class="muted">El seguimiento de este pedido terminó.</div>' : '<div class="muted">Se actualiza solo. Dejá esta pantalla abierta para ver el avance.</div>') +
+        '<div class="muted" style="font-size:10px;margin-top:8px;opacity:.8">Propiedad de Granja del Oeste&reg; · v18</div>';
 
       if (p.lat != null) pintarMapa(p, (enCamino && info) ? info.chofer : null);
     }
@@ -233,7 +236,7 @@
       // El ETA depende de la hora actual: lo refrescamos solos cada 30 s para que
       // el cliente vea el tiempo avanzar aunque no cambie nada en la ruta.
       setInterval(function () {
-        if (pedidoActual && (pedidoActual.enCamino === true || pedidoActual.estado === 'en_ruta' || pedidoActual.estado === 'salteado')) refrescar();
+        if (pedidoActual && pedidoActual.estado !== 'entregado' && pedidoActual.estado !== 'no_entregado' && (pedidoActual.enCamino === true || pedidoActual.estado === 'en_ruta' || pedidoActual.estado === 'salteado')) refrescar();
       }, 30000);
 
       function escuchar() {
@@ -246,9 +249,13 @@
           p.lat = numONull(p.lat); p.lng = numONull(p.lng);
           if (p.lat == null || p.lng == null) { p.lat = null; p.lng = null; }
           pedidoActual = p;
+          // Cerrado: se corta la escucha de la ruta (ahí viaja el GPS del chofer). El navegador del
+          // cliente deja de recibir la posición de la camioneta.
+          var cerradoP = p.estado === 'entregado' || p.estado === 'no_entregado';
+          if (cerradoP) { rutaActual = null; rutaIdActual = null; if (rutaUnsub) { rutaUnsub(); rutaUnsub = null; } }
 
           // engancha la ruta (para ETA y posición) solo cuando cambia
-          if (p.rutaId && p.rutaId !== rutaIdActual) {
+          if (!cerradoP && p.rutaId && p.rutaId !== rutaIdActual) {
             rutaIdActual = p.rutaId;
             if (rutaUnsub) rutaUnsub();
             rutaUnsub = db.collection('rutas').doc(p.rutaId).onSnapshot(function (rd) {

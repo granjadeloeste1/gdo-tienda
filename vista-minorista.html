@@ -988,7 +988,7 @@ window.GDO = window.GDO || {};
       '<a class="clubcard" href="club.html"><span class="cc-ico">⭐</span><span class="cc-txt"><b>GDO CLUB</b><small>Asociate gratis y sumá puntos con tus compras</small></span><span class="cc-arr">›</span></a>'+
       '<style>.clubcard{display:flex;align-items:center;gap:14px;margin:10px 0;padding:14px 16px;background:#0a0a0b;border:2px solid #F58220;border-radius:16px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.05)}.clubcard .cc-ico{font-size:26px;line-height:1}.clubcard .cc-txt{flex:1;display:flex;flex-direction:column}.clubcard .cc-txt b{font:800 17px system-ui,"Segoe UI",Arial,sans-serif;color:#fff}.clubcard .cc-txt small{font:13px system-ui,"Segoe UI",Arial,sans-serif;color:#bdbdbd;margin-top:2px}.clubcard .cc-arr{font-size:26px;color:#F58220;font-weight:700}</style>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+
-      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.25<br>Todos los derechos reservados</p>';
+      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.26<br>Todos los derechos reservados</p>';
     render(cats);
     // Ajusta la altura del mapa (iframe mismo-origen) a su contenido, y al abrir/cerrar el desplegable.
     (function(){ var det=$('#mapaDet'), f=$('#mapaReparto'); if(!f) return;
@@ -1119,6 +1119,8 @@ window.GDO = window.GDO || {};
     // La hoja trae el nombre mayorista, con el armado de la caja ("X 6 KG (6X1KG)", "X 15 KG (6 X 2,5 KG)").
     // Al público se le vende por kg o por paquete: ese dato lo confunde (lee "5 kg" al lado del precio de 1),
     // así que acá se saca. Si la venta ES la caja o la bolsa, el nombre queda como viene.
+  /* El nombre tiene que decir QUÉ es el producto aunque se lea suelto (pedido, comanda, WhatsApp): en la lista, las milanesas de soja, las hamburguesas veganas y los canelones traen el rubro solo en el título de la sección ('RELLENA QUESO AZUL...'), y en el local se confundió con una milanesa de pollo rellena (20-nov-2026). Misma función en vista-minorista, index, suprema, combo, el bot (src/precios.js) y Rutas (js/lista.js). */
+  function conRubro(n, rubro){ n=String(n||''); var R=String(rubro||'').toUpperCase(), N=n.toUpperCase(); if(/SOJA/.test(R) && !/SOJA/.test(N)) return 'MILANESA DE SOJA '+n; if(/VEGAN/.test(R) && !/HAMBURGUESA/.test(N)) return 'HAMBURGUESA VEGANA '+n.replace(/^\s*VEGANA\s+/i,''); if(/CANELON/.test(R) && !/CANELON/.test(N)) return 'CANELONES '+n; return n; }
     function nombreMin(n, variedad, cat){
       n = String(n||'').replace(/\s+/g,' ').trim();
       if(/caja|bolsa/i.test(variedad||'')) return n;
@@ -1136,7 +1138,7 @@ window.GDO = window.GDO || {};
     // (el medallón con jamón y queso de Bas Frost y el de Grangys), se les agrega la marca del rubro.
     function limpiarNombres(ps){
       var orig={}, n;
-      ps.forEach(function(p){ p._o=String(p.nombre||'').replace(/\s+/g,' ').trim(); p.nombre=nombreMin(p.nombre, p.variedad, p.cat); (orig[p.nombre]=orig[p.nombre]||{})[p._o]=1; });
+      ps.forEach(function(p){ p._o=String(p.nombre||'').replace(/\s+/g,' ').trim(); p.nombre=conRubro(nombreMin(p.nombre, p.variedad, p.cat), p.cat+" "+(p.sub||"")); (orig[p.nombre]=orig[p.nombre]||{})[p._o]=1; });
       ps.forEach(function(p){
         if(Object.keys(orig[p.nombre]).length>1){ var m=String(p.cat||'').replace(/^CONGELADOS\s+/i,'').trim(); if(m && p.nombre.toUpperCase().indexOf(m.toUpperCase())<0) p.nombre+=' '+m; }
         delete p._o;

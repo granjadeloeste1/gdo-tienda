@@ -172,7 +172,7 @@
 </header>
 
 <div class="wrap" id="app"><div class="card">Cargando…</div></div>
-<div class="foot">Propiedad de Granja del Oeste<sup style="font-size:8px">®</sup> · GDO Club · v1.1</div>
+<div class="foot">Propiedad de Granja del Oeste<sup style="font-size:8px">®</sup> · GDO Club · v1.2</div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -660,7 +660,15 @@
     var nom = (socio.nombre||'').split(' ')[0] || 'socio';
     document.getElementById('hdrPts').style.display='inline-block';
     document.getElementById('hdrPts').textContent = fmt(pts)+' pts';
+    // PRIMER PEDIDO: el socio que todavía no hizo ninguna compra con puntos ve,
+    // arriba de todo, el botón para ir a pedir. Va DIRECTO a la lista minorista
+    // (el Club solo suma con compras minoristas). Cuando ya compró, desaparece.
+    var sinCompras = pts === 0 && !socio.ultimoTicket;
     app.innerHTML =
+      (sinCompras ? '<div class="card hero" style="text-align:center">'+
+        '<h1 style="font-size:22px">¡Ya sos socio! 🎉</h1>'+
+        '<p style="margin:6px 0 14px">Hacé tu primer pedido y empezá a sumar <b class="marca">Puntos GDO</b>.</p>'+
+        '<a class="btn" href="vista-minorista.html" style="text-decoration:none">Hacer mi primer pedido</a></div>' : '')+
       '<p class="saludo">¡Hola '+esc(nom)+'! 👋 Esta es tu credencial de socio:</p>'+
       carnetHTML(socio)+'<div style="height:14px"></div>'+
       '<div class="card"><h2 class="sec-t">🎁 Premios para canjear</h2><div id="premios"><p class="muted small">Cargando premios…</p></div></div>'+
@@ -668,7 +676,7 @@
       invitarCard(socio)+
       '<div class="card" id="logCard" style="display:none"><details class="faqwrap"><summary class="faq-head"><span class="faq-bar"></span>📜 Historial de puntos<span class="faq-chev">▾</span></summary><div id="logPts" style="margin-top:12px"></div></details></div>'+
       faqCard()+
-      '<div class="card" style="text-align:center"><a class="volver" href="index.html">← Ir a la lista de precios</a>'+
+      '<div class="card" style="text-align:center"><a class="volver" href="vista-minorista.html">← Ir a la lista de precios</a>'+
         '<div style="height:12px"></div><button class="btn-g" id="out" type="button">Cerrar sesión</button>'+
         '<div style="height:6px"></div><button class="btn-g" id="delAcc" type="button" style="color:#e06a5b;font-size:12px">Eliminar mi cuenta</button></div>';
     document.getElementById('out').onclick = function(){ auth.signOut(); };

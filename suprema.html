@@ -257,7 +257,9 @@ window.GDO = window.GDO || {};
 <script src="preparaciones.js?v=4"></script>
 <script>
 (function(){
-  var VERSION='suprema v1.26';
+  var VERSION='suprema v1.27';
+  // Productos OCULTOS hasta nuevo aviso: mismo listado que index.html, vista-minorista.html y el bot (src/precios.js).
+  var OCULTOS=[/TEQUE/i];
   // Timbre / Dto forma parte de la dirección: "García Silva 434 - Timbre 6".
   function dirTimbre(d,t){ d=String(d||'').trim(); t=String(t||'').trim().replace(/^[-\s]+/,''); if(!d||!t) return d; if(!/^(timbre|tbre|dto|dpto|depto|departamento|piso|casa|ph|fondo|local|lote|uf)(?![a-z])/i.test(t)) t='Timbre/Dto '+t; return d+' - '+t; }
   // Pago online con la API de Nave: el servidor del bot (src/nave.js) crea UN cobro por pedido con
@@ -368,7 +370,7 @@ window.GDO = window.GDO || {};
   // Regla de Matias (15-nov-2026): milanesas crunch, patitas artesanales y albondigas se venden a 1 kg o desde 2 kg; el escalon de 5 kg no va.
   function sinCincoKg(ps){ return ps.filter(function(p){ return !(/MILANES.*CRUN?CH|PATITAS ARTESANALES|ALB[OÓ]NDIGA/i.test(p.nombre||'') && /^5\s*kg$/i.test(String(p.variedad).trim())); }); }
   pedirLista(1).catch(pedirCopia).then(function(d){
-    CFG=d.config||{}; var ps=sinCincoKg(d.productos||[]); ps.forEach(function(p){ p.nombre=conRubro(p.nombre, p.cat+" "+(p.sub||"")); });
+    CFG=d.config||{}; var ps=sinCincoKg((d.productos||[]).filter(function(p){ return !OCULTOS.some(function(re){ return re.test(p.nombre||""); }); })); ps.forEach(function(p){ p.nombre=conRubro(p.nombre, p.cat+" "+(p.sub||"")); });
     // La caja de la hoja (categoría SUPREMA CONGELADA, variedad "1 caja"): precio y nombre en vivo.
     COMBO=ps.filter(function(p){ return /SUPREMA CONGELADA/i.test(p.cat); })[0]||null; FIN=COMBO; AHORRO=null;
     st.supera=CFG.envioGratis&&COMBO&&COMBO.precio>=CFG.envioGratisDesde;

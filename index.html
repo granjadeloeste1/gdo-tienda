@@ -393,7 +393,7 @@ td.l{color:#3a4048}
       </a>
     </div>
     <p style="margin:22px 0 0;font:12px system-ui,'Segoe UI',Arial,sans-serif;color:#9a9a9a;line-height:1.5">
-      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v3.4<br>Todos los derechos reservados
+      Propiedad de <b style="color:#777">Granja del Oeste&reg;</b> &middot; v3.5<br>Todos los derechos reservados
     </p>
   </div>
   <a class="wa" style="z-index:100001" href="https://wa.me/5491135800164" target="_blank" rel="noopener" aria-label="WhatsApp">
@@ -634,7 +634,7 @@ function render() {
           orderCell += "</div>";
         });
         // La descripción es la misma de la lista minorista (columna DESCRIPCIÓN de MOSTRADOR).
-        tbH += "<tr><td class=\"l\">" + escAttr(row.p) + (row.d ? "<div class=\"pdesc\">" + escAttr(row.d) + "</div>" : "") + "</td>";
+        tbH += "<tr><td class=\"l\">" + escAttr(row.p) + bandera(row.p) + (row.d ? "<div class=\"pdesc\">" + escAttr(row.d) + "</div>" : "") + "</td>";
         valCols.forEach(function(i) { tbH += "<td class=\"r\">" + $n((row.v || [])[i - 1]) + "</td>"; });
         tbH += "<td class=\"r ordcell\">" + orderCell + "</td>";
         tbH += "</tr>";
@@ -898,6 +898,13 @@ function setCorteVal(i, oi, val){
   if(total<=0){ cart.splice(i,1); persistCart(); renderCart(); renderCartBar(); render(); return; }
   l.qty=total;
   persistCart(); renderCart(); renderCartBar(); render();
+}
+// Banderita del estilo de la hamburguesa (Luigi italiana, Greta alemana, carne criolla). SVG y no emoji: en Windows el emoji de bandera sale como letras.
+function bandera(n){ n=String(n||'').toUpperCase(); var s=null;
+  if(/ITALIAN/.test(n)) s='<rect width="8" height="16" fill="#009246"/><rect x="8" width="8" height="16" fill="#fff"/><rect x="16" width="8" height="16" fill="#CE2B37"/>';
+  else if(/GRETA|ALEMAN/.test(n)) s='<rect width="24" height="5.4" fill="#000"/><rect y="5.3" width="24" height="5.4" fill="#DD0000"/><rect y="10.6" width="24" height="5.4" fill="#FFCE00"/>';
+  else if(/CRIOLL/.test(n)) s='<rect width="24" height="16" fill="#fff"/><rect width="24" height="5.33" fill="#74ACDF"/><rect y="10.67" width="24" height="5.33" fill="#74ACDF"/><circle cx="12" cy="8" r="1.9" fill="#F6B40E"/>';
+  return s ? ' <svg class="flag" viewBox="0 0 24 16" width="21" height="14" style="vertical-align:-2px;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.18)" aria-hidden="true">'+s+'</svg>' : '';
 }
 function escAttr(s){ return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 function removeLine(i){ cart.splice(i,1); persistCart(); renderCart(); renderCartBar(); }

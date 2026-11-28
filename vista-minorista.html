@@ -471,6 +471,18 @@ window.GDO = window.GDO || {};
     var k=pkey(nombre), it=CART[k]||{tipo:'peso',nombre:nombre,tiers:tiers,kg:0,nota:''};
     var min=minKgDe(nombre), step=kgPieza(nombre)||((min%1)?0.5:1), nv=Math.round((it.kg+delta*step)*10)/10;
     if(nv>0 && nv<min) nv=(delta<0?0:min);   // al subir salta al mínimo; al bajar, a 0
+    /* Si la línea está repartida en cortes, el + / − del carrito toca los cortes
+       (el de más kilos), nunca el total solo: si no, quedaba "6 kg" con cortes de
+       4 + 3 y la comanda salía mal (caso Agus Sohaner, 28-nov-2026). */
+    var cl=cortesLista(it);
+    if(cl.length && nv>0){
+      var dif=Math.round((Math.max(0,nv)-sumaCortes(it.cortes))*10)/10;
+      for(var ci=0; ci<cl.length && Math.abs(dif)>0.001; ci++){
+        var c=cl[ci].corte, a=it.cortes[c]||0, b=Math.max(0, Math.round((a+dif)*10)/10);
+        dif=Math.round((dif-(b-a))*10)/10; it.cortes[c]=b;
+      }
+      nv=sumaCortes(it.cortes);
+    } else if(nv<=0) it.cortes={};
     it.kg=Math.max(0,nv); it.tiers=tiers;
     if(it.kg===0) delete CART[k]; else { if(!CART[k]) gdoPx("AddToCart",{content_name:nombre,currency:"ARS"}); CART[k]=it; }
     sync(); drawCart();
@@ -995,7 +1007,7 @@ window.GDO = window.GDO || {};
       '<a class="clubcard" href="club.html"><span class="cc-ico">⭐</span><span class="cc-txt"><b>GDO CLUB</b><small>Asociate gratis y sumá puntos con tus compras</small></span><span class="cc-arr">›</span></a>'+
       '<style>.clubcard{display:flex;align-items:center;gap:14px;margin:10px 0;padding:14px 16px;background:#0a0a0b;border:2px solid #F58220;border-radius:16px;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.05)}.clubcard .cc-ico{font-size:26px;line-height:1}.clubcard .cc-txt{flex:1;display:flex;flex-direction:column}.clubcard .cc-txt b{font:800 17px system-ui,"Segoe UI",Arial,sans-serif;color:#fff}.clubcard .cc-txt small{font:13px system-ui,"Segoe UI",Arial,sans-serif;color:#bdbdbd;margin-top:2px}.clubcard .cc-arr{font-size:26px;color:#F58220;font-weight:700}</style>'+
       '<input class="search" id="q" placeholder="Buscar producto…"/><div id="acc"></div>'+
-      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.28<br>Todos los derechos reservados</p>';
+      '<p class="gdofoot">Propiedad de <b>Granja del Oeste&reg;</b> · v2.29<br>Todos los derechos reservados</p>';
     render(cats);
     // Ajusta la altura del mapa (iframe mismo-origen) a su contenido, y al abrir/cerrar el desplegable.
     (function(){ var det=$('#mapaDet'), f=$('#mapaReparto'); if(!f) return;
